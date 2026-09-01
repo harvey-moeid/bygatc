@@ -1,0 +1,37 @@
+name = "btc-dashboard-worker"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ── Cron Triggers ──────────────────────────────────────────────────
+# Setiap jam: fetch news + fear & greed → simpan ke KV
+[triggers]
+crons = ["0 * * * *"]
+
+# ── KV (dev lokal — pakai preview) ───────────────────────────────────────────
+[[kv_namespaces]]
+binding = "BTC_CACHE"
+id = "REPLACE_WITH_DEV_KV_ID"
+preview_id = "REPLACE_WITH_DEV_KV_PREVIEW_ID"
+
+# ── Staging ─────────────────────────────────────────────────
+[env.staging]
+name = "btc-dashboard-worker-staging"
+
+[env.staging.triggers]
+crons = ["0 * * * *"]
+
+[[env.staging.kv_namespaces]]
+binding = "BTC_CACHE"
+id = "REPLACE_WITH_STAGING_KV_ID"
+
+# ── Production ──────────────────────────────────────────────────
+[env.production]
+name = "btc-dashboard-worker-production"
+
+[env.production.triggers]
+crons = ["0 * * * *"]
+
+[[env.production.kv_namespaces]]
+binding = "BTC_CACHE"
+id = "REPLACE_WITH_PRODUCTION_KV_ID"

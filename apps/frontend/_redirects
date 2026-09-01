@@ -1,0 +1,25 @@
+[[redirects]]
+  # Semua request ke /api/* diteruskan ke Worker
+  # Setelah Worker di-deploy, set SERVICE_WORKER_URL di Pages env vars
+  # atau gunakan Service Binding (direkomendasikan).
+  from = "/api/*"
+  to = "https://btc-dashboard-worker-production.YOUR_SUBDOMAIN.workers.dev/api/:splat"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=120, stale-while-revalidate=60"
+
+[[headers]]
+  for = "/src/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, immutable"
