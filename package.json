@@ -1,0 +1,12 @@
+{
+  "name": "btc-dashboard",
+  "private": true,
+  "scripts": {
+    "dev:worker": "pnpm --filter worker dev",
+    "deploy:worker:staging": "pnpm --filter worker deploy:staging",
+    "deploy:worker:production": "pnpm --filter worker deploy:production"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  }
+}
