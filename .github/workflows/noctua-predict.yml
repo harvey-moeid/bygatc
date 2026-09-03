@@ -2,28 +2,22 @@
 # =====================================================================
 # Jalankan NOCTUA Python model (predict.py) setiap 30 menit.
 # Hasilnya di-push ke Cloudflare Worker KV via POST /api/noctua/push
-# — bukan commit ke repo lagi.
+# -- bukan commit ke repo lagi.
 #
 # Jika data/noctua_history.parquet belum ada, workflow akan mem-build
 # bundle dari Bitstamp API (~400 hari) dan commit ke repo secara otomatis.
 # Run berikutnya hanya fetch tail (cepat, 1 request).
 #
-# News + Fear&Greed TIDAK lagi diurus di sini:
-#   → sudah pindah ke Cloudflare Cron Trigger (Worker) yang jalan setiap jam.
-#
 # Secrets yang dibutuhkan di repo settings:
-#   NOCTUA_WORKER_URL   → misal: https://btc-dashboard-worker-production.xxx.workers.dev
-#   NOCTUA_PUSH_SECRET  → sama dengan wrangler secret NOCTUA_PUSH_SECRET di Worker
-#
-# Optional:
-#   EXA_API_KEY         → jika ingin Exa news kualitas lebih baik (Worker juga bisa pakai ini)
+#   NOCTUA_WORKER_URL   -- misal: https://btc-dashboard-worker-production.xxx.workers.dev
+#   NOCTUA_PUSH_SECRET  -- sama dengan wrangler secret NOCTUA_PUSH_SECRET di Worker
 
 name: noctua-predict
 
 on:
   schedule:
-    - cron: '*/30 * * * *'   # setiap 30 menit (GH bisa delay beberapa menit)
-  workflow_dispatch: {}       # bisa dijalankan manual
+    - cron: '*/30 * * * *'
+  workflow_dispatch: {}
 
 concurrency:
   group: noctua-predict
@@ -32,10 +26,10 @@ concurrency:
 jobs:
   predict:
     runs-on: ubuntu-latest
-    timeout-minutes: 20  # dinaikkan dari 8 → 20 untuk cover bootstrap (~10 menit)
+    timeout-minutes: 20
 
     permissions:
-      contents: write   # dibutuhkan untuk commit bundle jika bootstrap
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -52,7 +46,7 @@ jobs:
       - name: Bootstrap history bundle (hanya jika belum ada)
         run: |
           if [ ! -f data/noctua_history.parquet ]; then
-            echo "[CI] Bundle belum ada, menjalankan bootstrap (~400 hari dari API)..."
+            echo "[CI] Bundle belum ada, menjalankan bootstrap..."
             python model/serve/bootstrap_bundle.py
             echo "[CI] Bootstrap selesai. Commit bundle ke repo..."
             git config user.name  "github-actions[bot]"
@@ -65,9 +59,8 @@ jobs:
             echo "[CI] Bundle sudah ada, skip bootstrap."
           fi
 
-      - name: Run NOCTUA forecast → /tmp/noctua_out
+      - name: Run NOCTUA forecast
         run: python model/serve/predict.py --out-dir /tmp/noctua_out
-        # Simpan ke /tmp bukan data/ — tidak perlu commit ke repo lagi
 
       - name: Push hasil ke Cloudflare Worker KV
         env:
@@ -79,21 +72,21 @@ jobs:
           NOCTUA_FILE="/tmp/noctua_out/noctua.json"
           KRONOS_FILE="/tmp/noctua_out/kronos.json"
 
-          # Merge noctua.json + kronos.json jadi satu payload
           if [ -f "$NOCTUA_FILE" ] && [ -f "$KRONOS_FILE" ]; then
-            PAYLOAD=$(python3 -c "
-import json, sys
-n = json.load(open('$NOCTUA_FILE'))
-k = json.load(open('$KRONOS_FILE'))
-merged = {**k, **n, '_source': 'gh-actions-noctua'}
+            PAYLOAD=$(python3 - <<'PYEOF'
+import json
+n = json.load(open("/tmp/noctua_out/noctua.json"))
+k = json.load(open("/tmp/noctua_out/kronos.json"))
+merged = {**k, **n, "_source": "gh-actions-noctua"}
 print(json.dumps(merged))
-")
+PYEOF
+)
           elif [ -f "$NOCTUA_FILE" ]; then
             PAYLOAD=$(cat "$NOCTUA_FILE")
           elif [ -f "$KRONOS_FILE" ]; then
             PAYLOAD=$(cat "$KRONOS_FILE")
           else
-            echo "No prediction output found — skipping push"
+            echo "No prediction output found -- skipping push"
             exit 0
           fi
 
@@ -112,4 +105,4 @@ print(json.dumps(merged))
             exit 1
           fi
 
-          echo "Push OK — prediction live in KV"
+          echo "Push OK -- prediction live in KV"
