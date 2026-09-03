@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https:; frame-src 'none'; object-src 'none'; base-uri 'self'">
+<title>BTC Option-Selling Desk — Delta Exchange edition</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#11151f; --panel2:#161b28; --line:#222a3a;
+    --txt:#dbe2f0; --dim:#7e8aa3; --grn:#2fd57b; --red:#ff5470; --amb:#ffb347;
+    --acc:#5b8cff; --mono:'SF Mono',Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif;padding:18px}
+  header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:19px;letter-spacing:.4px}
+  h1 span{color:var(--acc)}
+  a.back{color:var(--dim);text-decoration:none;font-size:12px}
+  a.back:hover{color:var(--acc)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:10px}
+  .big{font-size:26px;font-weight:700;font-family:var(--mono)}
+  .kv{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .kv:last-child{border-bottom:none}
+  .kv b{font-family:var(--mono)}
+  .pos{color:var(--grn)} .neg{color:var(--red)} .warn{color:var(--amb)}
+  .verdict{font-size:17px;font-weight:700;padding:10px 12px;border-radius:8px;margin-top:8px;text-align:center}
+  .v-sell{background:rgba(47,213,123,.12);border:1px solid var(--grn);color:var(--grn)}
+  .v-caution{background:rgba(255,179,71,.12);border:1px solid var(--amb);color:var(--amb)}
+  .v-stand{background:rgba(255,84,112,.12);border:1px solid var(--red);color:var(--red)}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+  th{color:var(--dim);text-align:right;font-weight:600;padding:5px 7px;border-bottom:1px solid var(--line)}
+  td{text-align:right;padding:5px 7px;border-bottom:1px solid #1a2030}
+  tr.atm td{background:rgba(91,140,255,.10)}
+  tr.leg td{background:rgba(47,213,123,.10)}
+  .controls{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:8px 0 12px}
+  .controls label{font-size:12px;color:var(--dim)}
+  input[type=range]{accent-color:var(--acc);vertical-align:middle}
+  select,button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  .mono{font-family:var(--mono)}
+  .foot{margin-top:16px;color:var(--dim);font-size:11.5px;line-height:1.6}
+  .tag{display:inline-block;font-size:10.5px;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--dim);margin-left:6px}
+  #status{font-size:12px;color:var(--dim)}
+  .wide{grid-column:1/-1}
+</style>
+</head>
+<body>
+<header>
+  <h1>BTC <span>Option-Selling Desk</span> <span class="tag">Delta Exchange edition · v1</span></h1>
+  <a class="back" href="index.html">&larr; main dashboard</a>
+  <span id="status" role="status" aria-live="polite">loading chain…</span>
+  <button id="btnRefresh" aria-label="Refresh chain">&#8635; Refresh</button>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <h2>Market &amp; Vol Regime</h2>
+    <div class="big" id="spot">—</div>
+    <div class="kv"><span>ATM IV (nearest serious expiry)</span><b id="atmIv">—</b></div>
+    <div class="kv"><span>HV20 (realized, daily)</span><b id="hv20">—</b></div>
+    <div class="kv"><span>IV / HV ratio</span><b id="ivhv">—</b></div>
+    <div class="kv"><span>Expected move to expiry (1&sigma;)</span><b id="expMove">—</b></div>
+    <div class="kv"><span>Funding (8h, Binance perp)</span><b id="funding">—</b></div>
+  </div>
+
+  <div class="card">
+    <h2>Risk Gate — should you be selling vol today?</h2>
+    <div class="kv"><span>Kronos upside prob (24h)</span><b id="krUp">—</b></div>
+    <div class="kv"><span>Kronos vol amplification (24h)</span><b id="krVol">—</b></div>
+    <div class="kv"><span>Fear &amp; Greed</span><b id="fng">—</b></div>
+    <div class="kv"><span>Vol-risk premium edge</span><b id="vrp">—</b></div>
+    <div class="verdict" id="verdict">computing…</div>
+    <div id="verdictWhy" style="font-size:12px;color:var(--dim);margin-top:8px"></div>
+  </div>
+
+  <div class="card wide" style="border-color:rgba(91,140,255,.45)">
+    <h2>Desk Notes — today's market, in plain English</h2>
+    <div id="deskNotes" style="font-size:13.5px;line-height:1.7">computing…</div>
+    <div id="deskGlossary" style="font-size:11.5px;color:var(--dim);margin-top:10px"></div>
+  </div>
+
+  <div class="card wide" style="border-color:rgba(63,185,80,.45)">
+    <h2>Trading Clock — when BTC sleeps and when it roars <span style="font-weight:normal;font-size:11px;color:var(--dim)">(2015–2026 study, post-ETF era)</span></h2>
+    <div id="clockNow" style="font-size:14px;margin-bottom:8px">computing…</div>
+    <div id="clockBars" aria-label="Volatility by UTC hour" style="display:flex;gap:2px;align-items:flex-end;height:54px;margin:6px 0"></div>
+    <div style="font-size:10.5px;color:var(--dim);display:flex;justify-content:space-between"><span>00 UTC</span><span>06</span><span>12</span><span>18</span><span>23 UTC</span></div>
+    <div id="clockAdvice" style="font-size:12.5px;line-height:1.65;margin-top:8px"></div>
+  </div>
+
+  <div class="card wide" style="border-color:rgba(255,179,71,.45)">
+    <h2>Buyer's Radar — when paying premium is statistically justified <span style="font-weight:normal;font-size:11px;color:var(--dim)">(backtested vs real Deribit IV, post-ETF)</span></h2>
+    <div class="kv"><span>DVOL (BTC 30d implied vol index)</span><b id="radarDvol">—</b></div>
+    <div class="kv"><span>Shock day (|move| &gt; 2.5&times; normal)</span><b id="radarShock">—</b></div>
+    <div class="verdict" id="radarVerdict">computing…</div>
+    <div id="radarWhy" style="font-size:12px;color:var(--dim);margin-top:8px;line-height:1.65"></div>
+  </div>
+
+  <div class="card wide" style="border-color:rgba(47,213,123,.45)">
+    <h2>Seller's Compass — directional premium selling, regime by regime <span style="font-weight:normal;font-size:11px;color:var(--dim)">(894 days backtested at real DVOL; put-side edge only)</span></h2>
+    <div class="kv"><span>Trend (MA100) &amp; drawdown from 90d high</span><b id="scTrend">—</b></div>
+    <div class="kv"><span>Perp funding regime (7d avg, 180d percentile)</span><b id="scFund">—</b></div>
+    <div class="kv"><span>RSI(14) — anti-signal gate</span><b id="scRsi">—</b></div>
+    <div class="verdict" id="scVerdict">computing…</div>
+    <div id="scWhy" style="font-size:12px;color:var(--dim);margin-top:8px;line-height:1.65"></div>
+  </div>
+
+  <div class="card wide" style="border-color:rgba(90,167,255,.5)">
+    <h2>Daily Desk — the 1DTE seller's calendar &amp; clock <span style="font-weight:normal;font-size:11px;color:var(--dim)">(998 daily expiries backtested at real DVOL; settles 12:00 UTC / 5:30 PM IST)</span></h2>
+    <div class="kv"><span>Next daily expiry (12:00 UTC window)</span><b id="ddWindow">—</b></div>
+    <div class="kv"><span>Hours to expiry / entry-clock advice</span><b id="ddHours">—</b></div>
+    <div class="kv"><span>Live 1-day ATM IV vs DVOL (edge already priced?)</span><b id="ddIv">—</b></div>
+    <div class="verdict" id="ddVerdict">computing…</div>
+    <div id="ddWhy" style="font-size:12px;color:var(--dim);margin-top:8px;line-height:1.65"></div>
+  </div>
+
+  <div class="card wide">
+    <h2>Short Strangle Builder (delta-targeted)</h2>
+    <div class="controls">
+      <label>Expiry <select id="expirySel"></select></label>
+      <label>Target |&Delta;| per leg
+        <input type="range" id="deltaSlider" min="5" max="30" value="15" step="1">
+        <span class="mono" id="deltaVal">0.15</span>
+      </label>
+      <label>Lots (0.001 BTC each on Delta Ex.)
+        <input type="range" id="lotSlider" min="1" max="100" value="10" step="1">
+        <span class="mono" id="lotVal">10</span>
+      </label>
+    </div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <div class="kv"><span>Sell PUT</span><b id="putLeg">—</b></div>
+        <div class="kv"><span>Sell CALL</span><b id="callLeg">—</b></div>
+        <div class="kv"><span>Total credit</span><b id="credit" class="pos">—</b></div>
+        <div class="kv"><span>Breakevens</span><b id="breakevens">—</b></div>
+      </div>
+      <div>
+        <div class="kv"><span>Approx POP (1 &minus; &Sigma;|&Delta;|)</span><b id="pop">—</b></div>
+        <div class="kv"><span>Est. margin (Delta Ex. heuristic)</span><b id="margin">—</b></div>
+        <div class="kv"><span>Return on margin to expiry</span><b id="rom">—</b></div>
+        <div class="kv"><span>Credit / Expected-move ratio</span><b id="cem">—</b></div>
+      </div>
+    </div>
+    <div id="legNotes" style="font-size:12px;color:var(--dim);margin-top:8px"></div>
+  </div>
+
+  <div class="card wide">
+    <h2>Option Chain <span class="mono" id="chainExpiry"></span> — IV &amp; &Delta; solved locally (Black-76 on Deribit marks)</h2>
+    <div style="max-height:420px;overflow:auto">
+      <table id="chainTbl">
+        <thead><tr>
+          <th>Call mark $</th><th>Call IV</th><th>Call &Delta;</th><th>Call OI</th>
+          <th style="text-align:center">Strike</th>
+          <th>Put OI</th><th>Put &Delta;</th><th>Put IV</th><th>Put mark $</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <b>Method.</b> Chain marks from Deribit public API (1 call); IV inverted from mark via Black-76 bisection; deltas analytic.
+  Deribit IV transfers to Delta Exchange BTC options to within typical spread (same underlying, arb-linked), but always check Delta's own quote before firing.
+  POP is the delta approximation (risk-neutral, ignores skew drift). Margin heuristic: max(15% &times; spot &minus; OTM distance, 7.5% &times; spot) + premium, per leg, strangle benefit 50% on the cheaper leg — verify in Delta's margin calculator.
+  <b>Not financial advice.</b> Short strangles carry unlimited risk; size so a 3&sigma; move doesn't end your account.
+</div>
+
+<script src="src/options.js"></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+node_modules/
+.pnpm-store/
+dist/
+.wrangler/
+*.parquet
+.env
+.env.local
+.dev.vars

@@ -1,0 +1,58 @@
+# .github/workflows/deploy-worker.yml
+# =====================================================================
+# Deploy Cloudflare Worker secara otomatis saat push ke branch main.
+#
+# Secrets yang dibutuhkan:
+#   CLOUDFLARE_API_TOKEN  — API token dengan scope Workers:Edit + KV:Edit
+#   CLOUDFLARE_ACCOUNT_ID — Account ID dari dashboard Cloudflare
+
+name: deploy-worker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/worker/**'
+      - '.github/workflows/deploy-worker.yml'
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy Worker to production
+        working-directory: apps/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: pnpm deploy:production
+
+      - name: Set NOCTUA_PUSH_SECRET (first deploy only)
+        if: github.event_name == 'workflow_dispatch'
+        working-directory: apps/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NOCTUA_PUSH_SECRET: ${{ secrets.NOCTUA_PUSH_SECRET }}
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+        run: |
+          echo "$NOCTUA_PUSH_SECRET" | pnpm wrangler secret put NOCTUA_PUSH_SECRET --env production
+          if [ -n "$EXA_API_KEY" ]; then
+            echo "$EXA_API_KEY" | pnpm wrangler secret put EXA_API_KEY --env production
+          fi

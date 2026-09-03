@@ -1,0 +1,5 @@
+# Runtime for the GitHub Action -- serving UI deps (gradio) excluded.
+numpy>=1.26
+scipy>=1.11
+pandas>=2.0
+pyarrow>=14.0

@@ -1,0 +1,16 @@
+{
+  "upside": 50.0,
+  "p_up_raw": 51.8,
+  "volAmp": 48.0,
+  "sourceTs": "2026-08-31 13:00:00",
+  "sourceMs": 1788181200000,
+  "tz": "UTC",
+  "ageHrs": 0.0,
+  "freshness": "fresh",
+  "fetchedAt": 1788187773586,
+  "proxy": "noctua-local",
+  "_updatedMs": 1788187773586,
+  "model": "NOCTUA-v2",
+  "upside_is_informative": false,
+  "warning": "upside is pinned to 50.0 on purpose: direction is NOT predictable at this horizon (walk-forward log-loss 0.6941 vs 0.6931 for a coin flip), and src/data.js uses this field to skew strike recommendations. The model's raw P(up) is in p_up_raw, wired to nothing. volAmp and the barrier levels in noctua.json ARE validated."
+}

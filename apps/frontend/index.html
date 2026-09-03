@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- v4.1: CSP. GitHub Pages can't send headers, so a meta tag is the best
+     available control. connect-src is broad (https:) because the CORS-proxy
+     chain + free APIs span many hosts; script-src is the part that matters:
+     only self + cdnjs, no inline event handlers would be ideal but the page
+     uses oninput= on sliders, hence 'unsafe-inline' for now. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https:; frame-src 'none'; object-src 'none'; base-uri 'self'">
+<title>BTC Options Desk · KRONOS / HV20 / Retail Seller v4</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>₿</text></svg>">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+:root{
+  --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a24;--surface3:#22222e;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --text:#e7e7f0;--muted:#71717a;--dim:#52525b;
+  --accent:#818cf8;--accent2:#a78bfa;
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);--green-bd:rgba(74,222,128,0.3);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-bd:rgba(248,113,113,0.3);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);--amber-bd:rgba(251,191,36,0.3);
+  --blue:#60a5fa;--cyan:#22d3ee;--pink:#f472b6;
+  --font-mono:'Space Mono',monospace;--font:'Inter',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;overflow-x:hidden}
+
+/* Background texture */
+body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.3;
+  background-image:linear-gradient(rgba(129,140,248,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(129,140,248,0.03) 1px,transparent 1px);background-size:64px 64px}
+
+.wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:18px 16px}
+
+/* ═══════════ TOP BAR ═══════════ */
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-logo{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent);letter-spacing:-.3px}
+.brand-logo b{color:var(--cyan)}
+.brand-sub{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
+.live-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:12px;padding:2px 9px;font-size:10px;font-family:var(--font-mono);color:var(--green)}
+.pulse{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.pill-sm{font-size:10px;padding:4px 10px;border-radius:6px;font-family:var(--font-mono)}
+.pill-sm.ok{background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green)}
+.pill-sm.warn{background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber)}
+.pill-sm.err{background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red)}
+.pill-sm.muted{background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
+.btn{background:transparent;border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:10px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s;letter-spacing:.04em}
+.btn:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
+
+/* ═══════════ HERO DECISION CARD ═══════════ */
+.hero{position:relative;border-radius:14px;padding:22px 24px;margin-bottom:14px;border:2px solid;overflow:hidden}
+.hero.go{border-color:var(--green-bd);background:linear-gradient(135deg,rgba(74,222,128,0.06),rgba(74,222,128,0.02))}
+.hero.cau{border-color:var(--amber-bd);background:linear-gradient(135deg,rgba(251,191,36,0.06),rgba(251,191,36,0.02))}
+.hero.nt{border-color:var(--red-bd);background:linear-gradient(135deg,rgba(248,113,113,0.06),rgba(248,113,113,0.02))}
+.hero::before{content:'';position:absolute;top:0;right:0;width:300px;height:300px;opacity:.04;pointer-events:none;
+  background:radial-gradient(circle,var(--fg,var(--accent)) 0%,transparent 70%)}
+.hero.go::before{--fg:var(--green)}.hero.cau::before{--fg:var(--amber)}.hero.nt::before{--fg:var(--red)}
+
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:14px}
+.hero-verdict{display:flex;align-items:center;gap:16px}
+.verdict-icon{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;flex-shrink:0}
+.hero.go .verdict-icon{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd)}
+.hero.cau .verdict-icon{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)}
+.hero.nt .verdict-icon{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
+.verdict-text{display:flex;flex-direction:column;gap:2px}
+.verdict-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
+.verdict-main{font-size:32px;font-weight:700;line-height:1;font-family:var(--font-mono);letter-spacing:-.02em}
+.hero.go .verdict-main{color:var(--green)}.hero.cau .verdict-main{color:var(--amber)}.hero.nt .verdict-main{color:var(--red)}
+.verdict-sub{font-size:12px;color:var(--muted);margin-top:4px;max-width:500px}
+
+.hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.conf-box{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:180px}
+.conf-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.conf-num{font-family:var(--font-mono);font-size:22px;font-weight:700;line-height:1}
+.hero.go .conf-num{color:var(--green)}.hero.cau .conf-num{color:var(--amber)}.hero.nt .conf-num{color:var(--red)}
+.conf-bar-wrap{width:180px;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden}
+.conf-bar-fill{height:100%;border-radius:3px;transition:width 1.2s cubic-bezier(.4,0,.2,1)}
+
+.hero-reasons{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+@media(max-width:720px){.hero-reasons{grid-template-columns:1fr}}
+.hero-col-title{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.hero-col-title::before{content:'';width:5px;height:5px;border-radius:50%}
+.hero-col-title.pos::before{background:var(--green)}
+.hero-col-title.neg::before{background:var(--red)}
+.hero-reason{display:flex;align-items:flex-start;gap:8px;font-size:12px;padding:5px 0;line-height:1.4}
+.hero-reason-dot{width:4px;height:4px;border-radius:50%;margin-top:7px;flex-shrink:0}
+.hero-reason.pos .hero-reason-dot{background:var(--green)}
+.hero-reason.neg .hero-reason-dot{background:var(--red)}
+
+.trade-structure-box{margin-top:14px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.tsb-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.tsb-value{font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--text)}
+.tsb-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* ═══════════ MARKET PULSE STRIP ═══════════ */
+.pulse-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
+.pulse-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;position:relative}
+.pc-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.pc-val{font-family:var(--font-mono);font-size:17px;font-weight:700;line-height:1.1}
+.pc-sub{font-size:10px;color:var(--muted);margin-top:3px}
+.pc-trend{position:absolute;top:11px;right:11px;font-size:10px;font-family:var(--font-mono)}
+.pc-val.pos{color:var(--green)}.pc-val.neg{color:var(--red)}.pc-val.neu{color:var(--amber)}
+.pc-val.cyan{color:var(--cyan)}.pc-val.purple{color:var(--accent)}
+
+/* ═══════════ SECTION HEADER ═══════════ */
+.sh{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:20px 0 10px;display:flex;align-items:center;gap:10px;font-weight:500}
+.sh::after{content:'';flex:1;height:1px;background:var(--border)}
+.sh-tag{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface2);padding:2px 7px;border-radius:3px;border:1px solid var(--border);font-weight:400}
+
+/* ═══════════ SESSION RIBBON ═══════════ */
+.session-ribbon{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.sr-phase{font-size:16px;font-weight:700;font-family:var(--font-mono)}
+.sr-phase.best{color:var(--green)}.sr-phase.ok{color:var(--cyan)}.sr-phase.warn{color:var(--amber)}.sr-phase.skip{color:var(--red)}.sr-phase.neutral{color:var(--muted)}
+.sr-advice{font-size:12px;color:var(--text);flex:1;min-width:240px}
+.sr-clock{font-family:var(--font-mono);font-size:13px;color:var(--muted)}
+.session-bar{display:flex;height:20px;border-radius:5px;overflow:hidden;margin-top:10px}
+.session-seg{font-size:8px;font-weight:500;color:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;position:relative}
+.session-now{position:relative;width:2px;background:#fff;border-radius:2px;animation:pulse-now 1.8s infinite;z-index:2}
+@keyframes pulse-now{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}50%{box-shadow:0 0 8px 3px rgba(255,255,255,.3)}}
+/* a11y: skip link + honor user motion preference */
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--surface,#161b28);color:#fff;padding:8px 14px;border-radius:6px;z-index:999}
+.skip-link:focus{left:10px;top:10px}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
+
+/* ═══════════ REGIME DIAL ═══════════ */
+.regime-dial-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px}
+.rd-grid{display:grid;grid-template-columns:2fr 1.2fr 1.5fr;gap:24px;align-items:center}
+@media(max-width:900px){.rd-grid{grid-template-columns:1fr;gap:16px}}
+.rd-main{display:flex;align-items:center;gap:18px}
+.rd-gauge{position:relative;width:120px;height:72px;flex-shrink:0}
+.rd-gauge svg{transform:scale(1.1);transform-origin:center bottom}
+.rd-num-row{display:flex;flex-direction:column;gap:2px}
+.rd-ratio{font-family:var(--font-mono);font-size:32px;font-weight:700;line-height:1}
+.rd-x{font-size:16px;color:var(--muted);margin-left:2px}
+.rd-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-top:4px}
+.rd-label.green{color:var(--green)}.rd-label.amber{color:var(--amber)}.rd-label.amber-dark{color:var(--amber)}.rd-label.red{color:var(--red)}
+.rd-explainer{font-size:11px;color:var(--muted);line-height:1.5}
+.rd-size-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.rd-size-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.rd-size-v{font-family:var(--font-mono);font-size:22px;font-weight:700}
+.rd-size-s{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* ═══════════ TWO-COL LAYOUT ═══════════ */
+.two-col{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:1000px){.two-col{grid-template-columns:1fr}}
+.col-stack{display:flex;flex-direction:column;gap:14px}
+
+/* ═══════════ RETAIL PLAN CARD ═══════════ */
+.retail-card{background:var(--surface);border:1px solid rgba(129,140,248,0.2);border-radius:12px;padding:0;overflow:hidden}
+.rc-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px}
+.rc-title{font-size:14px;font-weight:700;color:var(--accent);font-family:var(--font-mono)}
+.rc-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.rc-body{padding:16px 18px}
+.rc-legs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:620px){.rc-legs{grid-template-columns:1fr}}
+.leg{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 14px}
+.leg.go{border-color:var(--green-bd);background:rgba(74,222,128,0.03)}
+.leg-type{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
+.leg-action{font-size:14px;font-weight:700;margin:3px 0;font-family:var(--font-mono)}
+.leg-detail{font-size:11px;color:var(--muted);line-height:1.5}
+.leg-detail b{color:var(--text)}
+
+.rc-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+@media(max-width:620px){.rc-metrics{grid-template-columns:repeat(2,1fr)}}
+.rcm{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px}
+.rcm-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+.rcm-v{font-family:var(--font-mono);font-size:16px;font-weight:700;line-height:1.1}
+.rcm-s{font-size:9px;color:var(--muted);margin-top:2px}
+
+.rc-controls{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:20px;flex-wrap:wrap;align-items:center;background:var(--surface2)}
+.rcc-slider{display:flex;flex-direction:column;gap:3px;min-width:150px;flex:1}
+.rcc-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;display:flex;justify-content:space-between}
+.rcc-label b{color:var(--accent);font-family:var(--font-mono);font-size:12px}
+input[type=range]{accent-color:var(--accent);width:100%}
+
+.rc-warn{padding:16px;border-radius:9px;background:rgba(248,113,113,0.05);border:1px solid rgba(248,113,113,0.2);margin-bottom:12px}
+.rc-warn.red{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.3)}
+.rc-warn-title{font-size:13px;font-weight:700;color:var(--red);margin-bottom:5px}
+.rc-warn-body{font-size:12px;color:var(--text);line-height:1.5}
+
+.rc-risk-note{padding:11px 14px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.2);border-radius:8px;font-size:11px;color:var(--text);line-height:1.5;margin-top:10px}
+
+/* ═══════════ ODDS TABLE ═══════════ */
+.odds-table{width:100%;border-collapse:collapse}
+.odds-table th{text-align:left;padding:7px 10px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);font-weight:500}
+.odds-table td{padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border)}
+.odds-table tr:last-child td{border-bottom:none}
+.odds-bar{display:inline-block;height:8px;background:var(--accent);border-radius:3px;vertical-align:middle;margin-right:8px}
+
+/* ═══════════ INFO CARDS ═══════════ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.card-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:500;display:flex;align-items:center;gap:6px}
+.card-title .dot{width:5px;height:5px;border-radius:50%}
+.ir{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
+.ir:last-child{border-bottom:none}
+.ir-l{color:var(--muted)}
+.ir-v{font-family:var(--font-mono);font-weight:500;text-align:right}
+
+/* ═══════════ CHART & THETA ═══════════ */
+.ch-wrap{position:relative;width:100%;height:190px}
+.ch-wrap-sm{position:relative;width:100%;height:60px}
+
+/* ═══════════ KRONOS + EVIDENCE ═══════════ */
+.kronos-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.kc-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.kc-title{font-size:13px;font-weight:700;color:var(--text)}
+.kc-fresh{font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:4px}
+.kc-fresh.fresh{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd)}
+.kc-fresh.recent{background:rgba(96,165,250,0.1);color:var(--blue);border:1px solid rgba(96,165,250,0.3)}
+.kc-fresh.stale{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)}
+.kc-fresh.very-stale,.kc-fresh.unknown{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
+.kc-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.kc-metric{background:var(--surface2);border-radius:7px;padding:9px 11px}
+.kc-metric-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+.kc-metric-v{font-family:var(--font-mono);font-size:20px;font-weight:700;line-height:1}
+.kc-metric-s{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* ═══════════ NEWS FEED ═══════════ */
+.ni{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.ni:last-child{border-bottom:none}
+.ni-dot{width:6px;height:6px;border-radius:50%;margin-top:6px;flex-shrink:0}
+.ni-hl{font-size:12px;color:var(--text);line-height:1.45;margin-bottom:2px}
+.ni-src{font-size:10px;color:var(--muted)}
+.ni a{color:inherit;text-decoration:none}
+.ni a:hover .ni-hl{color:var(--accent)}
+
+/* ═══════════ RATE LIMIT ═══════════ */
+.rl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.rl-card{background:var(--surface2);border-radius:7px;padding:9px 11px}
+.rl-name{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.rl-bar-bg{height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;margin:3px 0}
+.rl-bar-fill{height:100%;border-radius:2px}
+.rl-nums{display:flex;justify-content:space-between;font-size:9px;font-family:var(--font-mono);color:var(--muted)}
+
+/* ═══════════ RANGE VISUAL (kept compact) ═══════════ */
+.range-mini{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.range-track{position:relative;height:32px;background:var(--surface2);border-radius:6px;overflow:visible;margin:20px 0 26px}
+.rz{position:absolute;top:0;bottom:0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;font-weight:700}
+.needle{position:absolute;top:-4px;bottom:-4px;width:3px;background:#fff;border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.4);transform:translateX(-50%)}
+.pm{position:absolute;bottom:-22px;transform:translateX(-50%);font-family:var(--font-mono);font-size:9px;white-space:nowrap;color:var(--muted)}
+.pm.cur{top:-17px;bottom:auto;color:var(--text);font-weight:700}
+
+/* ═══════════ FOOTER ═══════════ */
+footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<a href="#heroCard" class="skip-link">Skip to main decision card</a>
+<main class="wrap">
+
+<!-- ════════ TOP BAR ════════ -->
+<header class="topbar">
+  <div class="brand">
+    <div>
+      <h1 class="brand-logo">KRONOS<b>/</b>HV20 · <span style="color:var(--cyan)">RETAIL</span></h1>
+      <div class="brand-sub">BTC Options Decision Desk · v4</div>
+    </div>
+    <div class="live-pill"><div class="pulse"></div>LIVE</div>
+  </div>
+  <div class="topbar-right">
+    <a href="options.html" class="pill-sm" style="text-decoration:none;color:#5b8cff;border:1px solid rgba(91,140,255,.35);border-radius:6px;padding:2px 8px" aria-label="Open Option-Selling Desk">⚖ OPTIONS DESK</a>
+    <span id="kronosBadge" class="pill-sm muted">Kronos: —</span>
+    <span id="clockIST" class="pill-sm muted">—</span>
+    <button class="btn" onclick="refreshAll()" aria-label="Refresh all data">↺ REFRESH</button>
+  </div>
+</header>
+
+<!-- ════════ HERO DECISION CARD ════════ -->
+<div class="hero nt" id="heroCard">
+  <div class="hero-top">
+    <div class="hero-verdict">
+      <div class="verdict-icon" id="heroIcon">…</div>
+      <div class="verdict-text">
+        <div class="verdict-label">Today's Recommendation</div>
+        <div class="verdict-main" id="heroVerdict" aria-live="polite" role="status">LOADING…</div>
+        <div class="verdict-sub" id="heroSub">Fetching Binance, Deribit, Kronos, alternative.me, funding…</div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="conf-box">
+        <div class="conf-lbl">Confidence</div>
+        <div class="conf-num" id="heroConf">—</div>
+        <div class="conf-bar-wrap"><div class="conf-bar-fill" id="heroConfBar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-reasons">
+    <div>
+      <div class="hero-col-title pos">SUPPORTING</div>
+      <div id="heroReasons"></div>
+    </div>
+    <div>
+      <div class="hero-col-title neg">BLOCKERS</div>
+      <div id="heroBlockers"></div>
+    </div>
+  </div>
+
+  <div class="trade-structure-box" id="heroStructure" style="display:none">
+    <div>
+      <div class="tsb-label">Recommended Structure</div>
+      <div class="tsb-value" id="heroStructText">—</div>
+      <div class="tsb-sub" id="heroStructSub">—</div>
+    </div>
+    <a href="#retail" style="font-size:11px;color:var(--accent);text-decoration:none;font-family:var(--font-mono)">View full plan ↓</a>
+  </div>
+</div>
+
+<!-- ════════ MARKET PULSE STRIP ════════ -->
+<div class="pulse-strip">
+  <div class="pulse-card"><div class="pc-lbl">BTC Spot</div><div class="pc-val" id="psPrice">$—</div><div class="pc-sub" id="psPriceSub">Binance</div><div class="pc-trend" id="psChange">—</div></div>
+  <div class="pulse-card"><div class="pc-lbl">24H High</div><div class="pc-val pos" id="psHigh">$—</div><div class="pc-sub" id="psHighPct">—</div></div>
+  <div class="pulse-card"><div class="pc-lbl">24H Low</div><div class="pc-val neg" id="psLow">$—</div><div class="pc-sub" id="psLowPct">—</div></div>
+  <div class="pulse-card"><div class="pc-lbl">HV20 (ann)</div><div class="pc-val cyan" id="psHv20">—%</div><div class="pc-sub" id="psHv20Sub">1-day: —</div></div>
+  <div class="pulse-card"><div class="pc-lbl">ATM IV</div><div class="pc-val purple" id="psAtmIv">—%</div><div class="pc-sub" id="psAtmIvSub">Deribit nearest</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Funding 8h</div><div class="pc-val" id="psFunding">—</div><div class="pc-sub" id="psFundingSub">perp BTCUSDT</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Fear & Greed</div><div class="pc-val" id="psFg">—</div><div class="pc-sub" id="psFgSub">alt.me</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Kronos Upside</div><div class="pc-val" id="psKronos">—%</div><div class="pc-sub" id="psKronosSub">Tsinghua demo</div></div>
+</div>
+
+<!-- ════════ SESSION RIBBON ════════ -->
+<div class="session-ribbon">
+  <div>
+    <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Now in IST</div>
+    <div class="sr-phase" id="srPhase">—</div>
+  </div>
+  <div class="sr-advice" id="srAdvice">Loading session context…</div>
+  <div class="sr-clock" id="srClock">—</div>
+  <div style="width:100%" id="srBarWrap"></div>
+</div>
+
+<!-- ════════ REGIME DIAL ════════ -->
+<div class="sh">IV/HV20 Regime <span class="sh-tag">PDF threshold 1.76 · backtest 2017–2026</span></div>
+<div class="regime-dial-wrap">
+  <div class="rd-grid">
+    <div class="rd-main">
+      <div class="rd-gauge">
+        <svg width="120" height="72" viewBox="0 0 120 72">
+          <path d="M 10 64 A 50 50 0 0 1 110 64" stroke="rgba(255,255,255,0.06)" stroke-width="10" fill="none" stroke-linecap="round"/>
+          <path id="rdArc" d="M 10 64 A 50 50 0 0 1 110 64" stroke="var(--red)" stroke-width="10" fill="none" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="157" style="transition:stroke-dashoffset 1.4s ease,stroke .5s"/>
+          <!-- threshold markers -->
+          <line x1="38" y1="28" x2="33" y2="24" stroke="var(--muted)" stroke-width="1"/>
+          <text x="26" y="22" fill="var(--muted)" font-size="7" font-family="Space Mono">1.2</text>
+          <line x1="60" y1="14" x2="60" y2="9" stroke="var(--muted)" stroke-width="1"/>
+          <text x="55" y="7" fill="var(--muted)" font-size="7" font-family="Space Mono">1.5</text>
+          <line x1="82" y1="28" x2="87" y2="24" stroke="var(--muted)" stroke-width="1"/>
+          <text x="87" y="22" fill="var(--muted)" font-size="7" font-family="Space Mono">1.8</text>
+        </svg>
+      </div>
+      <div class="rd-num-row">
+        <div><span class="rd-ratio" id="rdRatio">—</span><span class="rd-x">×</span></div>
+        <div class="rd-label" id="rdLabel">—</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px" id="rdIvHv">IV — / HV20 —</div>
+      </div>
+    </div>
+    <div class="rd-size-card">
+      <div class="rd-size-l">Sizing tier (PDF §4.3)</div>
+      <div class="rd-size-v" id="rdSize">—</div>
+      <div class="rd-size-s" id="rdSizeNote">Awaiting data</div>
+    </div>
+    <div class="rd-explainer" id="rdExplainer">
+      Ratio &lt; 1.2 = calm (full size) · 1.2–1.4 normal (70%) · 1.4–1.6 caution (40%) · 1.6–1.8 reduced (20%) · ≥ 1.8 no-trade.
+      Threshold 1.76 is the 90th percentile of IV/HV20 historical ratios from 2017–2026; above that, realised vol overshoots 10% of the time.
+    </div>
+  </div>
+</div>
+
+<!-- ════════ RETAIL PLAN CARD ════════ -->
+<div class="sh" id="retail">Retail Seller Mode · $100 · 50× · 1× ATM straddle + 60× far-OTM wings <span class="sh-tag">PDF §2</span></div>
+<div class="two-col">
+  <div class="retail-card">
+    <div class="rc-head">
+      <div>
+        <div class="rc-title">⚡ Straddle-Financed OTM Wing Selector</div>
+        <div class="rc-sub">Solves for OTM strike where 60× short premium ≥ 1.15× straddle cost AND touch prob ≤ threshold</div>
+      </div>
+      <div class="pill-sm muted" id="retailExpiry">—</div>
+    </div>
+    <div class="rc-body" id="retailBody">
+      <div style="padding:30px;text-align:center;color:var(--muted);font-size:12px">Loading plan…</div>
+    </div>
+    <div class="rc-controls">
+      <div class="rcc-slider">
+        <div class="rcc-label">SHORT LOTS <b id="rpLotsOut">60</b></div>
+        <input type="range" id="rpLots" min="20" max="100" step="5" value="60" aria-label="Short lots" oninput="document.getElementById('rpLotsOut').textContent=this.value; onRetailSliderChange()">
+      </div>
+      <div class="rcc-slider">
+        <div class="rcc-label">MAX TOUCH PROB <b id="rpTouchOut">10%</b></div>
+        <input type="range" id="rpTouch" min="0.03" max="0.20" step="0.01" value="0.10" aria-label="Maximum touch probability" oninput="document.getElementById('rpTouchOut').textContent=(parseFloat(this.value)*100).toFixed(0)+'%'; onRetailSliderChange()">
+      </div>
+      <div class="rcc-slider">
+        <div class="rcc-label">SAFETY FACTOR <b id="rpSafetyOut">1.15×</b></div>
+        <input type="range" id="rpSafety" min="1.0" max="1.5" step="0.05" value="1.15" aria-label="Safety factor multiplier" oninput="document.getElementById('rpSafetyOut').textContent=(parseFloat(this.value)).toFixed(2)+'×'; onRetailSliderChange()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Right col: next-day move odds + timing -->
+  <div class="col-stack">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--cyan)"></span>Next 24h Move Odds</div>
+      <div id="oddsPane">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px" id="oddsIntro">Loading…</div>
+        <table class="odds-table"><tbody id="oddsBody"></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Kronos Live Forecast</div>
+      <div id="kronosCardBody">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ RANGER RANGE + CHART ════════ -->
+<div class="sh">RANGER Band & 48h Price</div>
+<div class="two-col">
+  <div class="range-mini">
+    <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px">
+      <div>
+        <div class="card-title" style="margin-bottom:3px"><span class="dot" style="background:var(--accent)"></span>RANGER</div>
+        <div style="font-size:11px;color:var(--muted)">ATR-7 × (IV/HV20)⁰·² × vol × DOW × F&amp;G</div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent)" id="rangerRaw">—</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">raw</div></div>
+        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--cyan)" id="rangerSafe">—</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">safe ×2.2</div></div>
+        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700" id="rangerAtr">—</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">ATR-7</div></div>
+      </div>
+    </div>
+    <div class="range-track" id="rangeTrack">
+      <div class="rz" id="bearZ"></div>
+      <div class="rz" id="safeZ"></div>
+      <div class="rz" id="bullZ"></div>
+      <div class="needle" id="needleEl"></div>
+      <div class="pm" id="pmPut"></div>
+      <div class="pm cur" id="pmCur"></div>
+      <div class="pm" id="pmCall"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--cyan)"></span>48h Price · 1h candles</div>
+    <div class="ch-wrap"><canvas id="priceC"></canvas></div>
+  </div>
+</div>
+
+<!-- ════════ EVIDENCE ROW ════════ -->
+<div class="sh">Evidence & inputs</div>
+<div class="two-col">
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--amber)"></span>Live news flow</div>
+    <div id="newsFeed">Loading…</div>
+  </div>
+  <div class="col-stack">
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Signal confluence</div>
+      <div id="signalList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--blue)"></span>API budget</div>
+      <div class="rl-grid" id="rlGrid"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div>Data: Binance · Deribit · Kronos (Tsinghua/AAAI 2026) · alternative.me · CryptoPanic / GDELT · optional Exa</div>
+  <div style="display:flex;gap:14px;align-items:center">
+    <a href="https://shiyu-coder.github.io/Kronos-demo/" target="_blank">Kronos demo</a>
+    <span>Not financial advice</span>
+    <span id="footerTs"></span>
+  </div>
+</footer>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"
+        integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG"
+        crossorigin="anonymous"></script>
+<script src="src/config.js" onerror="this.remove()"></script>
+<script src="src/rateLimit.js"></script>
+<script src="src/data.js"></script>
+<script src="src/charts.js"></script>
+<script src="src/ui.js"></script>
+<script src="src/main.js"></script>
+</body>
+</html>
