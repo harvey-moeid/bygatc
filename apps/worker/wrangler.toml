@@ -3,18 +3,23 @@ main = "src/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
-# ── Cron Triggers ──────────────────────────────────────────────────────
+# — Cron Triggers ———————————————————————————————————————————————————————————————————————————————————
 # Setiap jam: fetch news + fear & greed → simpan ke KV
 [triggers]
 crons = ["0 * * * *"]
 
-# ── KV (dev lokal — pakai preview) ─────────────────────────────────────
+# — KV (dev lokal — pakai preview) ——————————————————————————————————————————————————————————————————————————
 [[kv_namespaces]]
 binding = "BTC_CACHE"
-id = "REPLACE_WITH_DEV_KV_ID"
-preview_id = "REPLACE_WITH_DEV_KV_PREVIEW_ID"
+id = "ed38018b3b2e4f6e832ddc996d256cc9"
+preview_id = "ed38018b3b2e4f6e832ddc996d256cc9"
 
-# ── Staging ─────────────────────────────────────────────────────────────
+[[d1_databases]]
+binding = "BITBOT_DB"
+database_name = "bitbot"
+database_id = "a7f0c4f1-c1c3-4b8e-994a-2f7dbaf7c51a"
+
+# — Staging ————————————————————————————————————————————————————————————————————————————————————
 [env.staging]
 name = "btc-dashboard-worker-staging"
 
@@ -23,9 +28,14 @@ crons = ["0 * * * *"]
 
 [[env.staging.kv_namespaces]]
 binding = "BTC_CACHE"
-id = "REPLACE_WITH_STAGING_KV_ID"
+id = "ed38018b3b2e4f6e832ddc996d256cc9"
 
-# ── Production ──────────────────────────────────────────────────────────
+[[env.staging.d1_databases]]
+binding = "BITBOT_DB"
+database_name = "bitbot"
+database_id = "a7f0c4f1-c1c3-4b8e-994a-2f7dbaf7c51a"
+
+# — Production ——————————————————————————————————————————————————————————————————————————————————————
 [env.production]
 name = "btc-dashboard-worker-production"
 
@@ -34,4 +44,9 @@ crons = ["0 * * * *"]
 
 [[env.production.kv_namespaces]]
 binding = "BTC_CACHE"
-id = "REPLACE_WITH_PRODUCTION_KV_ID"
+id = "ed38018b3b2e4f6e832ddc996d256cc9"
+
+[[env.production.d1_databases]]
+binding = "BITBOT_DB"
+database_name = "bitbot"
+database_id = "a7f0c4f1-c1c3-4b8e-994a-2f7dbaf7c51a"
