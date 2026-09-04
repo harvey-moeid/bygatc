@@ -3,6 +3,7 @@ node_modules/
 dist/
 .wrangler/
 *.parquet
+!data/noctua_history.parquet
 .env
 .env.local
 .dev.vars
