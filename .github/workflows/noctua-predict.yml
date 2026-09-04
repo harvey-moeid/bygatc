@@ -52,7 +52,6 @@ jobs:
             git config user.name  "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add data/noctua_history.parquet
-            # Cek apakah ada yang perlu di-commit (jika file masih di-ignore, staged akan kosong)
             if git diff --cached --quiet; then
               echo "[CI] ERROR: git add tidak meng-stage file apapun."
               echo "[CI] Periksa .gitignore -- data/noctua_history.parquet mungkin masih diabaikan."
@@ -77,7 +76,6 @@ jobs:
         run: |
           set -e
 
-          # Jika secret belum diset, skip push dengan warning (bukan error)
           if [ -z "${NOCTUA_WORKER_URL}" ]; then
             echo "[CI] WARNING: NOCTUA_WORKER_URL secret belum diset -- skip push ke Worker."
             echo "[CI] Set secret di: Settings > Secrets and variables > Actions"
@@ -88,18 +86,17 @@ jobs:
           KRONOS_FILE="/tmp/noctua_out/kronos.json"
 
           if [ -f "$NOCTUA_FILE" ] && [ -f "$KRONOS_FILE" ]; then
-            PAYLOAD=$(python3 - <<'PYEOF'
+            python3 -c "
 import json
-n = json.load(open("/tmp/noctua_out/noctua.json"))
-k = json.load(open("/tmp/noctua_out/kronos.json"))
-merged = {**k, **n, "_source": "gh-actions-noctua"}
+n = json.load(open('/tmp/noctua_out/noctua.json'))
+k = json.load(open('/tmp/noctua_out/kronos.json'))
+merged = {**k, **n, '_source': 'gh-actions-noctua'}
 print(json.dumps(merged))
-PYEOF
-)
+" > /tmp/noctua_payload.json
           elif [ -f "$NOCTUA_FILE" ]; then
-            PAYLOAD=$(cat "$NOCTUA_FILE")
+            cp "$NOCTUA_FILE" /tmp/noctua_payload.json
           elif [ -f "$KRONOS_FILE" ]; then
-            PAYLOAD=$(cat "$KRONOS_FILE")
+            cp "$KRONOS_FILE" /tmp/noctua_payload.json
           else
             echo "No prediction output found -- skipping push"
             exit 0
@@ -110,7 +107,7 @@ PYEOF
             -X POST "${NOCTUA_WORKER_URL}/api/noctua/push" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${NOCTUA_PUSH_SECRET}" \
-            -d "$PAYLOAD")
+            --data-binary @/tmp/noctua_payload.json)
 
           cat /tmp/push_response.txt
           echo ""
