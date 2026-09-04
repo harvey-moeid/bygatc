@@ -52,6 +52,14 @@ jobs:
             git config user.name  "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add data/noctua_history.parquet
+            # Cek apakah ada yang perlu di-commit (jika file masih di-ignore, staged akan kosong)
+            if git diff --cached --quiet; then
+              echo "[CI] ERROR: git add tidak meng-stage file apapun."
+              echo "[CI] Periksa .gitignore -- data/noctua_history.parquet mungkin masih diabaikan."
+              git status
+              git check-ignore -v data/noctua_history.parquet || true
+              exit 1
+            fi
             git commit -m "chore: bootstrap noctua history bundle via CI [skip ci]"
             git push
             echo "[CI] Bundle berhasil di-commit."
@@ -68,6 +76,13 @@ jobs:
           NOCTUA_PUSH_SECRET: ${{ secrets.NOCTUA_PUSH_SECRET }}
         run: |
           set -e
+
+          # Jika secret belum diset, skip push dengan warning (bukan error)
+          if [ -z "${NOCTUA_WORKER_URL}" ]; then
+            echo "[CI] WARNING: NOCTUA_WORKER_URL secret belum diset -- skip push ke Worker."
+            echo "[CI] Set secret di: Settings > Secrets and variables > Actions"
+            exit 0
+          fi
 
           NOCTUA_FILE="/tmp/noctua_out/noctua.json"
           KRONOS_FILE="/tmp/noctua_out/kronos.json"
