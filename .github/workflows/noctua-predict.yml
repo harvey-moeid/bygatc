@@ -2,11 +2,6 @@
 # =====================================================================
 # Jalankan NOCTUA Python model (predict.py) setiap 30 menit.
 # Hasilnya di-push ke Cloudflare Worker KV via POST /api/noctua/push
-# -- bukan commit ke repo lagi.
-#
-# Jika data/noctua_history.parquet belum ada, workflow akan mem-build
-# bundle dari Bitstamp API (~400 hari) dan commit ke repo secara otomatis.
-# Run berikutnya hanya fetch tail (cepat, 1 request).
 #
 # Secrets yang dibutuhkan di repo settings:
 #   NOCTUA_WORKER_URL   -- misal: https://btc-dashboard-worker-production.xxx.workers.dev
@@ -48,13 +43,11 @@ jobs:
           if [ ! -f data/noctua_history.parquet ]; then
             echo "[CI] Bundle belum ada, menjalankan bootstrap..."
             python model/serve/bootstrap_bundle.py
-            echo "[CI] Bootstrap selesai. Commit bundle ke repo..."
             git config user.name  "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add data/noctua_history.parquet
             if git diff --cached --quiet; then
               echo "[CI] ERROR: git add tidak meng-stage file apapun."
-              echo "[CI] Periksa .gitignore -- data/noctua_history.parquet mungkin masih diabaikan."
               git status
               git check-ignore -v data/noctua_history.parquet || true
               exit 1
@@ -77,26 +70,20 @@ jobs:
           set -e
 
           if [ -z "${NOCTUA_WORKER_URL}" ]; then
-            echo "[CI] WARNING: NOCTUA_WORKER_URL secret belum diset -- skip push ke Worker."
-            echo "[CI] Set secret di: Settings > Secrets and variables > Actions"
+            echo "[CI] WARNING: NOCTUA_WORKER_URL secret belum diset -- skip push."
             exit 0
           fi
 
           NOCTUA_FILE="/tmp/noctua_out/noctua.json"
           KRONOS_FILE="/tmp/noctua_out/kronos.json"
+          PAYLOAD="/tmp/noctua_payload.json"
 
           if [ -f "$NOCTUA_FILE" ] && [ -f "$KRONOS_FILE" ]; then
-            python3 -c "
-import json
-n = json.load(open('/tmp/noctua_out/noctua.json'))
-k = json.load(open('/tmp/noctua_out/kronos.json'))
-merged = {**k, **n, '_source': 'gh-actions-noctua'}
-print(json.dumps(merged))
-" > /tmp/noctua_payload.json
+            python model/serve/merge_payload.py "$NOCTUA_FILE" "$KRONOS_FILE" "$PAYLOAD"
           elif [ -f "$NOCTUA_FILE" ]; then
-            cp "$NOCTUA_FILE" /tmp/noctua_payload.json
+            cp "$NOCTUA_FILE" "$PAYLOAD"
           elif [ -f "$KRONOS_FILE" ]; then
-            cp "$KRONOS_FILE" /tmp/noctua_payload.json
+            cp "$KRONOS_FILE" "$PAYLOAD"
           else
             echo "No prediction output found -- skipping push"
             exit 0
@@ -107,7 +94,7 @@ print(json.dumps(merged))
             -X POST "${NOCTUA_WORKER_URL}/api/noctua/push" \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${NOCTUA_PUSH_SECRET}" \
-            --data-binary @/tmp/noctua_payload.json)
+            --data-binary @"$PAYLOAD")
 
           cat /tmp/push_response.txt
           echo ""
