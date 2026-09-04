@@ -3,7 +3,7 @@ main = "src/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
-# — Cron Triggers ———————————————————————————————————————————————————————————————————————————————————
+# — Cron Triggers ————————————————————————————————————————————————————————————————————————————————————
 # Setiap jam: fetch news + fear & greed → simpan ke KV
 [triggers]
 crons = ["0 * * * *"]
@@ -18,6 +18,14 @@ preview_id = "ed38018b3b2e4f6e832ddc996d256cc9"
 binding = "BITBOT_DB"
 database_name = "bitbot"
 database_id = "a7f0c4f1-c1c3-4b8e-994a-2f7dbaf7c51a"
+
+# — Static assets (frontend dashboard) —————————————————————————
+# Serve apps/frontend sebagai static assets dari worker yang sama.
+# Asset yang cocok (index.html, options.html, src/*.js, data/*.json) di-serve
+# langsung; request yang tidak cocok (mis. /api/*) diteruskan ke fetch handler.
+[assets]
+directory = "../frontend"
+binding = "ASSETS"
 
 # — Staging ————————————————————————————————————————————————————————————————————————————————————
 [env.staging]
@@ -35,6 +43,10 @@ binding = "BITBOT_DB"
 database_name = "bitbot"
 database_id = "a7f0c4f1-c1c3-4b8e-994a-2f7dbaf7c51a"
 
+[env.staging.assets]
+directory = "../frontend"
+binding = "ASSETS"
+
 # — Production ——————————————————————————————————————————————————————————————————————————————————————
 [env.production]
 name = "btc-dashboard-worker-production"
@@ -50,3 +62,7 @@ id = "ed38018b3b2e4f6e832ddc996d256cc9"
 binding = "BITBOT_DB"
 database_name = "bitbot"
 database_id = "a7f0c4f1-c1c3-4b8e-994a-2f7dbaf7c51a"
+
+[env.production.assets]
+directory = "../frontend"
+binding = "ASSETS"
