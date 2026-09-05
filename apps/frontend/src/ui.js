@@ -2,7 +2,7 @@
  * ui.js (v4)  — decision-focused UI bindings
  * =====================================================================
  * Renders the hero decision card, pulse strip, regime dial, session ribbon,
- * retail plan, odds table, kronos card, signal list, and rate limit grid.
+ * retail plan, odds table, BGTC card, signal list, and rate limit grid.
  */
 const UI = (() => {
   const fmt  = (n, d = 0) => new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
@@ -14,28 +14,26 @@ const UI = (() => {
   const set  = (id, t) => { const e = $(id); if (e) e.textContent = t; };
   const setH = (id, h) => { const e = $(id); if (e) e.innerHTML   = h; };
 
-  // ── CLOCK / TIMESTAMP ────────────────────────────────────────────────
   function updateClock() {
     const ist = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
     set('clockIST', ist.split(',').pop().trim().slice(0,8) + ' IST');
     set('footerTs', 'Updated ' + new Date().toLocaleTimeString());
   }
 
-  // ── KRONOS BADGE (header) ────────────────────────────────────────────
-  function updateKronosBadge(kronos) {
-    const el = $('kronosBadge');
+  // ── BGTC BADGE (header) ───────────────────────────────────────────────────
+  function updateBGTCBadge(BGTC) {
+    const el = $('BGTCBadge');
     if (!el) return;
-    if (!kronos) { el.className = 'pill-sm err'; el.textContent = 'Kronos: offline'; return; }
-    const cls = kronos.freshness === 'fresh'   ? 'ok'
-              : kronos.freshness === 'recent'  ? 'ok'
-              : kronos.freshness === 'stale'   ? 'warn'
+    if (!BGTC) { el.className = 'pill-sm err'; el.textContent = 'BGTC: offline'; return; }
+    const cls = BGTC.freshness === 'fresh'   ? 'ok'
+              : BGTC.freshness === 'recent'  ? 'ok'
+              : BGTC.freshness === 'stale'   ? 'warn'
               :                                   'err';
-    const age = kronos.ageHrs == null ? '?' : kronos.ageHrs < 1 ? '<1h' : kronos.ageHrs.toFixed(0)+'h';
+    const age = BGTC.ageHrs == null ? '?' : BGTC.ageHrs < 1 ? '<1h' : BGTC.ageHrs.toFixed(0)+'h';
     el.className = 'pill-sm ' + cls;
-    el.textContent = `Kronos ${kronos.upside.toFixed(1)}% · ${age} ago`;
+    el.textContent = `BGTC ${BGTC.upside.toFixed(1)}% · ${age} ago`;
   }
 
-  // ── HERO DECISION CARD ───────────────────────────────────────────────
   function updateHero(decision) {
     if (!decision) return;
     const card = $('heroCard');
@@ -43,7 +41,7 @@ const UI = (() => {
 
     const icon = decision.verdictClass === 'go'  ? '✓'
                : decision.verdictClass === 'cau' ? '⚠'
-               :                                    '✕';
+               :                                    '✗';
     set('heroIcon', icon);
     set('heroVerdict', decision.verdict || '—');
     set('heroSub', decision.tradeStructure
@@ -55,10 +53,6 @@ const UI = (() => {
       const color = decision.verdictClass === 'go' ? 'var(--green)'
                   : decision.verdictClass === 'cau' ? 'var(--amber)' : 'var(--red)';
       bar.style.background = color;
-      // v4.1: stale-closure fix — rapid consecutive updateHero calls (slider
-      // drags) used to queue overlapping 120ms timeouts, each re-animating
-      // from 0% with a possibly outdated confidence value. Cancel the prior
-      // timer and read the latest value inside the callback.
       bar.style.width = '0%';
       clearTimeout(bar._animTimer);
       bar._targetConf = decision.confidence;
@@ -81,8 +75,7 @@ const UI = (() => {
     } else if (sb) sb.style.display = 'none';
   }
 
-  // ── MARKET PULSE STRIP ───────────────────────────────────────────────
-  function updatePulseStrip({ price, hv20, atmInfo, funding, fg, kronos }) {
+  function updatePulseStrip({ price, hv20, atmInfo, funding, fg, BGTC }) {
     if (price) {
       set('psPrice',  '$' + fmt(Math.round(price.price)));
       const chg = (price.change * 100);
@@ -121,17 +114,16 @@ const UI = (() => {
       }
       set('psFgSub', fg.label);
     }
-    if (kronos) {
-      const el = $('psKronos');
+    if (BGTC) {
+      const el = $('psBGTC');
       if (el) {
-        el.textContent = kronos.upside.toFixed(1) + '%';
-        el.className = 'pc-val ' + (kronos.upside < 45 ? 'neg' : kronos.upside < 55 ? 'neu' : 'pos');
+        el.textContent = BGTC.upside.toFixed(1) + '%';
+        el.className = 'pc-val ' + (BGTC.upside < 45 ? 'neg' : BGTC.upside < 55 ? 'neu' : 'pos');
       }
-      set('psKronosSub', 'vol-amp ' + kronos.volAmp.toFixed(1) + '%');
+      set('psBGTCSub', 'vol-amp ' + BGTC.volAmp.toFixed(1) + '%');
     }
   }
 
-  // ── SESSION RIBBON ───────────────────────────────────────────────────
   function updateSessionRibbon(session) {
     if (!session) return;
     const phaseEl = $('srPhase');
@@ -142,7 +134,6 @@ const UI = (() => {
     set('srAdvice', session.advice);
     set('srClock', 'IST ' + Math.floor(session.istHour) + ':' + String(Math.floor((session.istHour % 1) * 60)).padStart(2,'0'));
 
-    // Bar
     const segs = [
       { w: 22.9, bg: 'rgba(96,165,250,0.15)',  lbl: '00–05:30' },
       { w: 12.5, bg: 'rgba(74,222,128,0.2)',   lbl: '05:30–08:30' },
@@ -156,10 +147,8 @@ const UI = (() => {
     const wrap = $('srBarWrap');
     if (wrap) {
       let barHtml = '<div class="session-bar">';
-      let cum = 0;
       for (const s of segs) {
         barHtml += `<div class="session-seg" style="width:${s.w}%;background:${s.bg}">${s.lbl}</div>`;
-        cum += s.w;
       }
       barHtml += '</div>';
       barHtml += `<div style="position:relative;margin-top:-17px;height:14px;z-index:3;pointer-events:none"><div style="position:absolute;left:${nowPct}%;top:-3px;width:2px;height:26px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.5);transform:translateX(-50%)"></div><div style="position:absolute;left:${nowPct}%;top:-18px;font-size:9px;font-family:var(--font-mono);color:#fff;transform:translateX(-50%);background:var(--accent);padding:1px 4px;border-radius:3px">NOW</div></div>`;
@@ -167,7 +156,6 @@ const UI = (() => {
     }
   }
 
-  // ── REGIME DIAL ──────────────────────────────────────────────────────
   function updateRegimeDial(regime, hv20, atmInfo) {
     if (!regime) return;
     set('rdRatio',  regime.ratio ? regime.ratio.toFixed(2) : '—');
@@ -178,12 +166,11 @@ const UI = (() => {
     }
     set('rdIvHv', atmInfo && hv20 ? `IV ${atmInfo.atmIv.toFixed(1)}% / HV20 ${hv20.annualised.toFixed(1)}%` : 'IV — / HV20 —');
 
-    // Dial arc: ratio 0 → 2.0 maps to 0° → 180°
     const arc = $('rdArc');
     if (arc && regime.ratio) {
       const clamped = Math.min(2.0, Math.max(0, regime.ratio));
       const frac = clamped / 2.0;
-      const total = 157;   // arc length from SVG path
+      const total = 157;
       arc.style.strokeDashoffset = total - (total * frac);
       const color = regime.regime === 'green' ? 'var(--green)'
                   : regime.regime === 'amber' ? 'var(--amber)'
@@ -196,12 +183,10 @@ const UI = (() => {
     set('rdSizeNote', regime.allowTrade ? `of base position (${regime.label})` : 'Skip today');
   }
 
-  // ── RETAIL PLAN BODY ─────────────────────────────────────────────────
   function updateRetailPlan(plan, price, hv20, regime, atmInfo) {
     const body = $('retailBody');
     if (!body) return;
 
-    // Expiry pill
     const exp = $('retailExpiry');
     if (exp) exp.textContent = atmInfo ? 'Expiry: ' + atmInfo.expiry : '—';
 
@@ -214,7 +199,7 @@ const UI = (() => {
 
     if (!plan.ok) {
       html += `<div class="rc-warn red">
-        <div class="rc-warn-title">⛔ NO-TRADE today</div>
+        <div class="rc-warn-title">✗ NO-TRADE today</div>
         <div class="rc-warn-body">${escape(plan.reason)}</div>
       </div>`;
       if (plan.candidates?.length) {
@@ -229,7 +214,6 @@ const UI = (() => {
       return;
     }
 
-    // OK case
     const netCreditClass = plan.netCredit > 0 ? 'pos' : 'neg';
     const distSafety = plan.shortDistancePct > 15 ? 'Very safe' : plan.shortDistancePct > 10 ? 'Safe' : 'Moderate';
     const kMultiplier = (plan.shortDistancePct / (hv20?.oneDay || 1));
@@ -270,7 +254,6 @@ const UI = (() => {
     body.innerHTML = html;
   }
 
-  // ── ODDS TABLE (conditional on regime) ───────────────────────────────
   function updateOddsTable(odds, hv20, price) {
     set('oddsIntro', odds ? odds.description : 'Waiting for regime classification…');
     const tbody = $('oddsBody');
@@ -296,42 +279,41 @@ const UI = (() => {
     }).join('');
   }
 
-  // ── KRONOS DETAIL CARD ───────────────────────────────────────────────
-  function updateKronosCard(kronos) {
-    const body = $('kronosCardBody');
+  // ── BGTC DETAIL CARD ──────────────────────────────────────────────────────
+  function updateBGTCCard(BGTC) {
+    const body = $('BGTCCardBody');
     if (!body) return;
-    if (!kronos) { body.innerHTML = '<div style="font-size:11px;color:var(--muted)">Kronos data unavailable.</div>'; return; }
-    const freshCls = kronos.freshness === 'fresh' || kronos.freshness === 'recent' ? 'fresh'
-                  : kronos.freshness === 'stale' ? 'stale' : 'very-stale';
+    if (!BGTC) { body.innerHTML = '<div style="font-size:11px;color:var(--muted)">BGTC data unavailable.</div>'; return; }
+    const freshCls = BGTC.freshness === 'fresh' || BGTC.freshness === 'recent' ? 'fresh'
+                  : BGTC.freshness === 'stale' ? 'stale' : 'very-stale';
 
     body.innerHTML = `
       <div class="kc-head">
         <div>
           <div class="kc-title">BTC/USDT · Next 24h</div>
           <div style="font-size:10px;color:var(--muted);margin-top:2px">
-            Source ts: ${kronos.sourceTs || 'unknown'} ${kronos.ageHrs != null ? `(${kronos.ageHrs < 1 ? '<1' : kronos.ageHrs.toFixed(0)}h ago)` : ''}
+            Source ts: ${BGTC.sourceTs || 'unknown'} ${BGTC.ageHrs != null ? `(${BGTC.ageHrs < 1 ? '<1' : BGTC.ageHrs.toFixed(0)}h ago)` : ''}
           </div>
         </div>
-        <span class="kc-fresh ${freshCls}">${kronos.freshness.toUpperCase()}</span>
+        <span class="kc-fresh ${freshCls}">${BGTC.freshness.toUpperCase()}</span>
       </div>
       <div class="kc-row">
         <div class="kc-metric">
           <div class="kc-metric-l">Upside probability</div>
-          <div class="kc-metric-v" style="color:${kronos.upside < 45 ? 'var(--red)' : kronos.upside < 55 ? 'var(--amber)' : 'var(--green)'}">${kronos.upside.toFixed(1)}%</div>
-          <div class="kc-metric-s">${kronos.upside < 45 ? 'Bearish lean' : kronos.upside < 55 ? 'Neutral' : 'Bullish lean'}</div>
+          <div class="kc-metric-v" style="color:${BGTC.upside < 45 ? 'var(--red)' : BGTC.upside < 55 ? 'var(--amber)' : 'var(--green)'}">${BGTC.upside.toFixed(1)}%</div>
+          <div class="kc-metric-s">${BGTC.upside < 45 ? 'Bearish lean' : BGTC.upside < 55 ? 'Neutral' : 'Bullish lean'}</div>
         </div>
         <div class="kc-metric">
           <div class="kc-metric-l">Vol amplification</div>
-          <div class="kc-metric-v" style="color:${kronos.volAmp > 70 ? 'var(--red)' : kronos.volAmp > 50 ? 'var(--amber)' : 'var(--green)'}">${kronos.volAmp.toFixed(1)}%</div>
-          <div class="kc-metric-s">${kronos.volAmp > 70 ? 'High vol expected' : kronos.volAmp > 50 ? 'Elevated' : 'Calm'}</div>
+          <div class="kc-metric-v" style="color:${BGTC.volAmp > 70 ? 'var(--red)' : BGTC.volAmp > 50 ? 'var(--amber)' : 'var(--green)'}">${BGTC.volAmp.toFixed(1)}%</div>
+          <div class="kc-metric-s">${BGTC.volAmp > 70 ? 'High vol expected' : BGTC.volAmp > 50 ? 'Elevated' : 'Calm'}</div>
         </div>
       </div>
       <div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5">
-        Via ${kronos.proxy || 'proxy'}. Model: Kronos-mini (4M params) · Context: last 360h · N=30 Monte-Carlo paths.
+        Via ${BGTC.proxy || 'proxy'}. Model: NOCTUA-v2 · Context: last 360h.
       </div>`;
   }
 
-  // ── RANGER RANGE DISPLAY ─────────────────────────────────────────────
   function updateRanger(ranger, price) {
     set('rangerRaw',  ranger.raw.toFixed(2) + '%');
     set('rangerSafe', ranger.safe.toFixed(2) + '%');
@@ -359,23 +341,22 @@ const UI = (() => {
     if (pmCur)  { pmCur.style.left = curPct+'%'; pmCur.textContent = '▼ $' + Math.round(price).toLocaleString(); }
   }
 
-  function computeStrikes(price, ranger, kronosUpside) {
+  function computeStrikes(price, ranger, BGTCUpside) {
     const halfSafe = ranger.safe / 2 / 100 * price;
-    const bullAdj  = kronosUpside < 45 ? 0.85 : kronosUpside > 55 ? 1.15 : 1.0;
-    const bearAdj  = kronosUpside < 45 ? 1.15 : kronosUpside > 55 ? 0.85 : 1.0;
+    const bullAdj  = BGTCUpside < 45 ? 0.85 : BGTCUpside > 55 ? 1.15 : 1.0;
+    const bearAdj  = BGTCUpside < 45 ? 1.15 : BGTCUpside > 55 ? 0.85 : 1.0;
     const callStrike = Math.round((price + halfSafe * bullAdj) / 500) * 500;
     const putStrike  = Math.round((price - halfSafe * bearAdj) / 500) * 500;
     return { callStrike, putStrike };
   }
 
-  // ── SIGNAL CONFLUENCE LIST ───────────────────────────────────────────
-  function updateSignals({ kronos, hv20, regime, ranger, fg, funding, sentiment, session }) {
+  function updateSignals({ BGTC, hv20, regime, ranger, fg, funding, sentiment, session }) {
     const rows = [
-      ['Kronos direction',   kronos ? kronos.upside.toFixed(1) + '% upside'
+      ['BGTC direction',   BGTC ? BGTC.upside.toFixed(1) + '% upside'
                                     : '—',
-       kronos ? (kronos.upside < 45 ? 'neg' : kronos.upside < 55 ? 'neu' : 'pos') : 'neu'],
-      ['Kronos vol-amp',     kronos ? kronos.volAmp.toFixed(1) + '%' : '—',
-       kronos ? (kronos.volAmp > 70 ? 'neg' : kronos.volAmp > 50 ? 'neu' : 'pos') : 'neu'],
+       BGTC ? (BGTC.upside < 45 ? 'neg' : BGTC.upside < 55 ? 'neu' : 'pos') : 'neu'],
+      ['BGTC vol-amp',     BGTC ? BGTC.volAmp.toFixed(1) + '%' : '—',
+       BGTC ? (BGTC.volAmp > 70 ? 'neg' : BGTC.volAmp > 50 ? 'neu' : 'pos') : 'neu'],
       ['HV20 (annualised)',  hv20 ? hv20.annualised.toFixed(1) + '%' : '—',
        hv20 ? (hv20.annualised > 70 ? 'neu' : 'pos') : 'neu'],
       ['IV/HV20 ratio',      regime?.ratio ? regime.ratio.toFixed(2) + '×' : '—',
@@ -399,14 +380,12 @@ const UI = (() => {
     setH('signalList', list);
   }
 
-  // ── NEWS FEED ────────────────────────────────────────────────────────
   function updateNewsFeed(news) {
     const el = $('newsFeed');
     if (!el) return;
     const items = news?.items || [];
-    // v4.1: surface data provenance — ● fresh · ◐ snapshot · ○ stale/offline
     const fr = news?._freshness || 'offline';
-    const glyph = fr === 'fresh' ? '●' : fr.includes('snapshot') ? '◐' : '○';
+    const glyph = fr === 'fresh' ? '✓' : fr.includes('snapshot') ? '○' : '✗';
     const glyphColor = fr === 'fresh' || fr === 'fresh-snapshot' ? 'var(--green)'
                      : fr === 'stale-snapshot' ? 'var(--amber)' : 'var(--red)';
     const ageMin = news?.ts ? Math.round((Date.now() - news.ts) / 60000) : null;
@@ -425,17 +404,16 @@ const UI = (() => {
     }).join('');
   }
 
-  // ── RATE LIMIT DISPLAY ───────────────────────────────────────────────
   function updateRateLimits(stats) {
     const grid = $('rlGrid');
     if (!grid) return;
-    const order = ['binance', 'deribit', 'kronos', 'fearGreed', 'exa'];
+    const order = ['binance', 'deribit', 'BGTC', 'fearGreed', 'exa'];
     grid.innerHTML = order.map(key => {
       const s = stats[key]; if (!s) return '';
       const dayPct = s.dayLimit ? (s.daily / s.dayLimit * 100) : 0;
       const color = dayPct > 80 ? 'var(--red)' : dayPct > 50 ? 'var(--amber)' : 'var(--green)';
       const dayStr = s.dayLimit ? `${s.daily}/${s.dayLimit}/day` : `${s.daily}`;
-      const hrStr  = s.hourLimit ? `${s.hourly}/${s.hourLimit}/hr` : '∞';
+      const hrStr  = s.hourLimit ? `${s.hourly}/${s.hourLimit}/hr` : '—';
       return `<div class="rl-card">
         <div class="rl-name">${s.label}</div>
         <div class="rl-bar-bg"><div class="rl-bar-fill" style="width:${Math.min(100,dayPct)}%;background:${color}"></div></div>
@@ -444,16 +422,15 @@ const UI = (() => {
     }).join('');
   }
 
-  // ── util ────────────────────────────────────────────────────────────
   function escape(s) {
     if (s == null) return '';
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
   return {
-    updateClock, updateKronosBadge, updateHero, updatePulseStrip,
+    updateClock, updateBGTCBadge, updateHero, updatePulseStrip,
     updateSessionRibbon, updateRegimeDial, updateRetailPlan,
-    updateOddsTable, updateKronosCard, updateRanger,
+    updateOddsTable, updateBGTCCard, updateRanger,
     renderRangeVisual, computeStrikes, updateSignals,
     updateNewsFeed, updateRateLimits,
   };

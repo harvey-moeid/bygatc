@@ -1,9 +1,9 @@
-"""Merge noctua.json + kronos.json into one payload for the Worker KV push."""
+"""Merge noctua.json + BGTC.json into one payload for the Worker KV push."""
 import json, sys
 
-noctua_path, kronos_path, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
+noctua_path, BGTC_path, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
 n = json.load(open(noctua_path))
-k = json.load(open(kronos_path))
+k = json.load(open(BGTC_path))
 merged = {**k, **n, "_source": "gh-actions-noctua"}
 with open(out_path, "w") as f:
     json.dump(merged, f)

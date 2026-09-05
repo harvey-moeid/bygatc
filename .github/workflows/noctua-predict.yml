@@ -75,15 +75,15 @@ jobs:
           fi
 
           NOCTUA_FILE="/tmp/noctua_out/noctua.json"
-          KRONOS_FILE="/tmp/noctua_out/kronos.json"
+          BGTC_FILE="/tmp/noctua_out/BGTC.json"
           PAYLOAD="/tmp/noctua_payload.json"
 
-          if [ -f "$NOCTUA_FILE" ] && [ -f "$KRONOS_FILE" ]; then
-            python model/serve/merge_payload.py "$NOCTUA_FILE" "$KRONOS_FILE" "$PAYLOAD"
+          if [ -f "$NOCTUA_FILE" ] && [ -f "$BGTC_FILE" ]; then
+            python model/serve/merge_payload.py "$NOCTUA_FILE" "$BGTC_FILE" "$PAYLOAD"
           elif [ -f "$NOCTUA_FILE" ]; then
             cp "$NOCTUA_FILE" "$PAYLOAD"
-          elif [ -f "$KRONOS_FILE" ]; then
-            cp "$KRONOS_FILE" "$PAYLOAD"
+          elif [ -f "$BGTC_FILE" ]; then
+            cp "$BGTC_FILE" "$PAYLOAD"
           else
             echo "No prediction output found -- skipping push"
             exit 0

@@ -5,8 +5,8 @@ One forecast, end to end: live bars -> features -> NOCTUA -> JSON.
 
 Emits two payloads.
 
-`legacy` is byte-compatible with what `src/data.js fetchKronos()` already
-consumes, so the dead Kronos scrape can be replaced without touching the
+`legacy` is byte-compatible with what `src/data.js fetchBGTC()` already
+consumes, so the dead BGTC scrape can be replaced without touching the
 dashboard. Two fields need an honest mapping:
 
   upside  PINNED TO 50.0. Walk-forward found NO directional skill at this
@@ -161,12 +161,12 @@ def model_prob_rv_above(model, pred: dict, threshold: float) -> float:
 
 
 def to_legacy(f: dict) -> dict:
-    """The exact JSON shape `src/data.js fetchKronos()` already handles.
+    """The exact JSON shape `src/data.js fetchBGTC()` already handles.
 
     `upside` is deliberately pinned to 50.0 rather than passed through.
 
     This is not timidity, it is the only defensible option. `src/data.js` feeds
-    `kronos.upside` into `UI.computeStrikes()` to SKEW the recommended call and
+    `BGTC.upside` into `UI.computeStrikes()` to SKEW the recommended call and
     put strikes, and into the conviction score. Publishing a directional number
     with no validated skill (walk-forward log-loss 0.6941 vs 0.6931 for a coin
     flip) would push real strike recommendations around on noise -- strictly
@@ -231,7 +231,7 @@ def main(argv=None) -> int:
 
     a.out_dir.mkdir(parents=True, exist_ok=True)
     (a.out_dir / "noctua.json").write_text(json.dumps(f, indent=2) + "\n")
-    (a.out_dir / "kronos.json").write_text(json.dumps(legacy, indent=2) + "\n")
+    (a.out_dir / "BGTC.json").write_text(json.dumps(legacy, indent=2) + "\n")
 
     print(json.dumps(f, indent=2))
     return 0

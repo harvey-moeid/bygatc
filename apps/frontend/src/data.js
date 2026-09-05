@@ -1,34 +1,30 @@
 /**
- * data.js  (v4.1 â connector-enriched + bug fixes)
+ * data.js  (v4.1 — connector-enriched + bug fixes)
  * =====================================================================
  * v4.1 changes from v4:
- *   â¢ Prefer ./data/*.json snapshots (written by GitHub Actions enrichment
+ *   • Prefer ./data/*.json snapshots (written by GitHub Actions enrichment
  *     cron) over browser CORS proxies. See .github/workflows/fetch-data.yml.
- *   â¢ Added Crypto.com Exchange as a secondary price source when Binance
+ *   • Added Crypto.com Exchange as a secondary price source when Binance
  *     is rate-limited or blocked.
- *   â¢ News caches are now namespaced (news_exa / news_cp / news_gdelt /
+ *   • News caches are now namespaced (news_exa / news_cp / news_gdelt /
  *     news_bigdata) and the dashboard picks the freshest non-empty.
- *   â¢ EXA placeholder string ("your-exa-api-key-here") is no longer
+ *   • EXA placeholder string ("your-exa-api-key-here") is no longer
  *     treated as a real key.
- *   â¢ Every fetcher returns a `_freshness` field (fresh|stale|offline) so
+ *   • Every fetcher returns a `_freshness` field (fresh|stale|offline) so
  *     the UI can show a stale glyph instead of silently displaying day-old
  *     numbers.
- *   â¢ Funding `flag` thresholds documented and tightened to match PDF Â§3.
- *   â¢ News items deduped across sources by URL host + title prefix.
- *   â¢ Kronos source timestamp respects an optional tz hint from the
+ *   • Funding `flag` thresholds documented and tightened to match PDF §3.
+ *   • News items deduped across sources by URL host + title prefix.
+ *   • BGTC source timestamp respects an optional tz hint from the
  *     enrichment snapshot (server-side can emit UTC).
  */
 const DataLayer = (() => {
 
-  // ââ CLOUDFLARE WORKER BASE URL ââââââââââââââââââââââââââââââââââââââââââââââââ
-  // Di Cloudflare Pages, Worker dideploy sebagai service binding ke /api/*.
-  // Saat dev lokal (`wrangler dev`), worker jalan di localhost:8787.
-  // Set window.WORKER_BASE di src/config.js untuk override jika perlu.
+  // ── CLOUDFLARE WORKER BASE URL ────────────────────────────────────────────
   const WORKER_BASE = (typeof window !== 'undefined' && window.WORKER_BASE)
     ? window.WORKER_BASE
     : '/api';
 
-  // Helper: fetch dari Worker dengan fallback ke direct API jika Worker error.
   async function workerFetch(path, timeoutMs = 9000) {
     const r = await fetch(`${WORKER_BASE}${path}`, {
       signal: AbortSignal.timeout(timeoutMs),
@@ -37,10 +33,8 @@ const DataLayer = (() => {
     return r.json();
   }
 
-  // ââ STATIC SNAPSHOT ROOT âââââââââââââââââââââââââââââââââââââââââââââ
-  // Fallback: ./data/*.json (di-serve bareng Pages, diupdate GH Actions).
   const SNAPSHOT_ROOT = './data';
-  const SNAPSHOT_MAX_AGE_MS = 45 * 60_000;   // accept if updated within 45 min
+  const SNAPSHOT_MAX_AGE_MS = 45 * 60_000;
 
   async function tryLoadSnapshot(name) {
     try {
@@ -50,17 +44,12 @@ const DataLayer = (() => {
       const j = await r.json();
       const updatedMs = j._updatedMs || j.ts || null;
       if (updatedMs && Date.now() - updatedMs > SNAPSHOT_MAX_AGE_MS) {
-        // Too stale; mark but still return for fallback purposes.
         return { ...j, _freshness: 'stale-snapshot' };
       }
       return { ...j, _freshness: 'fresh-snapshot' };
     } catch { return null; }
   }
 
-  // ââ CORS PROXY CHAIN (free, no-key, in priority order) âââââââââââââââââââââââ
-  // Tried one after another until one succeeds. Covers the case where a
-  // proxy goes down, rate-limits us, or returns a stale cached page.
-  // ââ CACHE HELPERS âââââââââââââââââââââââââââââââââââââââââââââ
   function cacheGet(key) {
     try {
       const item = JSON.parse(localStorage.getItem('btc_cache_v4_' + key));
@@ -75,15 +64,10 @@ const DataLayer = (() => {
     } catch {}
   }
 
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  //                          PRICE / CANDLES
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
   async function fetchPrice() {
     const cached = cacheGet('price');
     if (cached) return cached;
     try {
-      // Worker proxy: no CORS issue, has KV cache
       const data = await workerFetch('/market/price');
       if (!data.price) throw new Error('No data');
       cacheSet('price', data, 60_000);
@@ -117,15 +101,6 @@ const DataLayer = (() => {
     } catch (e) { console.error('[fetchDaily]', e); return cacheGet('daily_stale') || []; }
   }
 
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  //                     FUNDING RATE (NEW â PDF Â§4)
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  // Perpetual funding. Thresholds (per 8h period, as a fraction):
-  //   |rate| > 0.0003 (0.03%/8h â 0.09%/day) â extreme crowding flag
-  //   |rate| > 0.0001 (0.01%/8h, the Binance baseline) â heavy
-  // PDF calls out funding extremes as a macro regime flag alongside IV/HV.
-  // (v4.1: comment corrected â it previously claimed extreme = 0.01%/8h,
-  //  which contradicted the 0.0003 threshold actually coded below.)
   async function fetchFunding() {
     const cached = cacheGet('funding');
     if (cached) return cached;
@@ -137,17 +112,12 @@ const DataLayer = (() => {
     } catch (e) { console.error('[fetchFunding]', e); return cacheGet('funding_stale'); }
   }
 
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  //                       FEAR & GREED / OPTIONS
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
   async function fetchFearGreed() {
     const cached = cacheGet('fg');
     if (cached) return cached;
 
-    // Prefer Worker KV (diisi cron setiap jam)
     try {
-      const snap = await tryLoadSnapshot('fg'); // ./data/fg.json GH Actions fallback
+      const snap = await tryLoadSnapshot('fg');
       if (snap?._freshness === 'fresh-snapshot') {
         cacheSet('fg', snap, 3600_000 * 6);
         cacheSet('fg_stale', snap, 86400_000);
@@ -174,52 +144,35 @@ const DataLayer = (() => {
     } catch (e) { console.error('[fetchOptions]', e); return cacheGet('options_stale'); }
   }
 
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  //      KRONOS SCRAPER (BULLETPROOF â 4 proxies + DOMParser)
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  // The live page is rendered as static HTML with the two metrics appearing
-  // in deterministic sections. Instead of hoping one regex works, we:
-  //   1. Try each CORS proxy in sequence until we get HTML
-  //   2. Parse HTML with DOMParser (robust to whitespace/tag shifts)
-  //   3. Extract by heading â next large % number (3 strategies)
-  //   4. Sanity-check (0 â¤ upside â¤ 100, timestamp parseable)
-  //   5. Expose freshness: how stale is the source timestamp vs now?
-
-  async function fetchKronos() {
-    const cached = cacheGet('kronos');
+  // ── BGTC (formerly Kronos) ────────────────────────────────────────────────
+  async function fetchBGTC() {
+    const cached = cacheGet('BGTC');
     if (cached) return cached;
 
-    // Primary: Worker KV â diisi GH Actions via POST /api/noctua/push
+    // Primary: Worker KV — diisi GH Actions via POST /api/noctua/push
     try {
       const data = await workerFetch('/noctua/latest');
       if (data?.upside != null) {
-        cacheSet('kronos', data, 3600_000 * 3);
-        cacheSet('kronos_stale', data, 86400_000 * 3);
+        cacheSet('BGTC', data, 3600_000 * 3);
+        cacheSet('BGTC_stale', data, 86400_000 * 3);
         return data;
       }
     } catch (e) {
-      console.warn('[fetchKronos] worker noctua miss:', e.message);
+      console.warn('[fetchBGTC] worker noctua miss:', e.message);
     }
 
-    // Fallback: ./data/kronos.json (GH Actions commit snapshot)
-    const snap = await tryLoadSnapshot('kronos');
+    // Fallback: ./data/BGTC.json (GH Actions commit snapshot)
+    const snap = await tryLoadSnapshot('BGTC');
     if (snap?.upside != null) {
-      cacheSet('kronos', snap, 3600_000);
-      cacheSet('kronos_stale', snap, 86400_000 * 3);
+      cacheSet('BGTC', snap, 3600_000);
+      cacheSet('BGTC_stale', snap, 86400_000 * 3);
       return snap;
     }
 
-    return cacheGet('kronos_stale');
+    return cacheGet('BGTC_stale');
   }
 
-  // ââ DEAD CODE REMOVED (CF migration) ââââââââââââââââââââââââââââââââââââââââ
-  // parseKronosHtml, parseSourceTs, fetchCryptoPanicNews, fetchGdeltNews,
-  // fetchViaProxyChain, CORS_PROXIES â semua sudah ada di Worker.
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
-  // Placeholder agar tidak error jika ada referensi lama di console
-  function parseKronosHtml(html) {
-    // STRATEGY A: DOMParser â look for h3 headings, find following percentage
+  function parseBGTCHtml(html) {
     try {
       const doc = new DOMParser().parseFromString(html, 'text/html');
       const headings = [...doc.querySelectorAll('h1,h2,h3,h4,h5,p,strong')];
@@ -227,7 +180,6 @@ const DataLayer = (() => {
       for (const h of headings) {
         const hText = (h.textContent || '').toLowerCase();
         if (upside === null && hText.includes('upside probability')) {
-          // Look at siblings for a "XX.X%" number
           const pct = findNearbyPercent(h);
           if (pct !== null && pct >= 0 && pct <= 100) upside = pct;
         }
@@ -236,19 +188,15 @@ const DataLayer = (() => {
           if (pct !== null && pct >= 0 && pct <= 100) volAmp = pct;
         }
       }
-      // Timestamp
       let sourceTs = null;
       const bodyTxt = doc.body?.textContent || '';
       const tsM = bodyTxt.match(/Last Updated[^:]*:\s*([0-9]{4}-[0-9]{2}-[0-9]{2}\s+[0-9]{2}:[0-9]{2}:[0-9]{2})/i);
       if (tsM) sourceTs = tsM[1].trim();
-
       if (upside !== null && volAmp !== null) {
         return { upside, volAmp, sourceTs, strategy: 'domparser' };
       }
-    } catch (e) { console.warn('[parseKronos] DOM strategy failed', e); }
+    } catch (e) { console.warn('[parseBGTC] DOM strategy failed', e); }
 
-    // STRATEGY B: Labeled-section regex â percent immediately after the label
-    // "Upside Probability (Next 24h)</h3>\n16.7%"
     try {
       const labelRe = /Upside\s+Probability[\s\S]{0,200}?(\d+(?:\.\d+)?)\s*%/i;
       const upMatch  = html.match(labelRe);
@@ -263,9 +211,8 @@ const DataLayer = (() => {
           strategy: 'label-regex',
         };
       }
-    } catch (e) { console.warn('[parseKronos] label-regex failed', e); }
+    } catch (e) { console.warn('[parseBGTC] label-regex failed', e); }
 
-    // STRATEGY C: Legacy long-context regex (our v3 fallback)
     try {
       const upM = html.match(/([\d.]+)\s*%[\s\S]{0,400}?higher than the last known price/i);
       const vlM = html.match(/([\d.]+)\s*%[\s\S]{0,400}?recent historical volatility/i);
@@ -278,17 +225,14 @@ const DataLayer = (() => {
           strategy: 'legacy-regex',
         };
       }
-    } catch (e) { console.warn('[parseKronos] legacy failed', e); }
+    } catch (e) { console.warn('[parseBGTC] legacy failed', e); }
 
     return null;
   }
 
-  // Helper: starting from a header element, walk following siblings looking
-  // for the first "XX.X%" number (ignores the header's own text).
   function findNearbyPercent(startEl) {
     let el = startEl;
     for (let i = 0; i < 12 && el; i++) {
-      // Check siblings first
       let sib = el.nextElementSibling;
       for (let j = 0; j < 6 && sib; j++) {
         const txt = (sib.textContent || '').trim();
@@ -306,21 +250,15 @@ const DataLayer = (() => {
 
   function parseSourceTs(s) {
     if (!s) return null;
-    // "2026-04-18 17:00:25" â treated as UTC
     const m = s.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
     if (!m) return null;
     return Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
   }
 
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  //                          NEWS (Exa â CryptoPanic â GDELT fallback)
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
   async function fetchNewsSentiment() {
     const cached = cacheGet('news');
     if (cached) return cached;
 
-    // Primary: Worker KV (diisi cron Cloudflare setiap jam, termasuk Exa jika ada key)
     try {
       const data = await workerFetch('/enrichment/news');
       if (data?.items?.length) {
@@ -332,7 +270,6 @@ const DataLayer = (() => {
       console.warn('[fetchNewsSentiment] worker enrichment miss:', e.message);
     }
 
-    // Fallback: ./data/news.json (GH Actions snapshot jika ada)
     const snap = await tryLoadSnapshot('news');
     if (snap?.items?.length) {
       cacheSet('news_stale', snap, 86400_000);
@@ -342,10 +279,6 @@ const DataLayer = (() => {
     return cacheGet('news_stale') || { items: [], ts: Date.now(), source: 'offline' };
   }
 
-  // v4.1: cross-source headline dedupe. Aggregators (CryptoPanic, GDELT)
-  // routinely surface the same story under slightly different titles/URLs.
-  // Key = hostname + first 60 chars of the normalised title; first hit wins
-  // (sources are already returned newest-first).
   function dedupeNews(items) {
     const seen = new Set();
     const out = [];
@@ -359,7 +292,6 @@ const DataLayer = (() => {
         .trim()
         .slice(0, 60);
       const key = host + '|' + titleKey;
-      // Also dedupe identical titles across different hosts (syndication)
       const titleOnlyKey = 't|' + titleKey;
       if (seen.has(key) || (titleKey.length > 20 && seen.has(titleOnlyKey))) continue;
       seen.add(key);
@@ -383,11 +315,6 @@ const DataLayer = (() => {
     return s > 0 ? 'pos' : s < 0 ? 'neg' : 'neu';
   }
 
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  //                        QUANTITATIVE ENGINES
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-
-  // HV20 (20-day annualised realised vol from log returns)
   function computeHV20(dailyCandles) {
     if (!dailyCandles || dailyCandles.length < 21) return null;
     const closes = dailyCandles.slice(-21).map(c => c.c);
@@ -401,7 +328,6 @@ const DataLayer = (() => {
     return { annualised, oneDay, dailyStd, n: logRets.length };
   }
 
-  // HV20 historical series â for the sparkline + trend
   function computeHV20Series(dailyCandles) {
     if (!dailyCandles || dailyCandles.length < 25) return [];
     const closes = dailyCandles.map(c => c.c);
@@ -420,7 +346,6 @@ const DataLayer = (() => {
     return out;
   }
 
-  // ATR-7 (simple)
   function computeATR7(dailyCandles) {
     if (!dailyCandles || dailyCandles.length < 7) return null;
     const last7 = dailyCandles.slice(-7);
@@ -428,7 +353,6 @@ const DataLayer = (() => {
     return ranges.reduce((a,b) => a+b, 0) / ranges.length;
   }
 
-  // ATM IV from Deribit chain (nearest expiry, strike closest to spot)
   function findAtmIv(options, spot) {
     if (!options?.length) return null;
     const expiryMap = {};
@@ -468,7 +392,6 @@ const DataLayer = (() => {
     return null;
   }
 
-  // Classic RANGER (kept for back-compat with existing UI pieces)
   function computeRanger(dailyCandles, fg, ivHvRatio) {
     const atr7 = computeATR7(dailyCandles);
     if (!atr7) return null;
@@ -484,9 +407,8 @@ const DataLayer = (() => {
     return { atr7, ivHv, volRatio, dowMult, fgFactor, raw, safe };
   }
 
-  // IV/HV20 REGIME (PDF Â§2: danger threshold = 1.76, rounded to 1.8)
   function classifyRegime(atmIvPct, hv20Ann) {
-    if (!atmIvPct || !hv20Ann) return { ratio: null, regime: 'unknown', label: 'â', allowTrade: false, sizing: 0 };
+    if (!atmIvPct || !hv20Ann) return { ratio: null, regime: 'unknown', label: '—', allowTrade: false, sizing: 0 };
     const ratio = atmIvPct / hv20Ann;
     let regime, label, allowTrade, sizing;
     if      (ratio < 1.2) { regime = 'green';     label = 'CALM';       allowTrade = true;  sizing = 1.0;  }
@@ -497,40 +419,36 @@ const DataLayer = (() => {
     return { ratio, regime, label, allowTrade, sizing, ivPct: atmIvPct, hv20: hv20Ann };
   }
 
-  // Next-day move odds (PDF Â§1 backtest â conditional on IV/HV20 > 1.76)
   function nextDayMoveOdds(ratio) {
     if (ratio == null) return null;
     if (ratio > 1.76) {
-      // HIGH-IV regime â fat tails
       return {
         regimeType: 'high-iv',
-        description: 'Elevated IV/HV20 regime â realised vol likely to overshoot',
+        description: 'Elevated IV/HV20 regime — realised vol likely to overshoot',
         odds: [
-          { move: 'â¥ 2%', prob: 0.33 },
-          { move: 'â¥ 4%', prob: 0.16 },
-          { move: 'â¥ 6%', prob: 0.087 },
-          { move: 'â¥ 8%', prob: 0.061 },
-          { move: 'â¥ 10%', prob: 0.045 },
+          { move: '≥ 2%', prob: 0.33 },
+          { move: '≥ 4%', prob: 0.16 },
+          { move: '≥ 6%', prob: 0.087 },
+          { move: '≥ 8%', prob: 0.061 },
+          { move: '≥ 10%', prob: 0.045 },
         ],
         daysPct: 10,
       };
     }
-    // NORMAL regime â typical distribution (from PDF Â§5 "repeatable behaviour")
     return {
       regimeType: 'normal',
-      description: 'Normal regime â volatility-clustered, tails contained',
+      description: 'Normal regime — volatility-clustered, tails contained',
       odds: [
-        { move: 'Range â¤ 1Ã hv20_1d', prob: 0.26 },
-        { move: 'Range â¤ 1.5Ã hv20_1d', prob: 0.56 },
-        { move: 'Range â¤ 2Ã hv20_1d', prob: 0.76 },
-        { move: 'Range â¤ 2.5Ã hv20_1d', prob: 0.87 },
-        { move: 'Range â¤ 3Ã hv20_1d', prob: 0.93 },
+        { move: 'Range ≤ 1× hv20_1d', prob: 0.26 },
+        { move: 'Range ≤ 1.5× hv20_1d', prob: 0.56 },
+        { move: 'Range ≤ 2× hv20_1d', prob: 0.76 },
+        { move: 'Range ≤ 2.5× hv20_1d', prob: 0.87 },
+        { move: 'Range ≤ 3× hv20_1d', prob: 0.93 },
       ],
       daysPct: 90,
     };
   }
 
-  // Touch probability (PDF Â§5 empirical: k Ã hv20_1d buckets)
   function touchProbability(distancePct, hv20_1d) {
     if (!hv20_1d || hv20_1d <= 0) return null;
     const k = distancePct / hv20_1d;
@@ -542,35 +460,33 @@ const DataLayer = (() => {
     return 0.90;
   }
 
-  // Session context (PDF Â§5 + existing calm_period_analysis)
   function computeSessionContext() {
     const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
     const h = nowIST.getHours() + nowIST.getMinutes() / 60;
     let phase, advice, tier;
-    if      (h >= 5.5  && h < 8.5)  { phase = 'Pre-Calm';           advice = 'Wait for calm window (08:30â12:30 IST) for tight spreads.'; tier = 'neutral'; }
-    else if (h >= 8.5  && h < 12.5) { phase = 'CALM â­ (best entry)';advice = 'Ideal execution window. Run IV/HV20 + Kronos checks now.'; tier = 'best'; }
+    if      (h >= 5.5  && h < 8.5)  { phase = 'Pre-Calm';           advice = 'Wait for calm window (08:30–12:30 IST) for tight spreads.'; tier = 'neutral'; }
+    else if (h >= 8.5  && h < 12.5) { phase = 'CALM ⭐ (best entry)';advice = 'Ideal execution window. Run IV/HV20 + BGTC checks now.'; tier = 'best'; }
     else if (h >= 12.5 && h < 14)   { phase = 'Post-Calm';          advice = 'Still relatively calm. OK to enter but vol rising soon.'; tier = 'ok'; }
-    else if (h >= 14   && h < 17.5) { phase = 'Pre-Volatile';       advice = 'Secondary entry OK 16:30â17:20 for next-day structure.';    tier = 'warn'; }
+    else if (h >= 14   && h < 17.5) { phase = 'Pre-Volatile';       advice = 'Secondary entry OK 16:30–17:20 for next-day structure.';    tier = 'warn'; }
     else if (h >= 17.5 && h < 18.5) { phase = 'Expiry Transition';  advice = '17:30 IST Delta expiry. Avoid new entries on old structure.'; tier = 'skip'; }
-    else if (h >= 18.5 || h < 0.5)  { phase = 'VOLATILE (EU+US)';   advice = 'Highest realised vol window â DO NOT enter new short premium.'; tier = 'skip'; }
+    else if (h >= 18.5 || h < 0.5)  { phase = 'VOLATILE (EU+US)';   advice = 'Highest realised vol window — DO NOT enter new short premium.'; tier = 'skip'; }
     else                            { phase = 'Late-Night';         advice = 'Asian illiquid hours. Monitor only, don\'t trade.'; tier = 'neutral'; }
     return { phase, advice, tier, istHour: h };
   }
 
-  // Retail seller planner (from PDF Â§2)
   function buildRetailPlan({
-    price, options, atmInfo, hv20, kronosUpside, regime,
+    price, options, atmInfo, hv20, BGTCUpside, regime,
     shortLots = 60, safetyFactor = 1.15, touchThreshold = 0.10,
   }) {
     if (!price || !atmInfo || !hv20 || !options) {
       return { ok: false, reason: 'Missing inputs (price/ATM/HV20/options)' };
     }
     if (!regime.allowTrade) {
-      return { ok: false, reason: `IV/HV20 = ${regime.ratio?.toFixed(2)} â ${regime.label}. Skip today.` };
+      return { ok: false, reason: `IV/HV20 = ${regime.ratio?.toFixed(2)} — ${regime.label}. Skip today.` };
     }
-    const direction = kronosUpside >= 55 ? 'bullish' : kronosUpside <= 45 ? 'bearish' : 'neutral';
+    const direction = BGTCUpside >= 55 ? 'bullish' : BGTCUpside <= 45 ? 'bearish' : 'neutral';
     if (direction === 'neutral') {
-      return { ok: false, reason: `Kronos ${kronosUpside}% â 50/50. No directional edge â use symmetric condor instead.` };
+      return { ok: false, reason: `BGTC ${BGTCUpside}% — 50/50. No directional edge — use symmetric condor instead.` };
     }
     const sellSide = direction === 'bullish' ? 'P' : 'C';
     const sellSideLabel = direction === 'bullish' ? 'PUTS (below spot)' : 'CALLS (above spot)';
@@ -588,7 +504,7 @@ const DataLayer = (() => {
     if (!viable.length) {
       return {
         ok: false,
-        reason: `No OTM ${sellSideLabel} pay â¥ $${reqPremPerLot.toFixed(2)}/lot required to finance ${shortLots}-lot wing.`,
+        reason: `No OTM ${sellSideLabel} pay ≥ $${reqPremPerLot.toFixed(2)}/lot required to finance ${shortLots}-lot wing.`,
         direction, sellSide, atmInfo, reqPremPerLot, candidates: candidates.slice(0, 5),
       };
     }
@@ -622,42 +538,24 @@ const DataLayer = (() => {
     };
   }
 
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  //          FUTURES RISK PLANNER (NEW â for BTCUSDT.P perps)
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  // buildRetailPlan() above is options-only (short premium against a
-  // straddle) and does not translate to a directional perpetual future.
-  // This planner instead turns the parts of the NOCTUA payload that ARE
-  // validated -- p_vol_amplify and barrier_curves touch probabilities --
-  // plus funding, into risk parameters for a futures position: stop-loss,
-  // take-profit, and a position-size multiplier.
-  //
-  // What this function deliberately does NOT do: pick a direction. Kronos
-  // upside/p_up has no validated directional skill at this horizon
-  // (walk-forward log-loss 0.6941 vs 0.6931 for a coin flip -- see
-  // model/serve/predict.py). The caller must supply `direction` from their
-  // own thesis/technical analysis; this function only sizes the risk
-  // around that direction using validated volatility/barrier data.
   function buildFuturesPlan({
-    price, direction, hv20, kronos, funding,
+    price, direction, hv20, BGTC, funding,
     accountEquity = null, riskPct = 1,
     slTouchTarget = 0.35, tpTouchTarget = 0.20, minRR = 1.3,
   }) {
     if (!price || (direction !== 'long' && direction !== 'short')) {
       return {
         ok: false,
-        reason: 'Missing price, or direction must be "long"/"short". Direction has to come from your own thesis -- Kronos upside is not a validated directional signal (see docs/TRADE_FLOW.md).',
+        reason: 'Missing price, or direction must be "long"/"short". Direction has to come from your own thesis — BGTC upside is not a validated directional signal (see docs/TRADE_FLOW.md).',
       };
     }
 
     const warnings = [];
-    const curves = kronos?.barrier_curves;
+    const curves = BGTC?.barrier_curves;
     let slPick, tpPick, usedBarrierCurves = false;
 
     if (curves?.up?.length && curves?.dn?.length) {
       usedBarrierCurves = true;
-      // Long: stop below spot (dn side), target above spot (up side).
-      // Short: mirrored.
       const slSide = direction === 'long' ? curves.dn : curves.up;
       const tpSide = direction === 'long' ? curves.up : curves.dn;
       const closest = (arr, target) => arr.reduce((best, c) =>
@@ -665,10 +563,7 @@ const DataLayer = (() => {
       slPick = closest(slSide, slTouchTarget);
       tpPick = closest(tpSide, tpTouchTarget);
     } else {
-      // Fallback when the NOCTUA payload doesn't include barrier_curves
-      // (e.g. only the legacy kronos.json was pushed, not the merged
-      // payload) -- approximate with a plain HV20 daily-move multiple.
-      warnings.push('barrier_curves not available in the Kronos payload -- falling back to a plain HV20 multiple for SL/TP (less precise than the NOCTUA-calibrated version).');
+      warnings.push('barrier_curves not available in the BGTC payload — falling back to a plain HV20 multiple for SL/TP (less precise than the NOCTUA-calibrated version).');
       const oneDayMovePct = hv20?.oneDay || 2;
       slPick = { pct: oneDayMovePct * 1.0, touch_prob: null };
       tpPick = { pct: oneDayMovePct * 1.5, touch_prob: null };
@@ -682,24 +577,16 @@ const DataLayer = (() => {
       warnings.push(`Risk/reward at these touch-probability targets is ${riskRewardRatio.toFixed(2)}, below your minimum of ${minRR}. Consider a further TP target or a tighter SL target.`);
     }
 
-    // Sizing input 1: p_vol_amplify (validated -- beats Log-HAR by 2.79%
-    // QLIKE, p = 0.043). Shrink size when a volatility expansion is more
-    // likely, since bigger realised moves raise the odds of a leveraged
-    // stop-out. Falls back to legacy volAmp (0-100) if p_vol_amplify (0-1)
-    // isn't present, or to a neutral 0.5 if neither is.
-    const pVolAmplify = kronos?.p_vol_amplify ?? (kronos?.volAmp != null ? kronos.volAmp / 100 : 0.5);
+    const pVolAmplify = BGTC?.p_vol_amplify ?? (BGTC?.volAmp != null ? BGTC.volAmp / 100 : 0.5);
     const volSizeMult = Math.max(0.25, 1 - pVolAmplify * 0.6);
 
-    // Sizing input 2: funding. Penalise size when funding is extreme AND
-    // aligned with the trade direction -- that means paying to hold a
-    // crowded side, with elevated squeeze/reversal risk.
     let fundingSizeMult = 1;
     if (funding?.flag === 'long-extreme' && direction === 'long') {
       fundingSizeMult = 0.5;
-      warnings.push(`Funding is extremely positive (${funding.ratePct?.toFixed?.(4)}%) while going long -- crowded and expensive to hold.`);
+      warnings.push(`Funding is extremely positive (${funding.ratePct?.toFixed?.(4)}%) while going long — crowded and expensive to hold.`);
     } else if (funding?.flag === 'short-extreme' && direction === 'short') {
       fundingSizeMult = 0.5;
-      warnings.push(`Funding is extremely negative (${funding.ratePct?.toFixed?.(4)}%) while going short -- crowded and expensive to hold.`);
+      warnings.push(`Funding is extremely negative (${funding.ratePct?.toFixed?.(4)}%) while going short — crowded and expensive to hold.`);
     }
 
     const sizeMultiplier = Math.round(volSizeMult * fundingSizeMult * 100) / 100;
@@ -729,18 +616,17 @@ const DataLayer = (() => {
       slTouchProb: slPick.touch_prob,
       tpTouchProb: tpPick.touch_prob,
       usedBarrierCurves,
-      horizonHours: kronos?.H_hours || 19,
+      horizonHours: BGTC?.H_hours || 19,
       pVolAmplify,
       sizeMultiplier,
       riskAmount,
       positionNotional,
       warnings,
-      note: 'SL/TP/sizing are derived from validated NOCTUA outputs (p_vol_amplify, barrier_curves) plus funding. This function does not derive direction -- you supply it.',
+      note: 'SL/TP/sizing are derived from validated NOCTUA outputs (p_vol_amplify, barrier_curves) plus funding. This function does not derive direction — you supply it.',
     };
   }
 
-  // Composite sentiment score
-  function computeSentiment(news, kronos, fg, regime) {
+  function computeSentiment(news, BGTC, fg, regime) {
     const items = news?.items || [];
     const newsPos = items.filter(i => i.sent === 'pos').length;
     const newsNeg = items.filter(i => i.sent === 'neg').length;
@@ -748,68 +634,57 @@ const DataLayer = (() => {
     const newsScore = items.length
       ? Math.round((newsPos / Math.max(1, newsPos + newsNeg + newsNeu)) * 100)
       : 40;
-    const kronosScore   = kronos?.upside || 50;
+    const BGTCScore   = BGTC?.upside || 50;
     const fgScore       = fg?.value || 50;
-    const volAmpScore   = kronos?.volAmp || 50;
+    const volAmpScore   = BGTC?.volAmp || 50;
     const regimePenalty = regime?.regime === 'red' ? 20
                         : regime?.regime === 'amber-dark' ? 10
                         : regime?.regime === 'amber' ? 5 : 0;
     const composite = Math.round(
-      kronosScore * 0.35 + fgScore * 0.25 + newsScore * 0.25 +
+      BGTCScore * 0.35 + fgScore * 0.25 + newsScore * 0.25 +
       (100 - volAmpScore) * 0.15 - regimePenalty
     );
     return {
       composite: Math.max(0, Math.min(100, composite)),
-      newsScore, kronosScore, fgScore, volAmpScore,
+      newsScore, BGTCScore, fgScore, volAmpScore,
       newsPos, newsNeg, total: items.length,
     };
   }
 
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  //                   MASTER DECISION ENGINE (NEW)
-  // âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-  // Pulls it all together. Returns { verdict, confidence, reasons[], actionPath }
-  // Used to populate the hero decision card.
-  function buildDecision({ price, hv20, regime, kronos, retailPlan, session, funding, sentiment }) {
+  function buildDecision({ price, hv20, regime, BGTC, retailPlan, session, funding, sentiment }) {
     const reasons = [];
     const blockers = [];
 
-    // Trade allowed by IV/HV20 regime?
     if (!regime?.allowTrade) {
-      blockers.push(`IV/HV20 = ${regime?.ratio?.toFixed(2) || '?'} (${regime?.label}) â PDF rule: no short premium above 1.8`);
+      blockers.push(`IV/HV20 = ${regime?.ratio?.toFixed(2) || '?'} (${regime?.label}) — PDF rule: no short premium above 1.8`);
     } else {
-      reasons.push(`IV/HV20 = ${regime.ratio.toFixed(2)} â ${regime.label} (sizing: ${(regime.sizing*100).toFixed(0)}%)`);
+      reasons.push(`IV/HV20 = ${regime.ratio.toFixed(2)} — ${regime.label} (sizing: ${(regime.sizing*100).toFixed(0)}%)`);
     }
 
-    // Session check
     if (session?.tier === 'skip') {
-      blockers.push(`Session: ${session.phase} â avoid new entries now`);
+      blockers.push(`Session: ${session.phase} — avoid new entries now`);
     } else if (session?.tier === 'best') {
-      reasons.push(`Session: ${session.phase} â (ideal)`);
+      reasons.push(`Session: ${session.phase} — (ideal)`);
     } else {
-      reasons.push(`Session: ${session?.phase || 'â'}`);
+      reasons.push(`Session: ${session?.phase || '—'}`);
     }
 
-    // Funding regime
     if (funding?.flag === 'long-extreme' || funding?.flag === 'short-extreme') {
-      blockers.push(`Perp funding extreme (${funding.ratePct.toFixed(4)}%) â crowd positioning risk`);
+      blockers.push(`Perp funding extreme (${funding.ratePct.toFixed(4)}%) — crowd positioning risk`);
     } else if (funding) {
       reasons.push(`Funding: ${funding.ratePct.toFixed(4)}% (${funding.flag})`);
     }
 
-    // Kronos freshness
-    if (kronos?.freshness === 'very-stale') {
-      blockers.push(`Kronos last updated >${kronos.ageHrs?.toFixed(0)}h ago â signal stale`);
-    } else if (kronos) {
-      reasons.push(`Kronos: ${kronos.upside.toFixed(1)}% upside / ${kronos.volAmp.toFixed(1)}% vol-amp (${kronos.freshness})`);
+    if (BGTC?.freshness === 'very-stale') {
+      blockers.push(`BGTC last updated >${BGTC.ageHrs?.toFixed(0)}h ago — signal stale`);
+    } else if (BGTC) {
+      reasons.push(`BGTC: ${BGTC.upside.toFixed(1)}% upside / ${BGTC.volAmp.toFixed(1)}% vol-amp (${BGTC.freshness})`);
     }
 
-    // Directional clarity
-    if (kronos && Math.abs(kronos.upside - 50) < 5) {
-      blockers.push(`Kronos ${kronos.upside.toFixed(1)}% â 50/50 â no directional edge for asymmetric wing`);
+    if (BGTC && Math.abs(BGTC.upside - 50) < 5) {
+      blockers.push(`BGTC ${BGTC.upside.toFixed(1)}% — 50/50 — no directional edge for asymmetric wing`);
     }
 
-    // Plan viability
     const canTrade = retailPlan?.ok === true;
 
     let verdict, verdictClass;
@@ -823,34 +698,30 @@ const DataLayer = (() => {
       verdictClass = canTrade ? 'go' : 'cau';
     }
 
-    // Confidence = 0-100 based on positive signals vs blockers
     const confidence = Math.max(0, Math.min(100,
-      100 - blockers.length * 25 - (kronos?.freshness === 'stale' ? 10 : 0)
+      100 - blockers.length * 25 - (BGTC?.freshness === 'stale' ? 10 : 0)
       + (regime?.sizing || 0) * 30
-      - (kronos ? Math.abs(50 - kronos.upside) < 5 ? 15 : 0 : 15)
+      - (BGTC ? Math.abs(50 - BGTC.upside) < 5 ? 15 : 0 : 15)
     ));
 
     return {
       verdict, verdictClass, confidence,
       reasons, blockers,
       canTrade,
-      direction: kronos?.upside >= 55 ? 'bullish' : kronos?.upside <= 45 ? 'bearish' : 'neutral',
+      direction: BGTC?.upside >= 55 ? 'bullish' : BGTC?.upside <= 45 ? 'bearish' : 'neutral',
       tradeStructure: canTrade && retailPlan.ok
-        ? `1Ã long $${retailPlan.atmInfo.atmStrike} straddle + ${retailPlan.shortLots}Ã short $${retailPlan.shortStrike} ${retailPlan.sellSide}`
+        ? `1× long $${retailPlan.atmInfo.atmStrike} straddle + ${retailPlan.shortLots}× short $${retailPlan.shortStrike} ${retailPlan.sellSide}`
         : null,
     };
   }
 
   return {
-    // fetchers
     fetchPrice, fetchHourly, fetchDaily, fetchFearGreed,
-    fetchOptions, fetchKronos, fetchNewsSentiment, fetchFunding,
-    // quant engines
+    fetchOptions, fetchBGTC, fetchNewsSentiment, fetchFunding,
     computeHV20, computeHV20Series, computeATR7,
     findAtmIv, computeRanger, classifyRegime,
     touchProbability, buildRetailPlan, buildFuturesPlan, computeSentiment,
     nextDayMoveOdds, computeSessionContext, buildDecision,
-    // util
     scoreSentiment,
   };
 })();
