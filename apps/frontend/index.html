@@ -9,8 +9,8 @@
      only self + cdnjs, no inline event handlers would be ideal but the page
      uses oninput= on sliders, hence 'unsafe-inline' for now. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https:; frame-src 'none'; object-src 'none'; base-uri 'self'">
-<title>BTC Options Desk · KRONOS / HV20 / Retail Seller v4</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>₿</text></svg>">
+<title>BTC Options Desk &middot; BGTC / HV20 / Retail Seller v4</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#x20BF;</text></svg>">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
 :root{
@@ -37,7 +37,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 
 .wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:18px 16px}
 
-/* ═══════════ TOP BAR ═══════════ */
+/* ──────────── TOP BAR ──────────── */
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px}
 .brand{display:flex;align-items:center;gap:12px}
 .brand-logo{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent);letter-spacing:-.3px}
@@ -55,7 +55,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .btn{background:transparent;border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:10px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s;letter-spacing:.04em}
 .btn:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
 
-/* ═══════════ HERO DECISION CARD ═══════════ */
+/* ──────────── HERO DECISION CARD ──────────── */
 .hero{position:relative;border-radius:14px;padding:22px 24px;margin-bottom:14px;border:2px solid;overflow:hidden}
 .hero.go{border-color:var(--green-bd);background:linear-gradient(135deg,rgba(74,222,128,0.06),rgba(74,222,128,0.02))}
 .hero.cau{border-color:var(--amber-bd);background:linear-gradient(135deg,rgba(251,191,36,0.06),rgba(251,191,36,0.02))}
@@ -100,7 +100,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .tsb-value{font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--text)}
 .tsb-sub{font-size:10px;color:var(--muted);margin-top:2px}
 
-/* ═══════════ MARKET PULSE STRIP ═══════════ */
+/* ──────────── MARKET PULSE STRIP ──────────── */
 .pulse-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
 .pulse-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;position:relative}
 .pc-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
@@ -110,12 +110,12 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .pc-val.pos{color:var(--green)}.pc-val.neg{color:var(--red)}.pc-val.neu{color:var(--amber)}
 .pc-val.cyan{color:var(--cyan)}.pc-val.purple{color:var(--accent)}
 
-/* ═══════════ SECTION HEADER ═══════════ */
+/* ──────────── SECTION HEADER ──────────── */
 .sh{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:20px 0 10px;display:flex;align-items:center;gap:10px;font-weight:500}
 .sh::after{content:'';flex:1;height:1px;background:var(--border)}
 .sh-tag{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface2);padding:2px 7px;border-radius:3px;border:1px solid var(--border);font-weight:400}
 
-/* ═══════════ SESSION RIBBON ═══════════ */
+/* ──────────── SESSION RIBBON ──────────── */
 .session-ribbon{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .sr-phase{font-size:16px;font-weight:700;font-family:var(--font-mono)}
 .sr-phase.best{color:var(--green)}.sr-phase.ok{color:var(--cyan)}.sr-phase.warn{color:var(--amber)}.sr-phase.skip{color:var(--red)}.sr-phase.neutral{color:var(--muted)}
@@ -132,7 +132,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
 }
 
-/* ═══════════ REGIME DIAL ═══════════ */
+/* ──────────── REGIME DIAL ──────────── */
 .regime-dial-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px}
 .rd-grid{display:grid;grid-template-columns:2fr 1.2fr 1.5fr;gap:24px;align-items:center}
 @media(max-width:900px){.rd-grid{grid-template-columns:1fr;gap:16px}}
@@ -150,12 +150,12 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .rd-size-v{font-family:var(--font-mono);font-size:22px;font-weight:700}
 .rd-size-s{font-size:10px;color:var(--muted);margin-top:2px}
 
-/* ═══════════ TWO-COL LAYOUT ═══════════ */
+/* ──────────── TWO-COL LAYOUT ──────────── */
 .two-col{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-bottom:14px}
 @media(max-width:1000px){.two-col{grid-template-columns:1fr}}
 .col-stack{display:flex;flex-direction:column;gap:14px}
 
-/* ═══════════ RETAIL PLAN CARD ═══════════ */
+/* ──────────── RETAIL PLAN CARD ──────────── */
 .retail-card{background:var(--surface);border:1px solid rgba(129,140,248,0.2);border-radius:12px;padding:0;overflow:hidden}
 .rc-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px}
 .rc-title{font-size:14px;font-weight:700;color:var(--accent);font-family:var(--font-mono)}
@@ -190,14 +190,14 @@ input[type=range]{accent-color:var(--accent);width:100%}
 
 .rc-risk-note{padding:11px 14px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.2);border-radius:8px;font-size:11px;color:var(--text);line-height:1.5;margin-top:10px}
 
-/* ═══════════ ODDS TABLE ═══════════ */
+/* ──────────── ODDS TABLE ──────────── */
 .odds-table{width:100%;border-collapse:collapse}
 .odds-table th{text-align:left;padding:7px 10px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);font-weight:500}
 .odds-table td{padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border)}
 .odds-table tr:last-child td{border-bottom:none}
 .odds-bar{display:inline-block;height:8px;background:var(--accent);border-radius:3px;vertical-align:middle;margin-right:8px}
 
-/* ═══════════ INFO CARDS ═══════════ */
+/* ──────────── INFO CARDS ──────────── */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
 .card-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:500;display:flex;align-items:center;gap:6px}
 .card-title .dot{width:5px;height:5px;border-radius:50%}
@@ -206,12 +206,12 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .ir-l{color:var(--muted)}
 .ir-v{font-family:var(--font-mono);font-weight:500;text-align:right}
 
-/* ═══════════ CHART & THETA ═══════════ */
+/* ──────────── CHART & THETA ──────────── */
 .ch-wrap{position:relative;width:100%;height:190px}
 .ch-wrap-sm{position:relative;width:100%;height:60px}
 
-/* ═══════════ KRONOS + EVIDENCE ═══════════ */
-.kronos-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+/* ──────────── BGTC + EVIDENCE ──────────── */
+.bgtc-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
 .kc-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px}
 .kc-title{font-size:13px;font-weight:700;color:var(--text)}
 .kc-fresh{font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:4px}
@@ -225,7 +225,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .kc-metric-v{font-family:var(--font-mono);font-size:20px;font-weight:700;line-height:1}
 .kc-metric-s{font-size:10px;color:var(--muted);margin-top:2px}
 
-/* ═══════════ NEWS FEED ═══════════ */
+/* ──────────── NEWS FEED ──────────── */
 .ni{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
 .ni:last-child{border-bottom:none}
 .ni-dot{width:6px;height:6px;border-radius:50%;margin-top:6px;flex-shrink:0}
@@ -234,7 +234,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .ni a{color:inherit;text-decoration:none}
 .ni a:hover .ni-hl{color:var(--accent)}
 
-/* ═══════════ RATE LIMIT ═══════════ */
+/* ──────────── RATE LIMIT ──────────── */
 .rl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
 .rl-card{background:var(--surface2);border-radius:7px;padding:9px 11px}
 .rl-name{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
@@ -242,7 +242,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .rl-bar-fill{height:100%;border-radius:2px}
 .rl-nums{display:flex;justify-content:space-between;font-size:9px;font-family:var(--font-mono);color:var(--muted)}
 
-/* ═══════════ RANGE VISUAL (kept compact) ═══════════ */
+/* ──────────── RANGE VISUAL (kept compact) ──────────── */
 .range-mini{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
 .range-track{position:relative;height:32px;background:var(--surface2);border-radius:6px;overflow:visible;margin:20px 0 26px}
 .rz{position:absolute;top:0;bottom:0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;font-weight:700}
@@ -250,7 +250,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .pm{position:absolute;bottom:-22px;transform:translateX(-50%);font-family:var(--font-mono);font-size:9px;white-space:nowrap;color:var(--muted)}
 .pm.cur{top:-17px;bottom:auto;color:var(--text);font-weight:700}
 
-/* ═══════════ FOOTER ═══════════ */
+/* ──────────── FOOTER ──────────── */
 footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 footer a{color:var(--muted);text-decoration:none}
 footer a:hover{color:var(--accent)}
@@ -261,38 +261,38 @@ footer a:hover{color:var(--accent)}
 <a href="#heroCard" class="skip-link">Skip to main decision card</a>
 <main class="wrap">
 
-<!-- ════════ TOP BAR ════════ -->
+<!-- ──────── TOP BAR ──────── -->
 <header class="topbar">
   <div class="brand">
     <div>
-      <h1 class="brand-logo">KRONOS<b>/</b>HV20 · <span style="color:var(--cyan)">RETAIL</span></h1>
-      <div class="brand-sub">BTC Options Decision Desk · v4</div>
+      <h1 class="brand-logo">BGTC<b>/</b>HV20 &middot; <span style="color:var(--cyan)">RETAIL</span></h1>
+      <div class="brand-sub">BTC Options Decision Desk &middot; v4</div>
     </div>
     <div class="live-pill"><div class="pulse"></div>LIVE</div>
   </div>
   <div class="topbar-right">
-    <a href="options.html" class="pill-sm" style="text-decoration:none;color:#5b8cff;border:1px solid rgba(91,140,255,.35);border-radius:6px;padding:2px 8px" aria-label="Open Option-Selling Desk">⚖ OPTIONS DESK</a>
-    <span id="kronosBadge" class="pill-sm muted">Kronos: —</span>
-    <span id="clockIST" class="pill-sm muted">—</span>
-    <button class="btn" onclick="refreshAll()" aria-label="Refresh all data">↺ REFRESH</button>
+    <a href="options.html" class="pill-sm" style="text-decoration:none;color:#5b8cff;border:1px solid rgba(91,140,255,.35);border-radius:6px;padding:2px 8px" aria-label="Open Option-Selling Desk">&rarr; OPTIONS DESK</a>
+    <span id="BGTCBadge" class="pill-sm muted">BGTC: &hellip;</span>
+    <span id="clockIST" class="pill-sm muted">&mdash;</span>
+    <button class="btn" onclick="refreshAll()" aria-label="Refresh all data">&#8635; REFRESH</button>
   </div>
 </header>
 
-<!-- ════════ HERO DECISION CARD ════════ -->
+<!-- ──────── HERO DECISION CARD ──────── -->
 <div class="hero nt" id="heroCard">
   <div class="hero-top">
     <div class="hero-verdict">
-      <div class="verdict-icon" id="heroIcon">…</div>
+      <div class="verdict-icon" id="heroIcon">&hellip;</div>
       <div class="verdict-text">
         <div class="verdict-label">Today's Recommendation</div>
-        <div class="verdict-main" id="heroVerdict" aria-live="polite" role="status">LOADING…</div>
-        <div class="verdict-sub" id="heroSub">Fetching Binance, Deribit, Kronos, alternative.me, funding…</div>
+        <div class="verdict-main" id="heroVerdict" aria-live="polite" role="status">LOADING&hellip;</div>
+        <div id="heroSub">Fetching Binance, Deribit, BGTC, alternative.me, funding&hellip;</div>
       </div>
     </div>
     <div class="hero-right">
       <div class="conf-box">
         <div class="conf-lbl">Confidence</div>
-        <div class="conf-num" id="heroConf">—</div>
+        <div class="conf-num" id="heroConf">&mdash;</div>
         <div class="conf-bar-wrap"><div class="conf-bar-fill" id="heroConfBar" style="width:0%"></div></div>
       </div>
     </div>
@@ -312,38 +312,38 @@ footer a:hover{color:var(--accent)}
   <div class="trade-structure-box" id="heroStructure" style="display:none">
     <div>
       <div class="tsb-label">Recommended Structure</div>
-      <div class="tsb-value" id="heroStructText">—</div>
-      <div class="tsb-sub" id="heroStructSub">—</div>
+      <div class="tsb-value" id="heroStructText">&mdash;</div>
+      <div class="tsb-sub" id="heroStructSub">&mdash;</div>
     </div>
-    <a href="#retail" style="font-size:11px;color:var(--accent);text-decoration:none;font-family:var(--font-mono)">View full plan ↓</a>
+    <a href="#retail" style="font-size:11px;color:var(--accent);text-decoration:none;font-family:var(--font-mono)">View full plan &rarr;</a>
   </div>
 </div>
 
-<!-- ════════ MARKET PULSE STRIP ════════ -->
+<!-- ──────── MARKET PULSE STRIP ──────── -->
 <div class="pulse-strip">
-  <div class="pulse-card"><div class="pc-lbl">BTC Spot</div><div class="pc-val" id="psPrice">$—</div><div class="pc-sub" id="psPriceSub">Binance</div><div class="pc-trend" id="psChange">—</div></div>
-  <div class="pulse-card"><div class="pc-lbl">24H High</div><div class="pc-val pos" id="psHigh">$—</div><div class="pc-sub" id="psHighPct">—</div></div>
-  <div class="pulse-card"><div class="pc-lbl">24H Low</div><div class="pc-val neg" id="psLow">$—</div><div class="pc-sub" id="psLowPct">—</div></div>
-  <div class="pulse-card"><div class="pc-lbl">HV20 (ann)</div><div class="pc-val cyan" id="psHv20">—%</div><div class="pc-sub" id="psHv20Sub">1-day: —</div></div>
-  <div class="pulse-card"><div class="pc-lbl">ATM IV</div><div class="pc-val purple" id="psAtmIv">—%</div><div class="pc-sub" id="psAtmIvSub">Deribit nearest</div></div>
-  <div class="pulse-card"><div class="pc-lbl">Funding 8h</div><div class="pc-val" id="psFunding">—</div><div class="pc-sub" id="psFundingSub">perp BTCUSDT</div></div>
-  <div class="pulse-card"><div class="pc-lbl">Fear & Greed</div><div class="pc-val" id="psFg">—</div><div class="pc-sub" id="psFgSub">alt.me</div></div>
-  <div class="pulse-card"><div class="pc-lbl">Kronos Upside</div><div class="pc-val" id="psKronos">—%</div><div class="pc-sub" id="psKronosSub">Tsinghua demo</div></div>
+  <div class="pulse-card"><div class="pc-lbl">BTC Spot</div><div class="pc-val" id="psPrice">$&mdash;</div><div class="pc-sub" id="psPriceSub">Binance</div><div class="pc-trend" id="psChange">&mdash;</div></div>
+  <div class="pulse-card"><div class="pc-lbl">24H High</div><div class="pc-val pos" id="psHigh">$&mdash;</div><div class="pc-sub" id="psHighPct">&mdash;</div></div>
+  <div class="pulse-card"><div class="pc-lbl">24H Low</div><div class="pc-val neg" id="psLow">$&mdash;</div><div class="pc-sub" id="psLowPct">&mdash;</div></div>
+  <div class="pulse-card"><div class="pc-lbl">HV20 (ann)</div><div class="pc-val cyan" id="psHv20">&mdash;%</div><div class="pc-sub" id="psHv20Sub">1-day: &mdash;</div></div>
+  <div class="pulse-card"><div class="pc-lbl">ATM IV</div><div class="pc-val purple" id="psAtmIv">&mdash;%</div><div class="pc-sub" id="psAtmIvSub">Deribit nearest</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Funding 8h</div><div class="pc-val" id="psFunding">&mdash;</div><div class="pc-sub" id="psFundingSub">perp BTCUSDT</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Fear &amp; Greed</div><div class="pc-val" id="psFg">&mdash;</div><div class="pc-sub" id="psFgSub">alt.me</div></div>
+  <div class="pulse-card"><div class="pc-lbl">BGTC Upside</div><div class="pc-val" id="psBGTC">&mdash;%</div><div class="pc-sub" id="psBGTCSub">NOCTUA model</div></div>
 </div>
 
-<!-- ════════ SESSION RIBBON ════════ -->
+<!-- ──────── SESSION RIBBON ──────── -->
 <div class="session-ribbon">
   <div>
     <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Now in IST</div>
-    <div class="sr-phase" id="srPhase">—</div>
+    <div class="sr-phase" id="srPhase">&mdash;</div>
   </div>
-  <div class="sr-advice" id="srAdvice">Loading session context…</div>
-  <div class="sr-clock" id="srClock">—</div>
+  <div class="sr-advice" id="srAdvice">Loading session context&hellip;</div>
+  <div class="sr-clock" id="srClock">&mdash;</div>
   <div style="width:100%" id="srBarWrap"></div>
 </div>
 
-<!-- ════════ REGIME DIAL ════════ -->
-<div class="sh">IV/HV20 Regime <span class="sh-tag">PDF threshold 1.76 · backtest 2017–2026</span></div>
+<!-- ──────── REGIME DIAL ──────── -->
+<div class="sh">IV/HV20 Regime <span class="sh-tag">PDF threshold 1.76 &middot; backtest 2017&ndash;2026</span></div>
 <div class="regime-dial-wrap">
   <div class="rd-grid">
     <div class="rd-main">
@@ -361,36 +361,36 @@ footer a:hover{color:var(--accent)}
         </svg>
       </div>
       <div class="rd-num-row">
-        <div><span class="rd-ratio" id="rdRatio">—</span><span class="rd-x">×</span></div>
-        <div class="rd-label" id="rdLabel">—</div>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px" id="rdIvHv">IV — / HV20 —</div>
+        <div><span class="rd-ratio" id="rdRatio">&mdash;</span><span class="rd-x">&times;</span></div>
+        <div class="rd-label" id="rdLabel">&mdash;</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px" id="rdIvHv">IV &mdash; / HV20 &mdash;</div>
       </div>
     </div>
     <div class="rd-size-card">
-      <div class="rd-size-l">Sizing tier (PDF §4.3)</div>
-      <div class="rd-size-v" id="rdSize">—</div>
+      <div class="rd-size-l">Sizing tier (PDF &sect;4.3)</div>
+      <div class="rd-size-v" id="rdSize">&mdash;</div>
       <div class="rd-size-s" id="rdSizeNote">Awaiting data</div>
     </div>
     <div class="rd-explainer" id="rdExplainer">
-      Ratio &lt; 1.2 = calm (full size) · 1.2–1.4 normal (70%) · 1.4–1.6 caution (40%) · 1.6–1.8 reduced (20%) · ≥ 1.8 no-trade.
-      Threshold 1.76 is the 90th percentile of IV/HV20 historical ratios from 2017–2026; above that, realised vol overshoots 10% of the time.
+      Ratio &lt; 1.2 = calm (full size) &middot; 1.2&ndash;1.4 normal (70%) &middot; 1.4&ndash;1.6 caution (40%) &middot; 1.6&ndash;1.8 reduced (20%) &middot; &ge; 1.8 no-trade.
+      Threshold 1.76 is the 90th percentile of IV/HV20 historical ratios from 2017&ndash;2026; above that, realised vol overshoots 10% of the time.
     </div>
   </div>
 </div>
 
-<!-- ════════ RETAIL PLAN CARD ════════ -->
-<div class="sh" id="retail">Retail Seller Mode · $100 · 50× · 1× ATM straddle + 60× far-OTM wings <span class="sh-tag">PDF §2</span></div>
+<!-- ──────── RETAIL PLAN CARD ──────── -->
+<div class="sh" id="retail">Retail Seller Mode &middot; $100 &middot; 50&times; &middot; 1&times; ATM straddle + 60&times; far-OTM wings <span class="sh-tag">PDF &sect;2</span></div>
 <div class="two-col">
   <div class="retail-card">
     <div class="rc-head">
       <div>
-        <div class="rc-title">⚡ Straddle-Financed OTM Wing Selector</div>
-        <div class="rc-sub">Solves for OTM strike where 60× short premium ≥ 1.15× straddle cost AND touch prob ≤ threshold</div>
+        <div class="rc-title">&#9889; Straddle-Financed OTM Wing Selector</div>
+        <div class="rc-sub">Solves for OTM strike where 60&times; short premium &ge; 1.15&times; straddle cost AND touch prob &le; threshold</div>
       </div>
-      <div class="pill-sm muted" id="retailExpiry">—</div>
+      <div class="pill-sm muted" id="retailExpiry">&mdash;</div>
     </div>
     <div class="rc-body" id="retailBody">
-      <div style="padding:30px;text-align:center;color:var(--muted);font-size:12px">Loading plan…</div>
+      <div style="padding:30px;text-align:center;color:var(--muted);font-size:12px">Loading plan&hellip;</div>
     </div>
     <div class="rc-controls">
       <div class="rcc-slider">
@@ -402,8 +402,8 @@ footer a:hover{color:var(--accent)}
         <input type="range" id="rpTouch" min="0.03" max="0.20" step="0.01" value="0.10" aria-label="Maximum touch probability" oninput="document.getElementById('rpTouchOut').textContent=(parseFloat(this.value)*100).toFixed(0)+'%'; onRetailSliderChange()">
       </div>
       <div class="rcc-slider">
-        <div class="rcc-label">SAFETY FACTOR <b id="rpSafetyOut">1.15×</b></div>
-        <input type="range" id="rpSafety" min="1.0" max="1.5" step="0.05" value="1.15" aria-label="Safety factor multiplier" oninput="document.getElementById('rpSafetyOut').textContent=(parseFloat(this.value)).toFixed(2)+'×'; onRetailSliderChange()">
+        <div class="rcc-label">SAFETY FACTOR <b id="rpSafetyOut">1.15&times;</b></div>
+        <input type="range" id="rpSafety" min="1.0" max="1.5" step="0.05" value="1.15" aria-label="Safety factor multiplier" oninput="document.getElementById('rpSafetyOut').textContent=(parseFloat(this.value)).toFixed(2)+'&times;'; onRetailSliderChange()">
       </div>
     </div>
   </div>
@@ -413,30 +413,30 @@ footer a:hover{color:var(--accent)}
     <div class="card">
       <div class="card-title"><span class="dot" style="background:var(--cyan)"></span>Next 24h Move Odds</div>
       <div id="oddsPane">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:8px" id="oddsIntro">Loading…</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px" id="oddsIntro">Loading&hellip;</div>
         <table class="odds-table"><tbody id="oddsBody"></tbody></table>
       </div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Kronos Live Forecast</div>
-      <div id="kronosCardBody">Loading…</div>
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>BGTC Live Forecast</div>
+      <div id="BGTCCardBody">Loading&hellip;</div>
     </div>
   </div>
 </div>
 
-<!-- ════════ RANGER RANGE + CHART ════════ -->
-<div class="sh">RANGER Band & 48h Price</div>
+<!-- ──────── RANGER RANGE + CHART ──────── -->
+<div class="sh">RANGER Band &amp; 48h Price</div>
 <div class="two-col">
   <div class="range-mini">
     <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px">
       <div>
         <div class="card-title" style="margin-bottom:3px"><span class="dot" style="background:var(--accent)"></span>RANGER</div>
-        <div style="font-size:11px;color:var(--muted)">ATR-7 × (IV/HV20)⁰·² × vol × DOW × F&amp;G</div>
+        <div style="font-size:11px;color:var(--muted)">ATR-7 &times; (IV/HV20)<sup>0.2</sup> &times; vol &times; DOW &times; F&amp;G</div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap">
-        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent)" id="rangerRaw">—</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">raw</div></div>
-        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--cyan)" id="rangerSafe">—</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">safe ×2.2</div></div>
-        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700" id="rangerAtr">—</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">ATR-7</div></div>
+        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent)" id="rangerRaw">&mdash;</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">raw</div></div>
+        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--cyan)" id="rangerSafe">&mdash;</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">safe &times;2.2</div></div>
+        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700" id="rangerAtr">&mdash;</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">ATR-7</div></div>
       </div>
     </div>
     <div class="range-track" id="rangeTrack">
@@ -450,17 +450,17 @@ footer a:hover{color:var(--accent)}
     </div>
   </div>
   <div class="card">
-    <div class="card-title"><span class="dot" style="background:var(--cyan)"></span>48h Price · 1h candles</div>
+    <div class="card-title"><span class="dot" style="background:var(--cyan)"></span>48h Price &middot; 1h candles</div>
     <div class="ch-wrap"><canvas id="priceC"></canvas></div>
   </div>
 </div>
 
-<!-- ════════ EVIDENCE ROW ════════ -->
-<div class="sh">Evidence & inputs</div>
+<!-- ──────── EVIDENCE ROW ──────── -->
+<div class="sh">Evidence &amp; inputs</div>
 <div class="two-col">
   <div class="card">
     <div class="card-title"><span class="dot" style="background:var(--amber)"></span>Live news flow</div>
-    <div id="newsFeed">Loading…</div>
+    <div id="newsFeed">Loading&hellip;</div>
   </div>
   <div class="col-stack">
     <div class="card">
@@ -475,9 +475,9 @@ footer a:hover{color:var(--accent)}
 </div>
 
 <footer>
-  <div>Data: Binance · Deribit · Kronos (Tsinghua/AAAI 2026) · alternative.me · CryptoPanic / GDELT · optional Exa</div>
+  <div>Data: Binance &middot; Deribit &middot; BGTC (NOCTUA/AAAI 2026) &middot; alternative.me &middot; CryptoPanic / GDELT &middot; optional Exa</div>
   <div style="display:flex;gap:14px;align-items:center">
-    <a href="https://shiyu-coder.github.io/Kronos-demo/" target="_blank">Kronos demo</a>
+    <a href="https://shiyu-coder.github.io/Kronos-demo/" target="_blank">BGTC demo</a>
     <span>Not financial advice</span>
     <span id="footerTs"></span>
   </div>

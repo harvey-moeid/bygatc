@@ -2,7 +2,7 @@
    BTC Option-Selling Desk — src/options.js (v1)
    One Deribit call for the full chain; IV inverted locally via Black-76
    bisection; analytic deltas; delta-targeted short-strangle builder with a
-   Delta-Exchange margin heuristic; regime gate from Kronos + F&G + funding.
+   Delta-Exchange margin heuristic; regime gate from BGTC + F&G + funding.
    Free resources only. No keys. CORS-clean endpoints:
      - api.deribit.com (Access-Control-Allow-Origin: *)
      - api.binance.com / fapi.binance.com
@@ -37,7 +37,7 @@ function black76Delta(F, K, T, sigma, isCall) {
 }
 
 function impliedVol(price, F, K, T, isCall) {
-  // bisection: robust, monotone in sigma; 60 iters ≈ 1e-9 precision
+  // bisection: robust, monotone in sigma; 60 iters — 1e-9 precision
   if (!(price > 0) || !(F > 0) || !(K > 0) || !(T > 0)) return null;
   const intrinsic = Math.max(isCall ? F - K : K - F, 0);
   if (price <= intrinsic + 1e-9) return null;          // at/below intrinsic
@@ -214,7 +214,7 @@ function renderClock() {
   el.innerHTML =
     `It is <b>${String(h).padStart(2,'0')}:00 UTC, ${days[dow]}</b> — historically a ` +
     `<b class="${regime[1]}">${regime[0]}</b> (${cur} bps/h vs range ${min}–${max})` +
-    (wknd ? ` · <b class="pos">WEEKEND</b>: vol runs at ~${Math.round((s.weekendVolRatio || 0.64) * 100)}% of weekday — theta harvest territory` : '');
+    (wknd ? ` &middot; <b class="pos">WEEKEND</b>: vol runs at ~${Math.round((s.weekendVolRatio || 0.64) * 100)}% of weekday — theta harvest territory` : '');
 
   // 24 mini bars
   const bars = document.getElementById('clockBars');
@@ -243,11 +243,11 @@ function renderClock() {
     if (dow === 4) lines.push('📅 <b>Friday:</b> the classic income window opens after US close (~21:00 UTC) — weekends realize only ~64% of weekday vol, the one structural overpay in BTC options. Sell only with GREEN gate + defined exits; thin weekend books can still gap.');
     if (dow === 3) lines.push('📅 <b>Thursday:</b> historically the loudest weekday on daily closes — favors straddle <i>buyers</i> when IV is cheap.');
     if (mrv != null && mAvg != null) {
-      lines.push(`📆 This month historically runs <b>${mrv}%</b> annualized vs ${mAvg.toFixed(0)}% average — ${mrv < mAvg * 0.9 ? 'a calm-season tilt (theta-friendly)' : mrv > mAvg * 1.1 ? 'a storm-season tilt (respect tails, favor defined risk)' : 'about average'}.`);
+      lines.push(`📊 This month historically runs <b>${mrv}%</b> annualized vs ${mAvg.toFixed(0)}% average — ${mrv < mAvg * 0.9 ? 'a calm-season tilt (theta-friendly)' : mrv > mAvg * 1.1 ? 'a storm-season tilt (respect tails, favor defined risk)' : 'about average'}.`);
     }
-    if (s.clustering) lines.push(`🔁 Vol clusters: after a quiet day there's a ${Math.round(s.clustering.pQuietAfterQuiet * 100)}% chance the next day is quiet too — regimes persist, so don't fight yesterday's tape.`);
+    if (s.clustering) lines.push(`🔄 Vol clusters: after a quiet day there's a ${Math.round(s.clustering.pQuietAfterQuiet * 100)}% chance the next day is quiet too — regimes persist, so don't fight yesterday's tape.`);
     lines.push(`<span style="color:var(--dim)">Post-ETF era fact: realized vol compressed from ~69% (2020–23) to ~48% — BTC is calming as ETF money deepens liquidity, but it's still ~3× stock-index vol. Full study: BTC_VOL_RESEARCH.md.</span>`);
-    adv.innerHTML = lines.map(l => '• ' + l).join('<br>');
+    adv.innerHTML = lines.map(l => '&bull; ' + l).join('<br>');
   }
 }
 
@@ -291,7 +291,7 @@ function pickLeg(rows, targetAbsDelta, side) {
 
 function deltaExMarginPerLeg(strike, premiumUsd, isPut) {
   // Delta Exchange short-option heuristic (documented in footer; VERIFY in
-  // their calculator): max(15% * spot - OTM distance, 7.5% * spot) + premium.
+  // their calculator): max(15% × spot − OTM distance, 7.5% × spot) + premium.
   const spot = S.spot;
   const otm = isPut ? Math.max(spot - strike, 0) : Math.max(strike - spot, 0);
   return Math.max(0.15 * spot - otm, 0.075 * spot) + premiumUsd;
@@ -311,14 +311,14 @@ function computeGate(atm) {
 
   const volAmp = S.kronos?.volAmp;
   if (volAmp != null) {
-    if (volAmp >= 80) { score -= 2; why.push(`Kronos vol-amplification ${volAmp}% — model expects realized vol to EXPAND; short gamma is dangerous`); }
-    else if (volAmp >= 60) { score -= 1; why.push(`Kronos vol-amplification ${volAmp}% — elevated expansion risk`); }
-    else { score += 1; why.push(`Kronos vol-amplification ${volAmp}% — vol expected calm`); }
+    if (volAmp >= 80) { score -= 2; why.push(`BGTC vol-amplification ${volAmp}% — model expects realized vol to EXPAND; short gamma is dangerous`); }
+    else if (volAmp >= 60) { score -= 1; why.push(`BGTC vol-amplification ${volAmp}% — elevated expansion risk`); }
+    else { score += 1; why.push(`BGTC vol-amplification ${volAmp}% — vol expected calm`); }
   }
 
   const up = S.kronos?.upside;
   if (up != null && (up >= 70 || up <= 30)) {
-    score -= 1; why.push(`Kronos directional skew (upside ${up}%) — delta-neutral strangles fight a directional model`);
+    score -= 1; why.push(`BGTC directional skew (upside ${up}%) — delta-neutral strangles fight a directional model`);
   }
 
   const fv = S.fng?.value;
@@ -361,14 +361,14 @@ function renderDeskNotes(gate, atm, em, T) {
     const emPct = em != null ? (em / S.spot * 100).toFixed(1) : null;
     p.push(`<b>Where we are.</b> Bitcoin trades at <b>${fmt$(S.spot)}</b>. ` +
       (emPct != null
-        ? `The options market is pricing a normal move of about <b>±${emPct}%</b> (±${fmt$(em)}) between now and this expiry. Think of that as the market's own weather forecast — roughly 2 days out of 3, price should stay inside that band.`
+        ? `The options market is pricing a normal move of about <b>&plusmn;${emPct}%</b> (&plusmn;${fmt$(em)}) between now and this expiry. Think of that as the market's own weather forecast — roughly 2 days out of 3, price should stay inside that band.`
         : `Chain data is still loading, so no expected-move estimate yet.`));
   }
 
   // 2. Is premium rich or cheap?
   if (gate.ivhv != null) {
     if (gate.ivhv >= 1.15) {
-      p.push(`<b>Is selling worth it?</b> Options are currently priced <b>${((gate.ivhv - 1) * 100).toFixed(0)}% richer</b> than how much Bitcoin has actually been moving (IV ${fmtPct(atm)} vs realized ${fmtPct(S.hv20)}). That gap is the <i>vol-risk premium</i> — the "insurance markup" you collect as a seller. Today the markup exists.`);
+      p.push(`<b>Is selling worth it?</b> Options are currently priced <b>${((gate.ivhv - 1) * 100).toFixed(0)}% richer</b> than how much Bitcoin has actually been moving (IV ${fmtPct(atm)} vs realized ${fmtPct(S.hv20)}). That gap is the <i>vol-risk premium</i> — the &ldquo;insurance markup&rdquo; you collect as a seller. Today the markup exists.`);
     } else if (gate.ivhv >= 1.0) {
       p.push(`<b>Is selling worth it?</b> Options are priced only slightly above realized movement (IV ${fmtPct(atm)} vs ${fmtPct(S.hv20)}). The seller's edge is thin — like selling insurance at nearly cost price. Acceptable, not exciting.`);
     } else {
@@ -380,11 +380,11 @@ function renderDeskNotes(gate, atm, em, T) {
   if (S.kronos?.volAmp != null) {
     const va = S.kronos.volAmp, up = S.kronos.upside;
     if (va >= 80) {
-      p.push(`<b>What the AI sees.</b> The Kronos model (trained on 12B financial data points) gives a <b class="neg">${va}% chance volatility EXPANDS</b> in the next 24h${up != null ? ` and a ${up}% chance price ends higher` : ''}. Expanding volatility is the one thing that hurts option sellers most — it's the storm warning. When this number is above 80, funds cut their short-vol books, not grow them.`);
+      p.push(`<b>What the AI sees.</b> The BGTC model (NOCTUA, trained on 12B financial data points) gives a <b class="neg">${va}% chance volatility EXPANDS</b> in the next 24h${up != null ? ` and a ${up}% chance price ends higher` : ''}. Expanding volatility is the one thing that hurts option sellers most — it's the storm warning. When this number is above 80, funds cut their short-vol books, not grow them.`);
     } else if (va >= 60) {
-      p.push(`<b>What the AI sees.</b> Kronos puts vol-expansion odds at <b class="warn">${va}%</b>${up != null ? ` (upside ${up}%)` : ''} — choppier than ideal. Sellers should go wider on strikes and smaller on size.`);
+      p.push(`<b>What the AI sees.</b> BGTC puts vol-expansion odds at <b class="warn">${va}%</b>${up != null ? ` (upside ${up}%)` : ''} — choppier than ideal. Sellers should go wider on strikes and smaller on size.`);
     } else {
-      p.push(`<b>What the AI sees.</b> Kronos expects calm: only ${va}% odds of volatility expanding${up != null ? `, upside ${up}%` : ''}. Quiet tape is a premium-seller's best friend.`);
+      p.push(`<b>What the AI sees.</b> BGTC expects calm: only ${va}% odds of volatility expanding${up != null ? `, upside ${up}%` : ''}. Quiet tape is a premium-seller's best friend.`);
     }
   }
 
@@ -410,7 +410,7 @@ function renderDeskNotes(gate, atm, em, T) {
   if (gate.cls === 'v-sell') {
     p.push(`<b>Bottom line.</b> <span class="pos">Conditions favor selling premium.</span> The builder below has picked strikes a fund desk would recognize: far enough out to win ~${document.getElementById('pop')?.textContent || '70%+'} of the time, close enough to be paid for the risk. Enter, set the exit rules, and let the math work.`);
   } else if (gate.cls === 'v-caution') {
-    p.push(`<b>Bottom line.</b> <span class="warn">Tradeable, but on half rations.</span> Sell wider strikes (drop target |Δ| to 0.10), cut lots in half, and take profits early at 50% of credit. The edge is there but the weather is unsettled.`);
+    p.push(`<b>Bottom line.</b> <span class="warn">Tradeable, but on half rations.</span> Sell wider strikes (drop target |&Delta;| to 0.10), cut lots in half, and take profits early at 50% of credit. The edge is there but the weather is unsettled.`);
   } else {
     p.push(`<b>Bottom line.</b> <span class="neg">Stand down.</span> This is a day to NOT sell naked options — the desk's most profitable trades are often the ones never placed. If you must trade, use defined-risk spreads (buy a further wing against each short leg) so a wild move can't hurt you beyond a known amount. Re-check tomorrow; regimes flip fast.`);
   }
@@ -419,10 +419,10 @@ function renderDeskNotes(gate, atm, em, T) {
 
   const g = document.getElementById('deskGlossary');
   if (g) g.innerHTML =
-    `<b>30-second glossary:</b> <i>IV</i> = how big a move options are charging for · ` +
-    `<i>Realized/HV</i> = how big moves have actually been · ` +
-    `<i>Δ (delta)</i> ≈ odds an option finishes in-the-money (0.15Δ ≈ 15%) · ` +
-    `<i>POP</i> = probability the whole trade profits · ` +
+    `<b>30-second glossary:</b> <i>IV</i> = how big a move options are charging for &middot; ` +
+    `<i>Realized/HV</i> = how big moves have actually been &middot; ` +
+    `<i>&Delta; (delta)</i> — odds an option finishes in-the-money (0.15&Delta; — 15%) &middot; ` +
+    `<i>POP</i> = probability the whole trade profits &middot; ` +
     `<i>Strangle</i> = sell one put below + one call above; you win if price stays between them.`;
 }
 
@@ -467,7 +467,7 @@ function renderBuyerRadar() {
 
   el.textContent = label;
   el.className = 'verdict ' + cls;
-  $('radarWhy').innerHTML = why.map(w => '• ' + w).join('<br>');
+  $('radarWhy').innerHTML = why.map(w => '&bull; ' + w).join('<br>');
 }
 
 /* Seller's Compass — directional option-SELLING regimes, backtested weekly 25Δ
@@ -482,9 +482,9 @@ function renderSellerCompass() {
   if (!el) return;
   const t = S.trend, f = S.fundHist, dv = S.dvol, sh = S.shock;
 
-  $('scTrend').textContent = t ? `${t.above ? 'UP (above MA100)' : 'DOWN (below MA100)'} · ${t.dd90.toFixed(1)}% off 90d high` : '—';
+  $('scTrend').textContent = t ? `${t.above ? 'UP (above MA100)' : 'DOWN (below MA100)'} &middot; ${t.dd90.toFixed(1)}% off 90d high` : '—';
   $('scTrend').className = t ? (t.above ? 'pos' : 'neg') : '';
-  $('scFund').textContent = f ? `${(f.avg7 * 100).toFixed(4)}%/day (7d avg) · ${f.pct.toFixed(0)}th pctile (180d)` : '—';
+  $('scFund').textContent = f ? `${(f.avg7 * 100).toFixed(4)}%/day (7d avg) &middot; ${f.pct.toFixed(0)}th pctile (180d)` : '—';
   $('scFund').className = f ? (f.avg7 < 0 || f.pct < 20 ? 'pos' : f.pct > 80 ? 'warn' : '') : '';
   $('scRsi').textContent = t ? t.rsi.toFixed(0) : '—';
   $('scRsi').className = t ? (t.rsi < 30 || t.rsi > 70 ? 'neg' : '') : '';
@@ -511,7 +511,7 @@ function renderSellerCompass() {
     why.push(`Drawdown ${t.dd90.toFixed(1)}% + DVOL ${dv.toFixed(1)}: the crash already happened but fear is still priced. 7d 25Δ puts: +0.95%/wk, 92.7% win, worst week -3.5% (p=0.0000; 14d even better: 96.7% win). The best risk-adjusted seller trade in the whole study.`);
   } else if (good.length) {
     cls = 'v-sell'; label = 'GOOD — sell puts, conditions validated';
-    why = good.map(g => '• '.slice(0, 0) + g);
+    why = good.map(g => '' + g);
   } else if (dv != null && dv > 55) {
     cls = 'v-caution'; label = 'NEUTRAL-PLUS — strangle harvest zone';
     why.push(`No directional filter on, but DVOL ${dv.toFixed(1)} > 55: non-directional 25Δ strangles earned +1.21%/wk (p=0.0000) — with the full -21% fat-tail risk back on. Size accordingly.`);
@@ -520,18 +520,18 @@ function renderSellerCompass() {
     why.push('No validated regime active. Unconditional 25Δ put selling still earns ~+0.33%/wk (the standing variance premium), but with -21% worst weeks. Better entries come to those who wait.');
   }
 
-  // Kronos: live overlay, honestly unbacktested (no forecast archive exists).
+  // BGTC: live overlay, honestly unbacktested (no forecast archive exists).
   const ku = S.kronos?.upside;
   if (ku != null && (cls === 'v-sell')) {
-    why.push(ku >= 55 ? `Kronos overlay: ${ku}% upside prob agrees — full planned size is defensible.`
-           : ku <= 45 ? `Kronos overlay: only ${ku}% upside prob — consider half size. (Overlay is live-only; Kronos has no backtestable history.)`
-           : `Kronos overlay: ${ku}% upside prob, neutral — no size adjustment.`);
+    why.push(ku >= 55 ? `BGTC overlay: ${ku}% upside prob agrees — full planned size is defensible.`
+           : ku <= 45 ? `BGTC overlay: only ${ku}% upside prob — consider half size. (Overlay is live-only; BGTC has no backtestable history.)`
+           : `BGTC overlay: ${ku}% upside prob, neutral — no size adjustment.`);
   }
   why.push(`Honesty note: the directional edge is PUT-side only — "sell calls in downtrends" failed significance (p=0.18). Skew means real put credit is richer than modeled. See SELLER_DIRECTIONAL_ALPHA.md.`);
 
   el.textContent = label;
   el.className = 'verdict ' + cls;
-  $('scWhy').innerHTML = why.map(w => (w.startsWith('•') ? w : '• ' + w)).join('<br>');
+  $('scWhy').innerHTML = why.map(w => (w.startsWith('\u2022') ? w : '&bull; ' + w)).join('<br>');
 }
 
 /* Daily Desk — 1DTE selling (DAILY_EXPIRY_ALPHA.md, 998 daily expiries at real DVOL).
@@ -553,7 +553,7 @@ function renderDailyDesk() {
   const expDow = new Date(expiryMs).getUTCDay();            // 0=Sun..6=Sat (UTC day of expiry noon)
   const hrsLeft = (expiryMs - now.getTime()) / 3600_000;
   const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  $('ddWindow').textContent = `${days[expDow]} 12:00 UTC (${hrsLeft.toFixed(1)}h away) — window = ${days[(expDow + 6) % 7]} noon → ${days[expDow]} noon`;
+  $('ddWindow').textContent = `${days[expDow]} 12:00 UTC (${hrsLeft.toFixed(1)}h away) — window = ${days[(expDow + 6) % 7]} noon – ${days[expDow]} noon`;
 
   // Entry-clock line (study: variance is back-loaded into the US session right after listing)
   const utcH = now.getUTCHours() + now.getUTCMinutes() / 60;
@@ -574,7 +574,7 @@ function renderDailyDesk() {
       const iv = atmIv(rows);
       if (iv != null) {
         const ratio = iv * 100 / dv;
-        ivLine = `nearest-expiry ATM IV ${(iv * 100).toFixed(0)}% vs DVOL ${dv.toFixed(0)} → ${ratio.toFixed(2)}×`;
+        ivLine = `nearest-expiry ATM IV ${(iv * 100).toFixed(0)}% vs DVOL ${dv.toFixed(0)} — ${ratio.toFixed(2)}×`;
         if (ratio <= 0.60) { ivLine += ' — short-tenor IV already crushed: the market HAS priced the quiet window; backtest EVs are upper bounds, expect less.'; ivCls = 'warn'; }
         else if (ratio >= 0.90) { ivLine += ' — short-tenor IV near 30d levels: the calendar discount is NOT priced in; the backtest edge is live.'; ivCls = 'pos'; }
         else { ivLine += ' — partial discount (typical): roughly half the structural edge remains.'; }
@@ -595,14 +595,14 @@ function renderDailyDesk() {
     why = anti.map(a => 'Blocked: ' + a);
   } else if (expDow === 0) {
     cls = 'v-sell'; label = 'PRIME — Saturday lull: sell the ATM straddle / 25Δ strangle';
-    why.push(`Sat-noon→Sun-noon realizes only 33–45% of weekday vol every year since 2022 (no US session, no macro, no ETF flows). Straddle +1.20%/d, 92.3% win, worst -3.2% (p=0.0000); strangle +0.66%/d, 93% win.`);
+    why.push(`Sat-noon–Sun-noon realizes only 33–45% of weekday vol every year since 2022 (no US session, no macro, no ETF flows). Straddle +1.20%/d, 92.3% win, worst -3.2% (p=0.0000); strangle +0.66%/d, 93% win.`);
     why.push(`Decay warning: Sat EV 2023 +1.50% → 2026 +0.55%. The edge is structural but shrinking — trade at HALF the size your backtest courage suggests, and check the live IV line above first.`);
   } else if (expDow === 6) {
     cls = 'v-sell'; label = 'GOOD — Friday entry: the junior weekend trade';
-    why.push(`Fri-noon→Sat-noon already leans into the lull: straddle +0.65%/d (p=0.033), and Fri+Sat combined ran +0.93%/d (p=0.0000). Tomorrow's Saturday entry is the main event.`);
+    why.push(`Fri-noon–Sat-noon already leans into the lull: straddle +0.65%/d (p=0.033), and Fri+Sat combined ran +0.93%/d (p=0.0000). Tomorrow's Saturday entry is the main event.`);
   } else if (expDow === 1) {
     cls = 'v-caution'; label = 'CAUTION — Sunday entry: the lull does NOT extend';
-    why.push(`Sun-noon→Mon-noon holds the single worst day in the 998-day sample: -16.1% (Aug 4 2024, yen-carry crash weekend). The weekend trade is Saturday ONLY. If you sell, size as if tonight is the night.`);
+    why.push(`Sun-noon–Mon-noon holds the single worst day in the 998-day sample: -16.1% (Aug 4 2024, yen-carry crash weekend). The weekend trade is Saturday ONLY. If you sell, size as if tonight is the night.`);
   } else {
     const good = [];
     if (t && dv != null && t.above && dv > 50) good.push(`uptrend + DVOL>50: 25Δ put +0.23%/d (p=0.004) — the best surviving daily put filter`);
@@ -618,18 +618,18 @@ function renderDailyDesk() {
     if (t && t.rsi > 70) why.push(`RSI ${t.rsi.toFixed(0)} > 70 — call-side caution only at 1DTE (-0.03%/d, p=0.11): lean put-side, skip the call leg if nervous.`);
   }
 
-  // Kronos overlay (live-only) on directional days
+  // BGTC overlay (live-only) on directional days
   const ku = S.kronos?.upside;
   if (ku != null && cls === 'v-sell' && label.includes('put')) {
-    why.push(ku >= 55 ? `Kronos overlay: ${ku}% upside prob agrees — full planned size defensible.`
-           : ku <= 45 ? `Kronos overlay: only ${ku}% upside prob — half size.`
-           : `Kronos overlay: ${ku}% neutral — no adjustment.`);
+    why.push(ku >= 55 ? `BGTC overlay: ${ku}% upside prob agrees — full planned size defensible.`
+           : ku <= 45 ? `BGTC overlay: only ${ku}% upside prob — half size.`
+           : `BGTC overlay: ${ku}% neutral — no adjustment.`);
   }
   why.push(`Fees rule: sell FAT premium (ATM/25Δ) only — 10Δ wings are net-NEGATIVE after Delta fees (fees eat 33% of even the 25Δ put). Worst day in sample was -16% of notional: size so that day is annoying, not fatal. Full study: DAILY_EXPIRY_ALPHA.md.`);
 
   el.textContent = label;
   el.className = 'verdict ' + cls;
-  $('ddWhy').innerHTML = why.map(w => (w.startsWith('Blocked') ? '• ' + w : '• ' + w)).join('<br>');
+  $('ddWhy').innerHTML = why.map(w => (w.startsWith('Blocked') ? '&bull; ' + w : '&bull; ' + w)).join('<br>');
 }
 
 function renderAll() {
@@ -647,16 +647,16 @@ function renderAll() {
   $('expMove').textContent = em != null ? '±' + fmt$(em).slice(1) : '—';
   $('funding').textContent = S.funding != null ? (S.funding * 100).toFixed(4) + '% /8h' : '—';
 
-  $('krUp').textContent  = S.kronos?.upside  != null ? S.kronos.upside + '%'  : 'n/a (run snapshot or kronos_local)';
+  $('krUp').textContent  = S.kronos?.upside  != null ? S.kronos.upside + '%'  : 'n/a (run snapshot or bgtc_local)';
   $('krVol').textContent = S.kronos?.volAmp != null ? S.kronos.volAmp + '%' : 'n/a';
   $('krVol').className   = (S.kronos?.volAmp ?? 0) >= 80 ? 'neg' : (S.kronos?.volAmp ?? 0) >= 60 ? 'warn' : 'pos';
-  $('fng').textContent   = S.fng?.value != null ? `${S.fng.value} · ${S.fng.label || ''}` : 'n/a';
+  $('fng').textContent   = S.fng?.value != null ? `${S.fng.value} &middot; ${S.fng.label || ''}` : 'n/a';
   $('vrp').textContent   = gate.ivhv != null ? (gate.ivhv >= 1.15 ? 'PRESENT' : gate.ivhv >= 1.0 ? 'THIN' : 'ABSENT') : '—';
 
   const v = $('verdict');
   v.textContent = gate.label;
   v.className = 'verdict ' + gate.cls;
-  $('verdictWhy').innerHTML = gate.why.map(w => '• ' + w).join('<br>');
+  $('verdictWhy').innerHTML = gate.why.map(w => '&bull; ' + w).join('<br>');
 
   renderStrangle(rows, T, em);
   renderChain(rows, expiry);
@@ -708,12 +708,12 @@ function renderStrangle(rows, T, em) {
 }
 
 function renderChain(rows, expiry) {
-  $('chainExpiry').textContent = '· ' + expLabel(expiry);
+  $('chainExpiry').textContent = '&middot; ' + expLabel(expiry);
   const tb = $('chainTbl').querySelector('tbody');
   const atmStrike = rows.length ? rows.reduce((a, b) =>
     Math.abs(b.strike - S.spot) < Math.abs(a.strike - S.spot) ? b : a).strike : null;
   tb.innerHTML = rows
-    .filter(r => Math.abs(r.strike - S.spot) / S.spot < 0.35)  // ±35% window
+    .filter(r => Math.abs(r.strike - S.spot) / S.spot < 0.35)  // &plusmn;35% window
     .map(r => {
       const cls = r.strike === atmStrike ? 'atm'
         : (S._legs && (r.strike === S._legs.put || r.strike === S._legs.call)) ? 'leg' : '';
