@@ -1,26 +1,30 @@
 /**
- * data.js  (v4.1 — connector-enriched + bug fixes)
+ * data.js  (v4.1 â connector-enriched + bug fixes)
  * =====================================================================
  * v4.1 changes from v4:
- *   • Prefer ./data/*.json snapshots (written by GitHub Actions enrichment
+ *   â¢ Prefer ./data/*.json snapshots (written by GitHub Actions enrichment
  *     cron) over browser CORS proxies. See .github/workflows/fetch-data.yml.
- *   • Added Crypto.com Exchange as a secondary price source when Binance
+ *   â¢ Added Crypto.com Exchange as a secondary price source when Binance
  *     is rate-limited or blocked.
- *   • News caches are now namespaced (news_exa / news_cp / news_gdelt /
+ *   â¢ News caches are now namespaced (news_exa / news_cp / news_gdelt /
  *     news_bigdata) and the dashboard picks the freshest non-empty.
- *   • EXA placeholder string ("your-exa-api-key-here") is no longer
+ *   â¢ EXA placeholder string ("your-exa-api-key-here") is no longer
  *     treated as a real key.
- *   • Every fetcher returns a `_freshness` field (fresh|stale|offline) so
+ *   â¢ Every fetcher returns a `_freshness` field (fresh|stale|offline) so
  *     the UI can show a stale glyph instead of silently displaying day-old
  *     numbers.
- *   • Funding `flag` thresholds documented and tightened to match PDF §3.
- *   • News items deduped across sources by URL host + title prefix.
- *   • BGTC source timestamp respects an optional tz hint from the
+ *   â¢ Funding `flag` thresholds documented and tightened to match PDF Â§3.
+ *   â¢ News items deduped across sources by URL host + title prefix.
+ *   â¢ BGTC source timestamp respects an optional tz hint from the
  *     enrichment snapshot (server-side can emit UTC).
+ * v1.1 (tests): appended a Node-compatible module.exports at the bottom so
+ *   DataLayer can be require()'d from tests (see src/futures-plan.test.js).
+ *   Purely additive -- browsers never define `module`, so this is a no-op
+ *   there.
  */
 const DataLayer = (() => {
 
-  // ── CLOUDFLARE WORKER BASE URL ────────────────────────────────────────────
+  // ââ CLOUDFLARE WORKER BASE URL ââââââââââââââââââââââââââââââââââââââââââââââââ
   const WORKER_BASE = (typeof window !== 'undefined' && window.WORKER_BASE)
     ? window.WORKER_BASE
     : '/api';
@@ -144,12 +148,12 @@ const DataLayer = (() => {
     } catch (e) { console.error('[fetchOptions]', e); return cacheGet('options_stale'); }
   }
 
-  // ── BGTC (formerly Kronos) ────────────────────────────────────────────────
+  // ââ BGTC (formerly Kronos) ââââââââââââââââââââââââââââââââââââââââââââââââââââââ
   async function fetchBGTC() {
     const cached = cacheGet('BGTC');
     if (cached) return cached;
 
-    // Primary: Worker KV — diisi GH Actions via POST /api/noctua/push
+    // Primary: Worker KV â diisi GH Actions via POST /api/noctua/push
     try {
       const data = await workerFetch('/noctua/latest');
       if (data?.upside != null) {
@@ -408,7 +412,7 @@ const DataLayer = (() => {
   }
 
   function classifyRegime(atmIvPct, hv20Ann) {
-    if (!atmIvPct || !hv20Ann) return { ratio: null, regime: 'unknown', label: '—', allowTrade: false, sizing: 0 };
+    if (!atmIvPct || !hv20Ann) return { ratio: null, regime: 'unknown', label: 'â', allowTrade: false, sizing: 0 };
     const ratio = atmIvPct / hv20Ann;
     let regime, label, allowTrade, sizing;
     if      (ratio < 1.2) { regime = 'green';     label = 'CALM';       allowTrade = true;  sizing = 1.0;  }
@@ -424,26 +428,26 @@ const DataLayer = (() => {
     if (ratio > 1.76) {
       return {
         regimeType: 'high-iv',
-        description: 'Elevated IV/HV20 regime — realised vol likely to overshoot',
+        description: 'Elevated IV/HV20 regime â realised vol likely to overshoot',
         odds: [
-          { move: '≥ 2%', prob: 0.33 },
-          { move: '≥ 4%', prob: 0.16 },
-          { move: '≥ 6%', prob: 0.087 },
-          { move: '≥ 8%', prob: 0.061 },
-          { move: '≥ 10%', prob: 0.045 },
+          { move: 'â¥ 2%', prob: 0.33 },
+          { move: 'â¥ 4%', prob: 0.16 },
+          { move: 'â¥ 6%', prob: 0.087 },
+          { move: 'â¥ 8%', prob: 0.061 },
+          { move: 'â¥ 10%', prob: 0.045 },
         ],
         daysPct: 10,
       };
     }
     return {
       regimeType: 'normal',
-      description: 'Normal regime — volatility-clustered, tails contained',
+      description: 'Normal regime â volatility-clustered, tails contained',
       odds: [
-        { move: 'Range ≤ 1× hv20_1d', prob: 0.26 },
-        { move: 'Range ≤ 1.5× hv20_1d', prob: 0.56 },
-        { move: 'Range ≤ 2× hv20_1d', prob: 0.76 },
-        { move: 'Range ≤ 2.5× hv20_1d', prob: 0.87 },
-        { move: 'Range ≤ 3× hv20_1d', prob: 0.93 },
+        { move: 'Range â¤ 1Ã hv20_1d', prob: 0.26 },
+        { move: 'Range â¤ 1.5Ã hv20_1d', prob: 0.56 },
+        { move: 'Range â¤ 2Ã hv20_1d', prob: 0.76 },
+        { move: 'Range â¤ 2.5Ã hv20_1d', prob: 0.87 },
+        { move: 'Range â¤ 3Ã hv20_1d', prob: 0.93 },
       ],
       daysPct: 90,
     };
@@ -464,12 +468,12 @@ const DataLayer = (() => {
     const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
     const h = nowIST.getHours() + nowIST.getMinutes() / 60;
     let phase, advice, tier;
-    if      (h >= 5.5  && h < 8.5)  { phase = 'Pre-Calm';           advice = 'Wait for calm window (08:30–12:30 IST) for tight spreads.'; tier = 'neutral'; }
-    else if (h >= 8.5  && h < 12.5) { phase = 'CALM ⭐ (best entry)';advice = 'Ideal execution window. Run IV/HV20 + BGTC checks now.'; tier = 'best'; }
+    if      (h >= 5.5  && h < 8.5)  { phase = 'Pre-Calm';           advice = 'Wait for calm window (08:30â12:30 IST) for tight spreads.'; tier = 'neutral'; }
+    else if (h >= 8.5  && h < 12.5) { phase = 'CALM â­ (best entry)';advice = 'Ideal execution window. Run IV/HV20 + BGTC checks now.'; tier = 'best'; }
     else if (h >= 12.5 && h < 14)   { phase = 'Post-Calm';          advice = 'Still relatively calm. OK to enter but vol rising soon.'; tier = 'ok'; }
-    else if (h >= 14   && h < 17.5) { phase = 'Pre-Volatile';       advice = 'Secondary entry OK 16:30–17:20 for next-day structure.';    tier = 'warn'; }
+    else if (h >= 14   && h < 17.5) { phase = 'Pre-Volatile';       advice = 'Secondary entry OK 16:30â17:20 for next-day structure.';    tier = 'warn'; }
     else if (h >= 17.5 && h < 18.5) { phase = 'Expiry Transition';  advice = '17:30 IST Delta expiry. Avoid new entries on old structure.'; tier = 'skip'; }
-    else if (h >= 18.5 || h < 0.5)  { phase = 'VOLATILE (EU+US)';   advice = 'Highest realised vol window — DO NOT enter new short premium.'; tier = 'skip'; }
+    else if (h >= 18.5 || h < 0.5)  { phase = 'VOLATILE (EU+US)';   advice = 'Highest realised vol window â DO NOT enter new short premium.'; tier = 'skip'; }
     else                            { phase = 'Late-Night';         advice = 'Asian illiquid hours. Monitor only, don\'t trade.'; tier = 'neutral'; }
     return { phase, advice, tier, istHour: h };
   }
@@ -482,11 +486,11 @@ const DataLayer = (() => {
       return { ok: false, reason: 'Missing inputs (price/ATM/HV20/options)' };
     }
     if (!regime.allowTrade) {
-      return { ok: false, reason: `IV/HV20 = ${regime.ratio?.toFixed(2)} — ${regime.label}. Skip today.` };
+      return { ok: false, reason: `IV/HV20 = ${regime.ratio?.toFixed(2)} â ${regime.label}. Skip today.` };
     }
     const direction = BGTCUpside >= 55 ? 'bullish' : BGTCUpside <= 45 ? 'bearish' : 'neutral';
     if (direction === 'neutral') {
-      return { ok: false, reason: `BGTC ${BGTCUpside}% — 50/50. No directional edge — use symmetric condor instead.` };
+      return { ok: false, reason: `BGTC ${BGTCUpside}% â 50/50. No directional edge â use symmetric condor instead.` };
     }
     const sellSide = direction === 'bullish' ? 'P' : 'C';
     const sellSideLabel = direction === 'bullish' ? 'PUTS (below spot)' : 'CALLS (above spot)';
@@ -504,7 +508,7 @@ const DataLayer = (() => {
     if (!viable.length) {
       return {
         ok: false,
-        reason: `No OTM ${sellSideLabel} pay ≥ $${reqPremPerLot.toFixed(2)}/lot required to finance ${shortLots}-lot wing.`,
+        reason: `No OTM ${sellSideLabel} pay â¥ $${reqPremPerLot.toFixed(2)}/lot required to finance ${shortLots}-lot wing.`,
         direction, sellSide, atmInfo, reqPremPerLot, candidates: candidates.slice(0, 5),
       };
     }
@@ -546,7 +550,7 @@ const DataLayer = (() => {
     if (!price || (direction !== 'long' && direction !== 'short')) {
       return {
         ok: false,
-        reason: 'Missing price, or direction must be "long"/"short". Direction has to come from your own thesis — BGTC upside is not a validated directional signal (see docs/TRADE_FLOW.md).',
+        reason: 'Missing price, or direction must be "long"/"short". Direction has to come from your own thesis â BGTC upside is not a validated directional signal (see docs/TRADE_FLOW.md).',
       };
     }
 
@@ -563,7 +567,7 @@ const DataLayer = (() => {
       slPick = closest(slSide, slTouchTarget);
       tpPick = closest(tpSide, tpTouchTarget);
     } else {
-      warnings.push('barrier_curves not available in the BGTC payload — falling back to a plain HV20 multiple for SL/TP (less precise than the NOCTUA-calibrated version).');
+      warnings.push('barrier_curves not available in the BGTC payload â falling back to a plain HV20 multiple for SL/TP (less precise than the NOCTUA-calibrated version).');
       const oneDayMovePct = hv20?.oneDay || 2;
       slPick = { pct: oneDayMovePct * 1.0, touch_prob: null };
       tpPick = { pct: oneDayMovePct * 1.5, touch_prob: null };
@@ -583,10 +587,10 @@ const DataLayer = (() => {
     let fundingSizeMult = 1;
     if (funding?.flag === 'long-extreme' && direction === 'long') {
       fundingSizeMult = 0.5;
-      warnings.push(`Funding is extremely positive (${funding.ratePct?.toFixed?.(4)}%) while going long — crowded and expensive to hold.`);
+      warnings.push(`Funding is extremely positive (${funding.ratePct?.toFixed?.(4)}%) while going long â crowded and expensive to hold.`);
     } else if (funding?.flag === 'short-extreme' && direction === 'short') {
       fundingSizeMult = 0.5;
-      warnings.push(`Funding is extremely negative (${funding.ratePct?.toFixed?.(4)}%) while going short — crowded and expensive to hold.`);
+      warnings.push(`Funding is extremely negative (${funding.ratePct?.toFixed?.(4)}%) while going short â crowded and expensive to hold.`);
     }
 
     const sizeMultiplier = Math.round(volSizeMult * fundingSizeMult * 100) / 100;
@@ -622,7 +626,7 @@ const DataLayer = (() => {
       riskAmount,
       positionNotional,
       warnings,
-      note: 'SL/TP/sizing are derived from validated NOCTUA outputs (p_vol_amplify, barrier_curves) plus funding. This function does not derive direction — you supply it.',
+      note: 'SL/TP/sizing are derived from validated NOCTUA outputs (p_vol_amplify, barrier_curves) plus funding. This function does not derive direction â you supply it.',
     };
   }
 
@@ -656,33 +660,33 @@ const DataLayer = (() => {
     const blockers = [];
 
     if (!regime?.allowTrade) {
-      blockers.push(`IV/HV20 = ${regime?.ratio?.toFixed(2) || '?'} (${regime?.label}) — PDF rule: no short premium above 1.8`);
+      blockers.push(`IV/HV20 = ${regime?.ratio?.toFixed(2) || '?'} (${regime?.label}) â PDF rule: no short premium above 1.8`);
     } else {
-      reasons.push(`IV/HV20 = ${regime.ratio.toFixed(2)} — ${regime.label} (sizing: ${(regime.sizing*100).toFixed(0)}%)`);
+      reasons.push(`IV/HV20 = ${regime.ratio.toFixed(2)} â ${regime.label} (sizing: ${(regime.sizing*100).toFixed(0)}%)`);
     }
 
     if (session?.tier === 'skip') {
-      blockers.push(`Session: ${session.phase} — avoid new entries now`);
+      blockers.push(`Session: ${session.phase} â avoid new entries now`);
     } else if (session?.tier === 'best') {
-      reasons.push(`Session: ${session.phase} — (ideal)`);
+      reasons.push(`Session: ${session.phase} â (ideal)`);
     } else {
-      reasons.push(`Session: ${session?.phase || '—'}`);
+      reasons.push(`Session: ${session?.phase || 'â'}`);
     }
 
     if (funding?.flag === 'long-extreme' || funding?.flag === 'short-extreme') {
-      blockers.push(`Perp funding extreme (${funding.ratePct.toFixed(4)}%) — crowd positioning risk`);
+      blockers.push(`Perp funding extreme (${funding.ratePct.toFixed(4)}%) â crowd positioning risk`);
     } else if (funding) {
       reasons.push(`Funding: ${funding.ratePct.toFixed(4)}% (${funding.flag})`);
     }
 
     if (BGTC?.freshness === 'very-stale') {
-      blockers.push(`BGTC last updated >${BGTC.ageHrs?.toFixed(0)}h ago — signal stale`);
+      blockers.push(`BGTC last updated >${BGTC.ageHrs?.toFixed(0)}h ago â signal stale`);
     } else if (BGTC) {
       reasons.push(`BGTC: ${BGTC.upside.toFixed(1)}% upside / ${BGTC.volAmp.toFixed(1)}% vol-amp (${BGTC.freshness})`);
     }
 
     if (BGTC && Math.abs(BGTC.upside - 50) < 5) {
-      blockers.push(`BGTC ${BGTC.upside.toFixed(1)}% — 50/50 — no directional edge for asymmetric wing`);
+      blockers.push(`BGTC ${BGTC.upside.toFixed(1)}% â 50/50 â no directional edge for asymmetric wing`);
     }
 
     const canTrade = retailPlan?.ok === true;
@@ -710,7 +714,7 @@ const DataLayer = (() => {
       canTrade,
       direction: BGTC?.upside >= 55 ? 'bullish' : BGTC?.upside <= 45 ? 'bearish' : 'neutral',
       tradeStructure: canTrade && retailPlan.ok
-        ? `1× long $${retailPlan.atmInfo.atmStrike} straddle + ${retailPlan.shortLots}× short $${retailPlan.shortStrike} ${retailPlan.sellSide}`
+        ? `1Ã long $${retailPlan.atmInfo.atmStrike} straddle + ${retailPlan.shortLots}Ã short $${retailPlan.shortStrike} ${retailPlan.sellSide}`
         : null,
     };
   }
@@ -725,3 +729,7 @@ const DataLayer = (() => {
     scoreSentiment,
   };
 })();
+
+// Node-compatible export for tests (see src/futures-plan.test.js). No-op in
+// browsers, since `module` is never defined there.
+if (typeof module !== 'undefined' && module.exports) module.exports = DataLayer;
