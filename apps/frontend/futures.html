@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https:; frame-src 'none'; object-src 'none'; base-uri 'self'">
+<title>BTC Futures Risk Desk &middot; BTCUSDT.P</title>
+<style>
+  :root{
+    --bg:#0b0e14; --panel:#11151f; --panel2:#161b28; --line:#222a3a;
+    --txt:#dbe2f0; --dim:#7e8aa3; --grn:#2fd57b; --red:#ff5470; --amb:#ffb347;
+    --acc:#5b8cff; --mono:'SF Mono',Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif;padding:18px}
+  header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:19px;letter-spacing:.4px}
+  h1 span{color:var(--acc)}
+  a.back{color:var(--dim);text-decoration:none;font-size:12px}
+  a.back:hover{color:var(--acc)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:10px}
+  .big{font-size:26px;font-weight:700;font-family:var(--mono)}
+  .kv{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .kv:last-child{border-bottom:none}
+  .kv b{font-family:var(--mono)}
+  .pos{color:var(--grn)} .neg{color:var(--red)} .warn{color:var(--amb)}
+  .verdict{font-size:17px;font-weight:700;padding:10px 12px;border-radius:8px;margin-top:8px;text-align:center}
+  .v-sell{background:rgba(47,213,123,.12);border:1px solid var(--grn);color:var(--grn)}
+  .v-caution{background:rgba(255,179,71,.12);border:1px solid var(--amb);color:var(--amb)}
+  .v-stand{background:rgba(255,84,112,.12);border:1px solid var(--red);color:var(--red)}
+  .controls{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:8px 0 12px}
+  .controls label{font-size:12px;color:var(--dim)}
+  input[type=range],input[type=number]{accent-color:var(--acc);vertical-align:middle}
+  input[type=number]{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:110px;font-family:var(--mono)}
+  select,button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer}
+  button:hover{border-color:var(--acc)}
+  .dir-toggle{display:flex;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .dir-toggle button{border:none;border-radius:0;background:var(--panel2)}
+  .dir-toggle button.active.long{background:rgba(47,213,123,.18);color:var(--grn)}
+  .dir-toggle button.active.short{background:rgba(255,84,112,.18);color:var(--red)}
+  .mono{font-family:var(--mono)}
+  .foot{margin-top:16px;color:var(--dim);font-size:11.5px;line-height:1.6}
+  .tag{display:inline-block;font-size:10.5px;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--dim);margin-left:6px}
+  #status{font-size:12px;color:var(--dim)}
+  .wide{grid-column:1/-1}
+  .warn-list{font-size:12px;color:var(--amb);margin-top:8px;line-height:1.6}
+  .warn-list li{margin-left:16px}
+</style>
+</head>
+<body>
+<header>
+  <h1>BTC <span>Futures Risk Desk</span> <span class="tag">BTCUSDT.P &middot; v1</span></h1>
+  <a class="back" href="index.html">&larr; main dashboard</a>
+  <span id="status" role="status" aria-live="polite">loading&hellip;</span>
+  <button id="btnRefresh" aria-label="Refresh data">&#8635; Refresh</button>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <h2>Market</h2>
+    <div class="big" id="spot">&mdash;</div>
+    <div class="kv"><span>HV20 (annualised)</span><b id="hv20">&mdash;</b></div>
+    <div class="kv"><span>HV20 (1-day)</span><b id="hv20d">&mdash;</b></div>
+    <div class="kv"><span>Funding (8h, Binance perp)</span><b id="funding">&mdash;</b></div>
+    <div class="kv"><span>NOCTUA p(vol amplify, 19h)</span><b id="volAmp">&mdash;</b></div>
+    <div class="kv"><span>Barrier curves in payload?</span><b id="hasBarrier">&mdash;</b></div>
+  </div>
+
+  <div class="card">
+    <h2>Direction &amp; Sizing Inputs</h2>
+    <div style="margin-bottom:10px;font-size:12px;color:var(--dim)">
+      Direction is <b>your</b> call &mdash; NOCTUA's directional signal has no validated skill at this horizon (see <a href="https://github.com/harvey-moeid/btb/blob/main/docs/TRADE_FLOW.md" style="color:var(--acc)">docs/TRADE_FLOW.md</a>). This desk only sizes the risk around whichever side you pick.
+    </div>
+    <div class="controls">
+      <label>Direction
+        <div class="dir-toggle">
+          <button id="btnLong" class="long active" type="button">LONG</button>
+          <button id="btnShort" class="short" type="button">SHORT</button>
+        </div>
+      </label>
+    </div>
+    <div class="controls">
+      <label>Account equity (USD) <input type="number" id="equityInput" value="10000" min="0" step="100"></label>
+      <label>Risk per trade (%) <input type="number" id="riskInput" value="1" min="0.1" max="10" step="0.1"></label>
+    </div>
+    <div class="controls">
+      <label>SL touch-prob target
+        <input type="range" id="slSlider" min="0.10" max="0.60" value="0.35" step="0.05">
+        <span class="mono" id="slVal">35%</span>
+      </label>
+      <label>TP touch-prob target
+        <input type="range" id="tpSlider" min="0.05" max="0.40" value="0.20" step="0.05">
+        <span class="mono" id="tpVal">20%</span>
+      </label>
+    </div>
+  </div>
+
+  <div class="card wide" style="border-color:rgba(91,140,255,.45)">
+    <h2>Risk Plan</h2>
+    <div id="planVerdict" class="verdict v-caution">computing&hellip;</div>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-top:12px">
+      <div>
+        <div class="kv"><span>Entry</span><b id="pEntry">&mdash;</b></div>
+        <div class="kv"><span>Stop loss</span><b id="pSl" class="neg">&mdash;</b></div>
+        <div class="kv"><span>Take profit</span><b id="pTp" class="pos">&mdash;</b></div>
+        <div class="kv"><span>Risk/reward</span><b id="pRR">&mdash;</b></div>
+      </div>
+      <div>
+        <div class="kv"><span>SL touch probability</span><b id="pSlTouch">&mdash;</b></div>
+        <div class="kv"><span>TP touch probability</span><b id="pTpTouch">&mdash;</b></div>
+        <div class="kv"><span>Size multiplier</span><b id="pSize">&mdash;</b></div>
+        <div class="kv"><span>Suggested risk / notional</span><b id="pRisk">&mdash;</b></div>
+      </div>
+    </div>
+    <ul class="warn-list" id="pWarnings"></ul>
+  </div>
+
+  <div class="card wide">
+    <h2>How this differs from the Options Desk</h2>
+    <div style="font-size:13px;line-height:1.7">
+      The <a href="options.html" style="color:var(--acc)">Option-Selling Desk</a> picks strikes and structures for
+      selling premium against an IV/HV20 regime &mdash; it has no equivalent for a directional perpetual future.
+      This desk instead turns NOCTUA's <b>validated</b> outputs (volatility-amplification probability and barrier
+      touch curves) plus funding into stop-loss, take-profit, and a position-size multiplier for whichever side
+      (long/short) you've already decided to take. It does not tell you which side to take.
+    </div>
+  </div>
+</div>
+
+<div class="foot">
+  <b>Method.</b> SL/TP are picked from NOCTUA's <code>barrier_curves</code> (19h horizon) at the touch-probability
+  targets above; falls back to a plain HV20 daily-move multiple if barrier curves aren't in the payload.
+  Size multiplier shrinks when NOCTUA's p(vol amplify) is high, and again when funding is extreme in your direction.
+  <b>Horizon mismatch:</b> barrier curves are calibrated to 19 hours &mdash; if you plan to hold much longer or
+  shorter, treat these levels as an approximation, not a precise number. <b>No liquidation modelling</b> &mdash;
+  always check your exchange's margin/liquidation price separately. <b>Not financial advice.</b>
+</div>
+
+<script src="src/config.js" onerror="this.remove()"></script>
+<script src="src/data.js"></script>
+<script src="src/futures.js"></script>
+</body>
+</html>
