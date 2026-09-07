@@ -18,7 +18,7 @@ const RateLimit = (() => {
     cryptocom:  { monthly: null, daily: null, hourly: 60,  label: 'Crypto.com'     },
     deribit:    { monthly: null, daily: null, hourly: 60,  label: 'Deribit options'},
     fearGreed:  { monthly: null, daily: 2,    hourly: 1,   label: 'Fear & Greed'   },
-    kronos:     { monthly: null, daily: 8,    hourly: 2,   label: 'Kronos demo'    },
+    BGTC:       { monthly: null, daily: 8,    hourly: 2,   label: 'BGTC'           },
   };
 
   const KEY = 'btc_rl_v4_1';
@@ -114,9 +114,9 @@ const RateLimit = (() => {
     const s = getStore();
     const { monKey } = windows();
     // Any counter key ends with one of the three forms:
-    //   *_m_YYYY-MM                 → exact match
-    //   *_d_YYYY-MM-DD              → startsWith _m_ prefix's month part
-    //   *_h_YYYY-MM-DD-HH           → startsWith _h_ prefix's month part
+    //   *_m_YYYY-MM                 — exact match
+    //   *_d_YYYY-MM-DD              — startsWith _m_ prefix's month part
+    //   *_h_YYYY-MM-DD-HH           — startsWith _h_ prefix's month part
     // Keep keys whose window starts with the current month.
     let changed = false;
     for (const k of Object.keys(s)) {
