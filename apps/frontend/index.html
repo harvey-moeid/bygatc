@@ -37,7 +37,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 
 .wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:18px 16px}
 
-/* ──────────── TOP BAR ──────────── */
+/* TOP BAR */
 .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px}
 .brand{display:flex;align-items:center;gap:12px}
 .brand-logo{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent);letter-spacing:-.3px}
@@ -55,7 +55,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .btn{background:transparent;border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:10px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s;letter-spacing:.04em}
 .btn:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
 
-/* ──────────── HERO DECISION CARD ──────────── */
+/* HERO DECISION CARD */
 .hero{position:relative;border-radius:14px;padding:22px 24px;margin-bottom:14px;border:2px solid;overflow:hidden}
 .hero.go{border-color:var(--green-bd);background:linear-gradient(135deg,rgba(74,222,128,0.06),rgba(74,222,128,0.02))}
 .hero.cau{border-color:var(--amber-bd);background:linear-gradient(135deg,rgba(251,191,36,0.06),rgba(251,191,36,0.02))}
@@ -100,7 +100,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .tsb-value{font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--text)}
 .tsb-sub{font-size:10px;color:var(--muted);margin-top:2px}
 
-/* ──────────── MARKET PULSE STRIP ──────────── */
+/* MARKET PULSE STRIP */
 .pulse-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
 .pulse-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;position:relative}
 .pc-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
@@ -110,12 +110,12 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .pc-val.pos{color:var(--green)}.pc-val.neg{color:var(--red)}.pc-val.neu{color:var(--amber)}
 .pc-val.cyan{color:var(--cyan)}.pc-val.purple{color:var(--accent)}
 
-/* ──────────── SECTION HEADER ──────────── */
+/* SECTION HEADER */
 .sh{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:20px 0 10px;display:flex;align-items:center;gap:10px;font-weight:500}
 .sh::after{content:'';flex:1;height:1px;background:var(--border)}
 .sh-tag{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface2);padding:2px 7px;border-radius:3px;border:1px solid var(--border);font-weight:400}
 
-/* ──────────── SESSION RIBBON ──────────── */
+/* SESSION RIBBON */
 .session-ribbon{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
 .sr-phase{font-size:16px;font-weight:700;font-family:var(--font-mono)}
 .sr-phase.best{color:var(--green)}.sr-phase.ok{color:var(--cyan)}.sr-phase.warn{color:var(--amber)}.sr-phase.skip{color:var(--red)}.sr-phase.neutral{color:var(--muted)}
@@ -132,7 +132,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
 }
 
-/* ──────────── REGIME DIAL ──────────── */
+/* REGIME DIAL */
 .regime-dial-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px}
 .rd-grid{display:grid;grid-template-columns:2fr 1.2fr 1.5fr;gap:24px;align-items:center}
 @media(max-width:900px){.rd-grid{grid-template-columns:1fr;gap:16px}}
@@ -150,12 +150,12 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .rd-size-v{font-family:var(--font-mono);font-size:22px;font-weight:700}
 .rd-size-s{font-size:10px;color:var(--muted);margin-top:2px}
 
-/* ──────────── TWO-COL LAYOUT ──────────── */
+/* TWO-COL LAYOUT */
 .two-col{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-bottom:14px}
 @media(max-width:1000px){.two-col{grid-template-columns:1fr}}
 .col-stack{display:flex;flex-direction:column;gap:14px}
 
-/* ──────────── RETAIL PLAN CARD ──────────── */
+/* RETAIL PLAN CARD */
 .retail-card{background:var(--surface);border:1px solid rgba(129,140,248,0.2);border-radius:12px;padding:0;overflow:hidden}
 .rc-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px}
 .rc-title{font-size:14px;font-weight:700;color:var(--accent);font-family:var(--font-mono)}
@@ -190,14 +190,14 @@ input[type=range]{accent-color:var(--accent);width:100%}
 
 .rc-risk-note{padding:11px 14px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.2);border-radius:8px;font-size:11px;color:var(--text);line-height:1.5;margin-top:10px}
 
-/* ──────────── ODDS TABLE ──────────── */
+/* ODDS TABLE */
 .odds-table{width:100%;border-collapse:collapse}
 .odds-table th{text-align:left;padding:7px 10px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);font-weight:500}
 .odds-table td{padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border)}
 .odds-table tr:last-child td{border-bottom:none}
 .odds-bar{display:inline-block;height:8px;background:var(--accent);border-radius:3px;vertical-align:middle;margin-right:8px}
 
-/* ──────────── INFO CARDS ──────────── */
+/* INFO CARDS */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
 .card-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:500;display:flex;align-items:center;gap:6px}
 .card-title .dot{width:5px;height:5px;border-radius:50%}
@@ -206,11 +206,11 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .ir-l{color:var(--muted)}
 .ir-v{font-family:var(--font-mono);font-weight:500;text-align:right}
 
-/* ──────────── CHART & THETA ──────────── */
+/* CHART & THETA */
 .ch-wrap{position:relative;width:100%;height:190px}
 .ch-wrap-sm{position:relative;width:100%;height:60px}
 
-/* ──────────── BGTC + EVIDENCE ──────────── */
+/* BGTC + EVIDENCE */
 .bgtc-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
 .kc-head{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px}
 .kc-title{font-size:13px;font-weight:700;color:var(--text)}
@@ -225,7 +225,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .kc-metric-v{font-family:var(--font-mono);font-size:20px;font-weight:700;line-height:1}
 .kc-metric-s{font-size:10px;color:var(--muted);margin-top:2px}
 
-/* ──────────── NEWS FEED ──────────── */
+/* NEWS FEED */
 .ni{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
 .ni:last-child{border-bottom:none}
 .ni-dot{width:6px;height:6px;border-radius:50%;margin-top:6px;flex-shrink:0}
@@ -234,7 +234,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .ni a{color:inherit;text-decoration:none}
 .ni a:hover .ni-hl{color:var(--accent)}
 
-/* ──────────── RATE LIMIT ──────────── */
+/* RATE LIMIT */
 .rl-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
 .rl-card{background:var(--surface2);border-radius:7px;padding:9px 11px}
 .rl-name{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
@@ -242,7 +242,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .rl-bar-fill{height:100%;border-radius:2px}
 .rl-nums{display:flex;justify-content:space-between;font-size:9px;font-family:var(--font-mono);color:var(--muted)}
 
-/* ──────────── RANGE VISUAL (kept compact) ──────────── */
+/* RANGE VISUAL (kept compact) */
 .range-mini{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px}
 .range-track{position:relative;height:32px;background:var(--surface2);border-radius:6px;overflow:visible;margin:20px 0 26px}
 .rz{position:absolute;top:0;bottom:0;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;font-weight:700}
@@ -250,7 +250,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .pm{position:absolute;bottom:-22px;transform:translateX(-50%);font-family:var(--font-mono);font-size:9px;white-space:nowrap;color:var(--muted)}
 .pm.cur{top:-17px;bottom:auto;color:var(--text);font-weight:700}
 
-/* ──────────── FOOTER ──────────── */
+/* FOOTER */
 footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 footer a{color:var(--muted);text-decoration:none}
 footer a:hover{color:var(--accent)}
@@ -261,7 +261,7 @@ footer a:hover{color:var(--accent)}
 <a href="#heroCard" class="skip-link">Skip to main decision card</a>
 <main class="wrap">
 
-<!-- ──────── TOP BAR ──────── -->
+<!-- TOP BAR -->
 <header class="topbar">
   <div class="brand">
     <div>
@@ -272,13 +272,14 @@ footer a:hover{color:var(--accent)}
   </div>
   <div class="topbar-right">
     <a href="options.html" class="pill-sm" style="text-decoration:none;color:#5b8cff;border:1px solid rgba(91,140,255,.35);border-radius:6px;padding:2px 8px" aria-label="Open Option-Selling Desk">&rarr; OPTIONS DESK</a>
+    <a href="futures.html" class="pill-sm" style="text-decoration:none;color:#2fd57b;border:1px solid rgba(47,213,123,.35);border-radius:6px;padding:2px 8px" aria-label="Open Futures Risk Desk">&rarr; FUTURES DESK</a>
     <span id="BGTCBadge" class="pill-sm muted">BGTC: &hellip;</span>
     <span id="clockIST" class="pill-sm muted">&mdash;</span>
     <button class="btn" onclick="refreshAll()" aria-label="Refresh all data">&#8635; REFRESH</button>
   </div>
 </header>
 
-<!-- ──────── HERO DECISION CARD ──────── -->
+<!-- HERO DECISION CARD -->
 <div class="hero nt" id="heroCard">
   <div class="hero-top">
     <div class="hero-verdict">
@@ -319,7 +320,7 @@ footer a:hover{color:var(--accent)}
   </div>
 </div>
 
-<!-- ──────── MARKET PULSE STRIP ──────── -->
+<!-- MARKET PULSE STRIP -->
 <div class="pulse-strip">
   <div class="pulse-card"><div class="pc-lbl">BTC Spot</div><div class="pc-val" id="psPrice">$&mdash;</div><div class="pc-sub" id="psPriceSub">Binance</div><div class="pc-trend" id="psChange">&mdash;</div></div>
   <div class="pulse-card"><div class="pc-lbl">24H High</div><div class="pc-val pos" id="psHigh">$&mdash;</div><div class="pc-sub" id="psHighPct">&mdash;</div></div>
@@ -331,7 +332,7 @@ footer a:hover{color:var(--accent)}
   <div class="pulse-card"><div class="pc-lbl">BGTC Upside</div><div class="pc-val" id="psBGTC">&mdash;%</div><div class="pc-sub" id="psBGTCSub">NOCTUA model</div></div>
 </div>
 
-<!-- ──────── SESSION RIBBON ──────── -->
+<!-- SESSION RIBBON -->
 <div class="session-ribbon">
   <div>
     <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Now in IST</div>
@@ -342,7 +343,7 @@ footer a:hover{color:var(--accent)}
   <div style="width:100%" id="srBarWrap"></div>
 </div>
 
-<!-- ──────── REGIME DIAL ──────── -->
+<!-- REGIME DIAL -->
 <div class="sh">IV/HV20 Regime <span class="sh-tag">PDF threshold 1.76 &middot; backtest 2017&ndash;2026</span></div>
 <div class="regime-dial-wrap">
   <div class="rd-grid">
@@ -378,7 +379,7 @@ footer a:hover{color:var(--accent)}
   </div>
 </div>
 
-<!-- ──────── RETAIL PLAN CARD ──────── -->
+<!-- RETAIL PLAN CARD -->
 <div class="sh" id="retail">Retail Seller Mode &middot; $100 &middot; 50&times; &middot; 1&times; ATM straddle + 60&times; far-OTM wings <span class="sh-tag">PDF &sect;2</span></div>
 <div class="two-col">
   <div class="retail-card">
@@ -424,7 +425,7 @@ footer a:hover{color:var(--accent)}
   </div>
 </div>
 
-<!-- ──────── RANGER RANGE + CHART ──────── -->
+<!-- RANGER RANGE + CHART -->
 <div class="sh">RANGER Band &amp; 48h Price</div>
 <div class="two-col">
   <div class="range-mini">
@@ -455,7 +456,7 @@ footer a:hover{color:var(--accent)}
   </div>
 </div>
 
-<!-- ──────── EVIDENCE ROW ──────── -->
+<!-- EVIDENCE ROW -->
 <div class="sh">Evidence &amp; inputs</div>
 <div class="two-col">
   <div class="card">
