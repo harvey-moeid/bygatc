@@ -1,0 +1,7 @@
+{
+  "name": "frontend",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}
