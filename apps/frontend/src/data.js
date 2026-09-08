@@ -1,26 +1,27 @@
 /**
- * data.js  (v4.1 — connector-enriched + bug fixes)
+ * data.js  (v4.2)
  * =====================================================================
+ * v4.2 changes from v4.1:
+ *   - Removed dead code: parseBGTCHtml(), findNearbyPercent(),
+ *     parseSourceTs() -- BGTC is now delivered via Worker KV push,
+ *     direct HTML scraping has been dropped entirely.
+ *   - Removed dedupeNews() and scoreSentiment() -- news items arrive
+ *     pre-deduped and pre-scored from /api/enrichment/news (Worker cron).
+ *     Browser-side copies were never invoked.
  * v4.1 changes from v4:
- *   • Prefer ./data/*.json snapshots (written by GitHub Actions enrichment
- *     cron) over browser CORS proxies. See .github/workflows/fetch-data.yml.
- *   • Added Crypto.com Exchange as a secondary price source when Binance
- *     is rate-limited or blocked.
- *   • News caches are now namespaced (news_exa / news_cp / news_gdelt /
- *     news_bigdata) and the dashboard picks the freshest non-empty.
- *   • EXA placeholder string ("your-exa-api-key-here") is no longer
- *     treated as a real key.
- *   • Every fetcher returns a `_freshness` field (fresh|stale|offline) so
- *     the UI can show a stale glyph instead of silently displaying day-old
- *     numbers.
- *   • Funding `flag` thresholds documented and tightened to match PDF §3.
- *   • News items deduped across sources by URL host + title prefix.
- *   • BGTC source timestamp respects an optional tz hint from the
- *     enrichment snapshot (server-side can emit UTC).
+ *   - Prefer ./data/*.json snapshots (written by GitHub Actions enrichment
+ *     cron) over browser CORS proxies.
+ *   - Added Crypto.com Exchange as a secondary price source.
+ *   - News caches namespaced (news_exa / news_cp / news_gdelt / news_bigdata)
+ *     and the dashboard picks the freshest non-empty.
+ *   - EXA placeholder string is no longer treated as a real key.
+ *   - Every fetcher returns a `_freshness` field (fresh|stale|offline).
+ *   - Funding `flag` thresholds documented and tightened to match PDF s3.
+ *   - BGTC source timestamp respects an optional tz hint from the snapshot.
  */
 const DataLayer = (() => {
 
-  // ── CLOUDFLARE WORKER BASE URL ────────────────────────────────────────────
+  // -- CLOUDFLARE WORKER BASE URL -----------------------------------------
   const WORKER_BASE = (typeof window !== 'undefined' && window.WORKER_BASE)
     ? window.WORKER_BASE
     : '/api';
@@ -144,12 +145,12 @@ const DataLayer = (() => {
     } catch (e) { console.error('[fetchOptions]', e); return cacheGet('options_stale'); }
   }
 
-  // ── BGTC (formerly Kronos) ────────────────────────────────────────────────
+  // -- BGTC (formerly Kronos) ---------------------------------------------
   async function fetchBGTC() {
     const cached = cacheGet('BGTC');
     if (cached) return cached;
 
-    // Primary: Worker KV — diisi GH Actions via POST /api/noctua/push
+    // Primary: Worker KV -- diisi GH Actions via POST /api/noctua/push
     try {
       const data = await workerFetch('/noctua/latest');
       if (data?.upside != null) {
@@ -170,89 +171,6 @@ const DataLayer = (() => {
     }
 
     return cacheGet('BGTC_stale');
-  }
-
-  function parseBGTCHtml(html) {
-    try {
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const headings = [...doc.querySelectorAll('h1,h2,h3,h4,h5,p,strong')];
-      let upside = null, volAmp = null;
-      for (const h of headings) {
-        const hText = (h.textContent || '').toLowerCase();
-        if (upside === null && hText.includes('upside probability')) {
-          const pct = findNearbyPercent(h);
-          if (pct !== null && pct >= 0 && pct <= 100) upside = pct;
-        }
-        if (volAmp === null && hText.includes('volatility amplification')) {
-          const pct = findNearbyPercent(h);
-          if (pct !== null && pct >= 0 && pct <= 100) volAmp = pct;
-        }
-      }
-      let sourceTs = null;
-      const bodyTxt = doc.body?.textContent || '';
-      const tsM = bodyTxt.match(/Last Updated[^:]*:\s*([0-9]{4}-[0-9]{2}-[0-9]{2}\s+[0-9]{2}:[0-9]{2}:[0-9]{2})/i);
-      if (tsM) sourceTs = tsM[1].trim();
-      if (upside !== null && volAmp !== null) {
-        return { upside, volAmp, sourceTs, strategy: 'domparser' };
-      }
-    } catch (e) { console.warn('[parseBGTC] DOM strategy failed', e); }
-
-    try {
-      const labelRe = /Upside\s+Probability[\s\S]{0,200}?(\d+(?:\.\d+)?)\s*%/i;
-      const upMatch  = html.match(labelRe);
-      const volRe    = /Volatility\s+Amplification[\s\S]{0,200}?(\d+(?:\.\d+)?)\s*%/i;
-      const vlMatch  = html.match(volRe);
-      const tsM      = html.match(/Last Updated[^:]*:\s*(?:<[^>]+>)?([0-9]{4}-[0-9]{2}-[0-9]{2}\s+[0-9]{2}:[0-9]{2}:[0-9]{2})/i);
-      if (upMatch && vlMatch) {
-        return {
-          upside: parseFloat(upMatch[1]),
-          volAmp: parseFloat(vlMatch[1]),
-          sourceTs: tsM ? tsM[1].trim() : null,
-          strategy: 'label-regex',
-        };
-      }
-    } catch (e) { console.warn('[parseBGTC] label-regex failed', e); }
-
-    try {
-      const upM = html.match(/([\d.]+)\s*%[\s\S]{0,400}?higher than the last known price/i);
-      const vlM = html.match(/([\d.]+)\s*%[\s\S]{0,400}?recent historical volatility/i);
-      if (upM && vlM) {
-        const tsM = html.match(/Last Updated[^:]*:\s*(?:<[^>]+>)?([^<*\n]+)/i);
-        return {
-          upside: parseFloat(upM[1]),
-          volAmp: parseFloat(vlM[1]),
-          sourceTs: tsM ? tsM[1].trim() : null,
-          strategy: 'legacy-regex',
-        };
-      }
-    } catch (e) { console.warn('[parseBGTC] legacy failed', e); }
-
-    return null;
-  }
-
-  function findNearbyPercent(startEl) {
-    let el = startEl;
-    for (let i = 0; i < 12 && el; i++) {
-      let sib = el.nextElementSibling;
-      for (let j = 0; j < 6 && sib; j++) {
-        const txt = (sib.textContent || '').trim();
-        const m = txt.match(/^(\d+(?:\.\d+)?)\s*%\s*$/) || txt.match(/(\d+(?:\.\d+)?)\s*%/);
-        if (m) {
-          const n = parseFloat(m[1]);
-          if (n >= 0 && n <= 100) return n;
-        }
-        sib = sib.nextElementSibling;
-      }
-      el = el.parentElement;
-    }
-    return null;
-  }
-
-  function parseSourceTs(s) {
-    if (!s) return null;
-    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/);
-    if (!m) return null;
-    return Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]);
   }
 
   async function fetchNewsSentiment() {
@@ -277,42 +195,6 @@ const DataLayer = (() => {
     }
 
     return cacheGet('news_stale') || { items: [], ts: Date.now(), source: 'offline' };
-  }
-
-  function dedupeNews(items) {
-    const seen = new Set();
-    const out = [];
-    for (const it of items || []) {
-      let host = '';
-      try { host = new URL(it.url).hostname.replace(/^www\./, ''); } catch { /* keep '' */ }
-      const titleKey = (it.headline || '')
-        .toLowerCase()
-        .replace(/[^a-z0-9 ]+/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, 60);
-      const key = host + '|' + titleKey;
-      const titleOnlyKey = 't|' + titleKey;
-      if (seen.has(key) || (titleKey.length > 20 && seen.has(titleOnlyKey))) continue;
-      seen.add(key);
-      seen.add(titleOnlyKey);
-      out.push(it);
-    }
-    return out;
-  }
-
-  function scoreSentiment(text) {
-    const t = (text || '').toLowerCase();
-    const bull = ['bullish','rally','surge','breakout','recover','buy','inflow','institutional',
-                  'adoption','higher','gain','green','pump','above','rebound','ath','all-time high',
-                  'soar','jump','spike','optimistic','accumulat','bull case','upgrade'];
-    const bear = ['bearish','crash','drop','fall','bear','sell','liquidat','fear','panic','below',
-                  'loss','red','dump','warning','risk','decline','bottom','correction','capitulat',
-                  'plunge','tumble','slide','downgrade','weakness'];
-    let s = 0;
-    bull.forEach(w => { if (t.includes(w)) s++; });
-    bear.forEach(w => { if (t.includes(w)) s--; });
-    return s > 0 ? 'pos' : s < 0 ? 'neg' : 'neu';
   }
 
   function computeHV20(dailyCandles) {
@@ -411,11 +293,11 @@ const DataLayer = (() => {
     if (!atmIvPct || !hv20Ann) return { ratio: null, regime: 'unknown', label: '—', allowTrade: false, sizing: 0 };
     const ratio = atmIvPct / hv20Ann;
     let regime, label, allowTrade, sizing;
-    if      (ratio < 1.2) { regime = 'green';     label = 'CALM';       allowTrade = true;  sizing = 1.0;  }
-    else if (ratio < 1.4) { regime = 'green';     label = 'NORMAL';     allowTrade = true;  sizing = 0.7;  }
-    else if (ratio < 1.6) { regime = 'amber';     label = 'CAUTION';    allowTrade = true;  sizing = 0.4;  }
-    else if (ratio < 1.8) { regime = 'amber-dark';label = 'REDUCED';    allowTrade = true;  sizing = 0.2;  }
-    else                  { regime = 'red';       label = 'NO-TRADE';   allowTrade = false; sizing = 0;    }
+    if      (ratio < 1.2) { regime = 'green';     label = 'CALM';     allowTrade = true;  sizing = 1.0; }
+    else if (ratio < 1.4) { regime = 'green';     label = 'NORMAL';   allowTrade = true;  sizing = 0.7; }
+    else if (ratio < 1.6) { regime = 'amber';     label = 'CAUTION';  allowTrade = true;  sizing = 0.4; }
+    else if (ratio < 1.8) { regime = 'amber-dark';label = 'REDUCED';  allowTrade = true;  sizing = 0.2; }
+    else                  { regime = 'red';        label = 'NO-TRADE'; allowTrade = false; sizing = 0;   }
     return { ratio, regime, label, allowTrade, sizing, ivPct: atmIvPct, hv20: hv20Ann };
   }
 
@@ -426,11 +308,11 @@ const DataLayer = (() => {
         regimeType: 'high-iv',
         description: 'Elevated IV/HV20 regime — realised vol likely to overshoot',
         odds: [
-          { move: '≥ 2%', prob: 0.33 },
-          { move: '≥ 4%', prob: 0.16 },
-          { move: '≥ 6%', prob: 0.087 },
-          { move: '≥ 8%', prob: 0.061 },
-          { move: '≥ 10%', prob: 0.045 },
+          { move: '>= 2%',  prob: 0.33  },
+          { move: '>= 4%',  prob: 0.16  },
+          { move: '>= 6%',  prob: 0.087 },
+          { move: '>= 8%',  prob: 0.061 },
+          { move: '>= 10%', prob: 0.045 },
         ],
         daysPct: 10,
       };
@@ -439,11 +321,11 @@ const DataLayer = (() => {
       regimeType: 'normal',
       description: 'Normal regime — volatility-clustered, tails contained',
       odds: [
-        { move: 'Range ≤ 1× hv20_1d', prob: 0.26 },
-        { move: 'Range ≤ 1.5× hv20_1d', prob: 0.56 },
-        { move: 'Range ≤ 2× hv20_1d', prob: 0.76 },
-        { move: 'Range ≤ 2.5× hv20_1d', prob: 0.87 },
-        { move: 'Range ≤ 3× hv20_1d', prob: 0.93 },
+        { move: 'Range <= 1x hv20_1d',   prob: 0.26 },
+        { move: 'Range <= 1.5x hv20_1d', prob: 0.56 },
+        { move: 'Range <= 2x hv20_1d',   prob: 0.76 },
+        { move: 'Range <= 2.5x hv20_1d', prob: 0.87 },
+        { move: 'Range <= 3x hv20_1d',   prob: 0.93 },
       ],
       daysPct: 90,
     };
@@ -464,13 +346,13 @@ const DataLayer = (() => {
     const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
     const h = nowIST.getHours() + nowIST.getMinutes() / 60;
     let phase, advice, tier;
-    if      (h >= 5.5  && h < 8.5)  { phase = 'Pre-Calm';           advice = 'Wait for calm window (08:30–12:30 IST) for tight spreads.'; tier = 'neutral'; }
-    else if (h >= 8.5  && h < 12.5) { phase = 'CALM ⭐ (best entry)';advice = 'Ideal execution window. Run IV/HV20 + BGTC checks now.'; tier = 'best'; }
-    else if (h >= 12.5 && h < 14)   { phase = 'Post-Calm';          advice = 'Still relatively calm. OK to enter but vol rising soon.'; tier = 'ok'; }
-    else if (h >= 14   && h < 17.5) { phase = 'Pre-Volatile';       advice = 'Secondary entry OK 16:30–17:20 for next-day structure.';    tier = 'warn'; }
-    else if (h >= 17.5 && h < 18.5) { phase = 'Expiry Transition';  advice = '17:30 IST Delta expiry. Avoid new entries on old structure.'; tier = 'skip'; }
-    else if (h >= 18.5 || h < 0.5)  { phase = 'VOLATILE (EU+US)';   advice = 'Highest realised vol window — DO NOT enter new short premium.'; tier = 'skip'; }
-    else                            { phase = 'Late-Night';         advice = 'Asian illiquid hours. Monitor only, don\'t trade.'; tier = 'neutral'; }
+    if      (h >= 5.5  && h < 8.5)  { phase = 'Pre-Calm';            advice = 'Wait for calm window (08:30-12:30 IST) for tight spreads.';            tier = 'neutral'; }
+    else if (h >= 8.5  && h < 12.5) { phase = 'CALM ★ (best entry)'; advice = 'Ideal execution window. Run IV/HV20 + BGTC checks now.';             tier = 'best';    }
+    else if (h >= 12.5 && h < 14)   { phase = 'Post-Calm';           advice = 'Still relatively calm. OK to enter but vol rising soon.';            tier = 'ok';      }
+    else if (h >= 14   && h < 17.5) { phase = 'Pre-Volatile';        advice = 'Secondary entry OK 16:30-17:20 for next-day structure.';             tier = 'warn';    }
+    else if (h >= 17.5 && h < 18.5) { phase = 'Expiry Transition';   advice = '17:30 IST Delta expiry. Avoid new entries on old structure.';       tier = 'skip';    }
+    else if (h >= 18.5 || h < 0.5)  { phase = 'VOLATILE (EU+US)';    advice = 'Highest realised vol window — DO NOT enter new short premium.';    tier = 'skip';    }
+    else                             { phase = 'Late-Night';          advice = 'Asian illiquid hours. Monitor only, don\'t trade.';                tier = 'neutral'; }
     return { phase, advice, tier, istHour: h };
   }
 
@@ -504,7 +386,7 @@ const DataLayer = (() => {
     if (!viable.length) {
       return {
         ok: false,
-        reason: `No OTM ${sellSideLabel} pay ≥ $${reqPremPerLot.toFixed(2)}/lot required to finance ${shortLots}-lot wing.`,
+        reason: `No OTM ${sellSideLabel} pay >= $${reqPremPerLot.toFixed(2)}/lot required to finance ${shortLots}-lot wing.`,
         direction, sellSide, atmInfo, reqPremPerLot, candidates: candidates.slice(0, 5),
       };
     }
@@ -635,11 +517,11 @@ const DataLayer = (() => {
       ? Math.round((newsPos / Math.max(1, newsPos + newsNeg + newsNeu)) * 100)
       : 40;
     const BGTCScore   = BGTC?.upside || 50;
-    const fgScore       = fg?.value || 50;
-    const volAmpScore   = BGTC?.volAmp || 50;
-    const regimePenalty = regime?.regime === 'red' ? 20
+    const fgScore     = fg?.value || 50;
+    const volAmpScore = BGTC?.volAmp || 50;
+    const regimePenalty = regime?.regime === 'red'        ? 20
                         : regime?.regime === 'amber-dark' ? 10
-                        : regime?.regime === 'amber' ? 5 : 0;
+                        : regime?.regime === 'amber'      ? 5 : 0;
     const composite = Math.round(
       BGTCScore * 0.35 + fgScore * 0.25 + newsScore * 0.25 +
       (100 - volAmpScore) * 0.15 - regimePenalty
@@ -710,7 +592,7 @@ const DataLayer = (() => {
       canTrade,
       direction: BGTC?.upside >= 55 ? 'bullish' : BGTC?.upside <= 45 ? 'bearish' : 'neutral',
       tradeStructure: canTrade && retailPlan.ok
-        ? `1× long $${retailPlan.atmInfo.atmStrike} straddle + ${retailPlan.shortLots}× short $${retailPlan.shortStrike} ${retailPlan.sellSide}`
+        ? `1x long $${retailPlan.atmInfo.atmStrike} straddle + ${retailPlan.shortLots}x short $${retailPlan.shortStrike} ${retailPlan.sellSide}`
         : null,
     };
   }
@@ -722,6 +604,5 @@ const DataLayer = (() => {
     findAtmIv, computeRanger, classifyRegime,
     touchProbability, buildRetailPlan, buildFuturesPlan, computeSentiment,
     nextDayMoveOdds, computeSessionContext, buildDecision,
-    scoreSentiment,
   };
 })();

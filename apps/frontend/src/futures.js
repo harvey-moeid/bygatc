@@ -1,14 +1,10 @@
 /* =========================================================================
-   BTC Futures Risk Desk — src/futures.js (v1)
+   BTC Futures Risk Desk -- src/futures.js (v1.1)
    Wires DataLayer.buildFuturesPlan() (see src/data.js) to a standalone page
    for BTCUSDT.P perpetual futures.
 
-   Unlike src/options.js, this reuses DataLayer (loaded via data.js) rather
-   than re-implementing its own fetchers, since the futures planner needs
-   the exact same BGTC/NOCTUA payload (barrier_curves, p_vol_amplify) that
-   the options desk gets from the Worker -- no reason to duplicate that
-   fetch logic. See docs/TRADE_FLOW.md §8 for the full explanation of what's
-   reused from the options pipeline and what isn't.
+   v1.1: Added loadInFlight guard to prevent concurrent loadAll() calls
+   from the Refresh button overlapping with the 5-min auto-refresh interval.
    ========================================================================= */
 'use strict';
 
@@ -17,6 +13,8 @@ const FS = {
   direction: 'long',
 };
 
+let loadInFlight = false;
+
 const $ = (id) => document.getElementById(id);
 const fmt$ = (v) => v == null ? '—' : '$' + Math.round(v).toLocaleString();
 const fmtPct = (v, d = 1) => v == null ? '—' : (v * 100).toFixed(d) + '%';
@@ -24,6 +22,8 @@ const fmtPct = (v, d = 1) => v == null ? '—' : (v * 100).toFixed(d) + '%';
 /* ------------------------------ data load -------------------------------- */
 
 async function loadAll() {
+  if (loadInFlight) { console.warn('[futures] loadAll skipped — already running'); return; }
+  loadInFlight = true;
   $('status').textContent = 'loading…';
   try {
     const [price, daily, funding, BGTC] = await Promise.all([
@@ -43,6 +43,8 @@ async function loadAll() {
   } catch (e) {
     console.error('[futures] load failed', e);
     $('status').textContent = 'load failed — ' + e.message;
+  } finally {
+    loadInFlight = false;
   }
 }
 
@@ -100,7 +102,7 @@ function renderPlan(plan) {
   $('pEntry').textContent = fmt$(plan.entryPrice);
   $('pSl').textContent = `${fmt$(plan.stopLoss)}  (${plan.stopDistancePct}%)`;
   $('pTp').textContent = `${fmt$(plan.takeProfit)}  (${plan.tpDistancePct}%)`;
-  $('pRR').textContent = plan.riskRewardRatio != null ? plan.riskRewardRatio.toFixed(2) + '×' : '—';
+  $('pRR').textContent = plan.riskRewardRatio != null ? plan.riskRewardRatio.toFixed(2) + 'x' : '—';
   $('pSlTouch').textContent = plan.slTouchProb != null ? fmtPct(plan.slTouchProb) : 'n/a (HV20 fallback)';
   $('pTpTouch').textContent = plan.tpTouchProb != null ? fmtPct(plan.tpTouchProb) : 'n/a (HV20 fallback)';
   $('pSize').textContent = (plan.sizeMultiplier * 100).toFixed(0) + '% of normal size';
