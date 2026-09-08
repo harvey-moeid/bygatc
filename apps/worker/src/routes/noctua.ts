@@ -1,6 +1,6 @@
 /**
  * routes/noctua.ts
- * ─────────────────────────────────────────────────────────────────────
+ * -------------------------------------------------------------------
  * Bridge antara GH Actions (Python NOCTUA model) dan dashboard browser.
  *
  * GH Actions menjalankan model/serve/predict.py, lalu POST hasilnya ke:
@@ -21,7 +21,7 @@ type NoctuaEnv = Env & { NOCTUA_PUSH_SECRET: string };
 
 export const noctuaRoutes = new Hono<{ Bindings: NoctuaEnv }>();
 
-// ── POST /api/noctua/push — dipanggil GH Actions ────────────────────────
+// -- POST /api/noctua/push -- dipanggil GH Actions ----------------------
 
 noctuaRoutes.post('/push', async (c) => {
   const authHeader = c.req.header('Authorization') || '';
@@ -38,10 +38,20 @@ noctuaRoutes.post('/push', async (c) => {
     return c.json({ error: 'invalid json' }, 400);
   }
 
-  // Validasi minimal
   const b = body as Record<string, unknown>;
-  if (typeof b['upside'] !== 'number' || typeof b['volAmp'] !== 'number') {
-    return c.json({ error: 'missing upside or volAmp' }, 400);
+
+  // Validasi type + range — cegah nilai luar batas masuk KV dan ditampilkan di dashboard
+  const upside = b['upside'];
+  const volAmp = b['volAmp'];
+  if (
+    typeof upside !== 'number' || typeof volAmp !== 'number' ||
+    upside < 0 || upside > 100 ||
+    volAmp < 0 || volAmp > 100
+  ) {
+    return c.json(
+      { error: 'missing or out-of-range upside/volAmp (expected numbers in 0-100)' },
+      400,
+    );
   }
 
   const payload = {
@@ -55,11 +65,11 @@ noctuaRoutes.post('/push', async (c) => {
     expirationTtl: 93600,
   });
 
-  console.log(`[noctua/push] stored: upside=${b['upside']} volAmp=${b['volAmp']}`);
+  console.log(`[noctua/push] stored: upside=${upside} volAmp=${volAmp}`);
   return c.json({ ok: true });
 });
 
-// ── GET /api/noctua/latest — dipanggil browser ───────────────────────────
+// -- GET /api/noctua/latest -- dipanggil browser ------------------------
 
 noctuaRoutes.get('/latest', async (c) => {
   const raw = await c.env.BTC_CACHE.get('noctua:latest');
