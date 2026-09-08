@@ -1,10 +1,11 @@
 /* =========================================================================
-   BTC Futures Risk Desk -- src/futures.js (v1.1)
-   Wires DataLayer.buildFuturesPlan() (see src/data.js) to a standalone page
-   for BTCUSDT.P perpetual futures.
-
-   v1.1: Added loadInFlight guard to prevent concurrent loadAll() calls
-   from the Refresh button overlapping with the 5-min auto-refresh interval.
+   BTC Futures Risk Desk -- src/futures.js (v2.0)
+   v2.0: full NOCTUA payload rendering
+     - Barrier curves table (up + dn, semua level)
+     - Safe levels table (alpha-based strike distances)
+     - NOCTUA signal panel (sigma, settle time, calibration)
+     - Session context (IST phase)
+     - Market panel lebih lengkap
    ========================================================================= */
 'use strict';
 
@@ -16,15 +17,35 @@ const FS = {
 let loadInFlight = false;
 
 const $ = (id) => document.getElementById(id);
-const fmt$ = (v) => v == null ? '—' : '$' + Math.round(v).toLocaleString();
-const fmtPct = (v, d = 1) => v == null ? '—' : (v * 100).toFixed(d) + '%';
+const fmt$  = (v) => v == null ? '\u2014' : '$' + Math.round(v).toLocaleString();
+const fmtPct = (v, d = 2) => v == null ? '\u2014' : v.toFixed(d) + '%';
+const or = (v, fb = '\u2014') => (v != null && v !== '' && v !== 'undefined') ? v : fb;
+
+/* ------------------------------ helpers ---------------------------------- */
+
+function tpClass(p) {
+  if (p == null) return '';
+  if (p >= 0.50) return 'color:var(--red)';
+  if (p >= 0.30) return 'color:var(--amb)';
+  if (p >= 0.15) return 'color:#e8d44d';
+  return 'color:var(--grn)';
+}
+
+function settleCountdown(settleUtc) {
+  if (!settleUtc) return null;
+  const diff = new Date(settleUtc).getTime() - Date.now();
+  if (diff <= 0) return 'settled';
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  return `${h}h ${m}m`;
+}
 
 /* ------------------------------ data load -------------------------------- */
 
 async function loadAll() {
-  if (loadInFlight) { console.warn('[futures] loadAll skipped — already running'); return; }
+  if (loadInFlight) return;
   loadInFlight = true;
-  $('status').textContent = 'loading…';
+  $('status').textContent = 'loading\u2026';
   try {
     const [price, daily, funding, BGTC] = await Promise.all([
       DataLayer.fetchPrice(),
@@ -32,49 +53,182 @@ async function loadAll() {
       DataLayer.fetchFunding(),
       DataLayer.fetchBGTC(),
     ]);
-    FS.price = price;
-    FS.daily = daily;
+    FS.price   = price;
+    FS.daily   = daily;
     FS.funding = funding;
-    FS.BGTC = BGTC;
-    FS.hv20 = daily?.length >= 21 ? DataLayer.computeHV20(daily) : null;
-    renderMarket();
-    recompute();
+    FS.BGTC    = BGTC;
+    FS.hv20    = daily?.length >= 21 ? DataLayer.computeHV20(daily) : null;
+
+    renderAll();
     $('status').textContent = 'updated ' + new Date().toLocaleTimeString();
   } catch (e) {
     console.error('[futures] load failed', e);
-    $('status').textContent = 'load failed — ' + e.message;
+    $('status').textContent = 'load failed \u2014 ' + e.message;
   } finally {
     loadInFlight = false;
   }
 }
 
-function renderMarket() {
-  $('spot').textContent = fmt$(FS.price?.price);
-  $('hv20').textContent = FS.hv20 ? FS.hv20.annualised.toFixed(1) + '%' : '—';
-  $('hv20d').textContent = FS.hv20 ? FS.hv20.oneDay.toFixed(2) + '%' : '—';
-  $('funding').textContent = FS.funding
-    ? `${FS.funding.ratePct.toFixed(4)}% (${FS.funding.flag})`
-    : '—';
-  const pAmp = FS.BGTC?.p_vol_amplify ?? (FS.BGTC?.volAmp != null ? FS.BGTC.volAmp / 100 : null);
-  $('volAmp').textContent = pAmp != null ? (pAmp * 100).toFixed(1) + '%' : 'n/a';
-  const hasBarrier = !!(FS.BGTC?.barrier_curves?.up?.length && FS.BGTC?.barrier_curves?.dn?.length);
-  $('hasBarrier').textContent = hasBarrier ? 'yes' : 'no (falling back to HV20)';
-  $('hasBarrier').className = hasBarrier ? 'pos' : 'warn';
+function renderAll() {
+  renderMarket();
+  renderNoctua();
+  renderSession();
+  renderBarrierCurves();
+  renderSafeLevels();
+  recompute();
 }
 
-/* ------------------------------ recompute --------------------------------- */
+/* ------------------------------ market card ------------------------------ */
+
+function renderMarket() {
+  $('spot').textContent = FS.price?.price ? '$' + Math.round(FS.price.price).toLocaleString() : '\u2014';
+  $('hv20').textContent   = FS.hv20 ? FS.hv20.annualised.toFixed(1) + '%' : '\u2014';
+  $('hv20d').textContent  = FS.hv20 ? FS.hv20.oneDay.toFixed(2) + '%' : '\u2014';
+  if (FS.funding) {
+    const f = FS.funding;
+    $('funding').textContent = `${f.ratePct.toFixed(4)}% (${f.flag})`;
+    $('funding').className   = f.flag?.includes('extreme') ? 'warn' : '';
+  }
+  const pAmp = FS.BGTC?.p_vol_amplify ?? (FS.BGTC?.volAmp != null ? FS.BGTC.volAmp / 100 : null);
+  $('volAmp').textContent  = pAmp != null ? (pAmp * 100).toFixed(1) + '%' : '\u2014';
+  $('volAmp').className    = pAmp > 0.55 ? 'warn' : pAmp <= 0.45 ? 'pos' : '';
+}
+
+/* ------------------------------ NOCTUA panel ----------------------------- */
+
+function renderNoctua() {
+  const B = FS.BGTC;
+  if (!B) { $('noctuaCard').style.opacity = '0.4'; return; }
+  $('noctuaCard').style.opacity = '1';
+
+  $('nModel').textContent   = or(B.model);
+  $('nHorizon').textContent = B.H_hours ? B.H_hours + 'h' : '\u2014';
+
+  if (B.anchor_utc) {
+    $('nAnchor').textContent = B.anchor_utc.slice(0, 16).replace('T', ' ') + ' UTC';
+  }
+  if (B.settle_utc) {
+    const cd = settleCountdown(B.settle_utc);
+    const ts = B.settle_utc.slice(0, 16).replace('T', ' ') + ' UTC';
+    $('nSettle').textContent = cd ? `${ts}  (${cd})` : ts;
+    $('nSettle').className   = cd === 'settled' ? 'dim' : '';
+  }
+
+  $('nSigmaW').textContent  = B.sigma_window_pct  != null ? B.sigma_window_pct.toFixed(2)  + '%' : '\u2014';
+  $('nSigmaA').textContent  = B.sigma_annualized_pct != null ? B.sigma_annualized_pct.toFixed(1) + '%' : '\u2014';
+  $('nTrailingRV').textContent = B.trailing_rv_pct != null ? B.trailing_rv_pct.toFixed(2) + '%' : '\u2014';
+
+  if (B.sigma_window_pct != null && B.trailing_rv_pct != null && B.trailing_rv_pct > 0) {
+    const ratio = B.sigma_window_pct / B.trailing_rv_pct;
+    $('nVolRatio').textContent = ratio.toFixed(2) + '\u00d7 vs trailing';
+    $('nVolRatio').className   = ratio > 1.15 ? 'warn' : ratio < 0.85 ? 'pos' : '';
+  }
+
+  if (B.vol_calibration) {
+    const c = B.vol_calibration;
+    $('nCalib').textContent = c.applied
+      ? `applied \u00d7${c.factor.toFixed(3)} (n=${c.n_settled_episodes} episodes, ${c.window_days}d window)`
+      : `none \u2014 ${c.note || 'not needed'}`;
+    $('nCalib').className = c.applied ? 'warn' : 'pos';
+  } else {
+    $('nCalib').textContent = '\u2014';
+  }
+}
+
+/* ------------------------------ session card ----------------------------- */
+
+function renderSession() {
+  const s = DataLayer.computeSessionContext();
+  const el = $('sessionPhase');
+  el.textContent = s.phase;
+  el.className = 'verdict ' + ({
+    best: 'v-sell', ok: 'v-ok', warn: 'v-caution',
+    skip: 'v-stand', neutral: 'v-neutral',
+  }[s.tier] || 'v-neutral');
+  $('sessionAdvice').textContent = s.advice;
+  $('sessionIst').textContent = new Date().toLocaleTimeString('en-IN', {
+    timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit',
+  }) + ' IST';
+}
+
+/* ------------------------------ barrier curves table --------------------- */
+
+function renderBarrierCurves() {
+  const B = FS.BGTC;
+  const curves = B?.barrier_curves;
+  const el = $('barrierBody');
+  if (!el) return;
+  el.innerHTML = '';
+
+  if (!curves?.up?.length) {
+    el.innerHTML = '<tr><td colspan="5" class="dim" style="text-align:center;padding:10px">barrier curves not in payload \u2014 run NOCTUA first</td></tr>';
+    $('barrierCard').style.opacity = '0.5';
+    return;
+  }
+  $('barrierCard').style.opacity = '1';
+
+  const dnMap = {};
+  (curves.dn || []).forEach(c => { dnMap[Math.abs(c.pct)] = c; });
+
+  for (const up of curves.up) {
+    const dn = dnMap[up.pct];
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="mono" style="color:var(--dim)">${up.pct.toFixed(1)}%</td>
+      <td class="mono pos">${up.price ? '$' + Math.round(up.price).toLocaleString() : '\u2014'}</td>
+      <td class="mono" style="${tpClass(up.touch_prob)}">${up.touch_prob != null ? (up.touch_prob * 100).toFixed(1) + '%' : '\u2014'}</td>
+      <td class="mono neg">${dn?.price ? '$' + Math.round(dn.price).toLocaleString() : '\u2014'}</td>
+      <td class="mono" style="${tpClass(dn?.touch_prob)}">${dn?.touch_prob != null ? (dn.touch_prob * 100).toFixed(1) + '%' : '\u2014'}</td>
+    `;
+    el.appendChild(tr);
+  }
+}
+
+/* ------------------------------ safe levels table ------------------------ */
+
+function renderSafeLevels() {
+  const B = FS.BGTC;
+  const safe = B?.safe_levels;
+  const el = $('safeBody');
+  if (!el) return;
+  el.innerHTML = '';
+
+  if (!safe?.length) {
+    el.innerHTML = '<tr><td colspan="5" class="dim" style="text-align:center;padding:10px">safe levels not in payload</td></tr>';
+    $('safeCard').style.opacity = '0.5';
+    return;
+  }
+  $('safeCard').style.opacity = '1';
+
+  for (const s of safe) {
+    const alphaPct = (s.alpha * 100).toFixed(0);
+    const tr = document.createElement('tr');
+    const hl = (s.alpha === 0.01 || s.alpha === 0.05) ? 'background:rgba(91,140,255,.06)' : '';
+    tr.setAttribute('style', hl);
+    tr.innerHTML = `
+      <td class="mono" style="color:var(--acc)">${alphaPct}%</td>
+      <td class="mono pos">$${Math.round(s.call_strike).toLocaleString()}</td>
+      <td class="mono pos">+${s.call_pct.toFixed(2)}%</td>
+      <td class="mono neg">$${Math.round(s.put_strike).toLocaleString()}</td>
+      <td class="mono neg">${s.put_pct.toFixed(2)}%</td>
+    `;
+    el.appendChild(tr);
+  }
+}
+
+/* ------------------------------ recompute (risk plan) -------------------- */
 
 function recompute() {
   if (!FS.price?.price) return;
 
   const plan = DataLayer.buildFuturesPlan({
-    price: FS.price.price,
-    direction: FS.direction,
-    hv20: FS.hv20,
-    BGTC: FS.BGTC,
-    funding: FS.funding,
+    price:         FS.price.price,
+    direction:     FS.direction,
+    hv20:          FS.hv20,
+    BGTC:          FS.BGTC,
+    funding:       FS.funding,
     accountEquity: parseFloat($('equityInput').value) || null,
-    riskPct: parseFloat($('riskInput').value) || 1,
+    riskPct:       parseFloat($('riskInput').value) || 1,
     slTouchTarget: parseFloat($('slSlider').value),
     tpTouchTarget: parseFloat($('tpSlider').value),
   });
@@ -83,30 +237,29 @@ function recompute() {
 }
 
 function renderPlan(plan) {
-  const v = $('planVerdict');
+  const v      = $('planVerdict');
   const warnEl = $('pWarnings');
   warnEl.innerHTML = '';
 
   if (!plan.ok) {
     v.textContent = plan.reason;
-    v.className = 'verdict v-stand';
-    $('pEntry').textContent = $('pSl').textContent = $('pTp').textContent = '—';
-    $('pRR').textContent = $('pSlTouch').textContent = $('pTpTouch').textContent = '—';
-    $('pSize').textContent = $('pRisk').textContent = '—';
+    v.className   = 'verdict v-stand';
+    ['pEntry','pSl','pTp','pRR','pSlTouch','pTpTouch','pSize','pRisk']
+      .forEach(id => { $(id).textContent = '\u2014'; });
     return;
   }
 
-  v.textContent = `${plan.direction.toUpperCase()} plan ready —${plan.usedBarrierCurves ? ' NOCTUA barrier curves' : ' HV20 fallback'}`;
-  v.className = 'verdict ' + (plan.direction === 'long' ? 'v-sell' : 'v-caution');
+  v.textContent = `${plan.direction.toUpperCase()} plan ready \u2014 ${plan.usedBarrierCurves ? '\u2713 NOCTUA barrier curves' : '\u26a0 HV20 fallback'}`;
+  v.className   = 'verdict ' + (plan.direction === 'long' ? 'v-sell' : 'v-caution');
 
-  $('pEntry').textContent = fmt$(plan.entryPrice);
-  $('pSl').textContent = `${fmt$(plan.stopLoss)}  (${plan.stopDistancePct}%)`;
-  $('pTp').textContent = `${fmt$(plan.takeProfit)}  (${plan.tpDistancePct}%)`;
-  $('pRR').textContent = plan.riskRewardRatio != null ? plan.riskRewardRatio.toFixed(2) + 'x' : '—';
-  $('pSlTouch').textContent = plan.slTouchProb != null ? fmtPct(plan.slTouchProb) : 'n/a (HV20 fallback)';
-  $('pTpTouch').textContent = plan.tpTouchProb != null ? fmtPct(plan.tpTouchProb) : 'n/a (HV20 fallback)';
-  $('pSize').textContent = (plan.sizeMultiplier * 100).toFixed(0) + '% of normal size';
-  $('pRisk').textContent = plan.riskAmount != null
+  $('pEntry').textContent   = fmt$(plan.entryPrice);
+  $('pSl').textContent      = `${fmt$(plan.stopLoss)}  (${plan.stopDistancePct}%)`;
+  $('pTp').textContent      = `${fmt$(plan.takeProfit)}  (${plan.tpDistancePct}%)`;
+  $('pRR').textContent      = plan.riskRewardRatio != null ? plan.riskRewardRatio.toFixed(2) + 'x' : '\u2014';
+  $('pSlTouch').textContent = plan.slTouchProb != null ? fmtPct(plan.slTouchProb * 100) : 'n/a (HV20 fallback)';
+  $('pTpTouch').textContent = plan.tpTouchProb != null ? fmtPct(plan.tpTouchProb * 100) : 'n/a (HV20 fallback)';
+  $('pSize').textContent    = (plan.sizeMultiplier * 100).toFixed(0) + '% of normal size';
+  $('pRisk').textContent    = plan.riskAmount != null
     ? `${fmt$(plan.riskAmount)} risk / ${fmt$(plan.positionNotional)} notional`
     : 'set account equity to size';
 
@@ -121,7 +274,7 @@ function renderPlan(plan) {
 
 function setDirection(dir) {
   FS.direction = dir;
-  $('btnLong').classList.toggle('active', dir === 'long');
+  $('btnLong').classList.toggle('active',  dir === 'long');
   $('btnShort').classList.toggle('active', dir === 'short');
   recompute();
 }
@@ -134,13 +287,20 @@ function onInputChange() {
 
 document.addEventListener('DOMContentLoaded', () => {
   $('btnRefresh').addEventListener('click', loadAll);
-  $('btnLong').addEventListener('click', () => setDirection('long'));
+  $('btnLong').addEventListener('click',  () => setDirection('long'));
   $('btnShort').addEventListener('click', () => setDirection('short'));
   $('equityInput').addEventListener('input', onInputChange);
-  $('riskInput').addEventListener('input', onInputChange);
-  $('slSlider').addEventListener('input', () => { $('slVal').textContent = Math.round($('slSlider').value * 100) + '%'; onInputChange(); });
-  $('tpSlider').addEventListener('input', () => { $('tpVal').textContent = Math.round($('tpSlider').value * 100) + '%'; onInputChange(); });
+  $('riskInput').addEventListener('input',   onInputChange);
+  $('slSlider').addEventListener('input', () => {
+    $('slVal').textContent = Math.round($('slSlider').value * 100) + '%';
+    onInputChange();
+  });
+  $('tpSlider').addEventListener('input', () => {
+    $('tpVal').textContent = Math.round($('tpSlider').value * 100) + '%';
+    onInputChange();
+  });
 
   loadAll();
-  setInterval(loadAll, 5 * 60_000);   // 5-min auto refresh
+  setInterval(loadAll, 5 * 60_000);   // auto-refresh 5 menit
+  setInterval(renderSession, 60_000); // update IST phase tiap menit
 });
