@@ -1,8 +1,8 @@
 /**
  * ui.js (v4)  — decision-focused UI bindings
  * =====================================================================
- * Renders the hero decision card, pulse strip, regime dial, session ribbon,
- * retail plan, odds table, BGTC card, signal list, and rate limit grid.
+ * Merender hero decision card, pulse strip, regime dial, session ribbon,
+ * retail plan, odds table, BGTC card, signal list, dan rate limit grid.
  */
 const UI = (() => {
   const fmt  = (n, d = 0) => new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
@@ -17,10 +17,10 @@ const UI = (() => {
   function updateClock() {
     const ist = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
     set('clockIST', ist.split(',').pop().trim().slice(0,8) + ' IST');
-    set('footerTs', 'Updated ' + new Date().toLocaleTimeString());
+    set('footerTs', 'Diperbarui ' + new Date().toLocaleTimeString());
   }
 
-  // ── BGTC BADGE (header) ───────────────────────────────────────────────────
+  // —— BGTC BADGE (header) ————————————————————————————————————————————————
   function updateBGTCBadge(BGTC) {
     const el = $('BGTCBadge');
     if (!el) return;
@@ -29,9 +29,9 @@ const UI = (() => {
               : BGTC.freshness === 'recent'  ? 'ok'
               : BGTC.freshness === 'stale'   ? 'warn'
               :                                   'err';
-    const age = BGTC.ageHrs == null ? '?' : BGTC.ageHrs < 1 ? '<1h' : BGTC.ageHrs.toFixed(0)+'h';
+    const age = BGTC.ageHrs == null ? '?' : BGTC.ageHrs < 1 ? '<1j' : BGTC.ageHrs.toFixed(0)+'j';
     el.className = 'pill-sm ' + cls;
-    el.textContent = `BGTC ${BGTC.upside.toFixed(1)}% · ${age} ago`;
+    el.textContent = `BGTC ${BGTC.upside.toFixed(1)}% · ${age} lalu`;
   }
 
   function updateHero(decision) {
@@ -45,8 +45,8 @@ const UI = (() => {
     set('heroIcon', icon);
     set('heroVerdict', decision.verdict || '—');
     set('heroSub', decision.tradeStructure
-      ? `${decision.direction?.toUpperCase() || 'NEUTRAL'} bias · ${decision.reasons.length} signals aligned, ${decision.blockers.length} blockers`
-      : decision.blockers[0] || 'Evaluating all signals…');
+      ? `Bias ${decision.direction?.toUpperCase() || 'NETRAL'} · ${decision.reasons.length} sinyal selaras, ${decision.blockers.length} pemblokir`
+      : decision.blockers[0] || 'Mengevaluasi semua sinyal…');
     set('heroConf', Math.round(decision.confidence) + '%');
     const bar = $('heroConfBar');
     if (bar) {
@@ -61,17 +61,17 @@ const UI = (() => {
 
     setH('heroReasons', (decision.reasons || []).map(r =>
       `<div class="hero-reason pos"><span class="hero-reason-dot"></span><span>${escape(r)}</span></div>`
-    ).join('') || '<div style="font-size:11px;color:var(--muted);padding:4px 0">None yet.</div>');
+    ).join('') || '<div style="font-size:11px;color:var(--muted);padding:4px 0">Belum ada.</div>');
 
     setH('heroBlockers', (decision.blockers || []).map(r =>
       `<div class="hero-reason neg"><span class="hero-reason-dot"></span><span>${escape(r)}</span></div>`
-    ).join('') || '<div style="font-size:11px;color:var(--muted);padding:4px 0">All clear.</div>');
+    ).join('') || '<div style="font-size:11px;color:var(--muted);padding:4px 0">Semua aman.</div>');
 
     const sb = $('heroStructure');
     if (decision.tradeStructure) {
       if (sb) sb.style.display = 'flex';
       set('heroStructText', decision.tradeStructure);
-      set('heroStructSub', `Direction: ${decision.direction} · Confidence ${Math.round(decision.confidence)}%`);
+      set('heroStructSub', `Arah: ${decision.direction} · Keyakinan ${Math.round(decision.confidence)}%`);
     } else if (sb) sb.style.display = 'none';
   }
 
@@ -85,18 +85,18 @@ const UI = (() => {
         chgEl.style.color = chg >= 0 ? 'var(--green)' : 'var(--red)';
       }
       set('psHigh',    '$' + fmt(Math.round(price.high)));
-      set('psHighPct', '+' + ((price.high - price.price) / price.price * 100).toFixed(2) + '% above');
+      set('psHighPct', '+' + ((price.high - price.price) / price.price * 100).toFixed(2) + '% di atas');
       set('psLow',     '$' + fmt(Math.round(price.low)));
-      set('psLowPct',  ((price.low - price.price) / price.price * 100).toFixed(2) + '% from');
+      set('psLowPct',  ((price.low - price.price) / price.price * 100).toFixed(2) + '% dari');
       set('psPriceSub', 'Binance · vol ' + fmtS(price.volUsd));
     }
     if (hv20) {
       set('psHv20',    hv20.annualised.toFixed(1) + '%');
-      set('psHv20Sub', '1-day: ' + hv20.oneDay.toFixed(2) + '%');
+      set('psHv20Sub', '1-hari: ' + hv20.oneDay.toFixed(2) + '%');
     }
     if (atmInfo) {
       set('psAtmIv',    atmInfo.atmIv.toFixed(1) + '%');
-      set('psAtmIvSub', atmInfo.expiry + ' · ' + atmInfo.daysToExpiry.toFixed(1) + 'd');
+      set('psAtmIvSub', atmInfo.expiry + ' · ' + atmInfo.daysToExpiry.toFixed(1) + 'h');
     }
     if (funding) {
       const el = $('psFunding');
@@ -104,7 +104,7 @@ const UI = (() => {
         el.textContent = funding.ratePct.toFixed(4) + '%';
         el.className = 'pc-val ' + (funding.flag.includes('extreme') ? 'neg' : funding.flag === 'neutral' ? 'neu' : 'cyan');
       }
-      set('psFundingSub', 'ann ' + funding.annualizedPct.toFixed(1) + '% · ' + funding.flag);
+      set('psFundingSub', 'tah ' + funding.annualizedPct.toFixed(1) + '% · ' + funding.flag);
     }
     if (fg) {
       const el = $('psFg');
@@ -151,7 +151,7 @@ const UI = (() => {
         barHtml += `<div class="session-seg" style="width:${s.w}%;background:${s.bg}">${s.lbl}</div>`;
       }
       barHtml += '</div>';
-      barHtml += `<div style="position:relative;margin-top:-17px;height:14px;z-index:3;pointer-events:none"><div style="position:absolute;left:${nowPct}%;top:-3px;width:2px;height:26px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.5);transform:translateX(-50%)"></div><div style="position:absolute;left:${nowPct}%;top:-18px;font-size:9px;font-family:var(--font-mono);color:#fff;transform:translateX(-50%);background:var(--accent);padding:1px 4px;border-radius:3px">NOW</div></div>`;
+      barHtml += `<div style="position:relative;margin-top:-17px;height:14px;z-index:3;pointer-events:none"><div style="position:absolute;left:${nowPct}%;top:-3px;width:2px;height:26px;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.5);transform:translateX(-50%)"></div><div style="position:absolute;left:${nowPct}%;top:-18px;font-size:9px;font-family:var(--font-mono);color:#fff;transform:translateX(-50%);background:var(--accent);padding:1px 4px;border-radius:3px">KINI</div></div>`;
       wrap.innerHTML = barHtml;
     }
   }
@@ -180,7 +180,7 @@ const UI = (() => {
     }
 
     set('rdSize', (regime.sizing * 100).toFixed(0) + '%');
-    set('rdSizeNote', regime.allowTrade ? `of base position (${regime.label})` : 'Skip today');
+    set('rdSizeNote', regime.allowTrade ? `dari posisi dasar (${regime.label})` : 'Lewati hari ini');
   }
 
   function updateRetailPlan(plan, price, hv20, regime, atmInfo) {
@@ -188,10 +188,10 @@ const UI = (() => {
     if (!body) return;
 
     const exp = $('retailExpiry');
-    if (exp) exp.textContent = atmInfo ? 'Expiry: ' + atmInfo.expiry : '—';
+    if (exp) exp.textContent = atmInfo ? 'Kedaluwarsa: ' + atmInfo.expiry : '—';
 
     if (!plan) {
-      body.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:12px">Waiting for price / options / HV20…</div>`;
+      body.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:12px">Menunggu harga / opsi / HV20…</div>`;
       return;
     }
 
@@ -199,12 +199,12 @@ const UI = (() => {
 
     if (!plan.ok) {
       html += `<div class="rc-warn red">
-        <div class="rc-warn-title">✗ NO-TRADE today</div>
+        <div class="rc-warn-title">✗ TIDAK TRADING hari ini</div>
         <div class="rc-warn-body">${escape(plan.reason)}</div>
       </div>`;
       if (plan.candidates?.length) {
-        html += `<div style="font-size:10px;color:var(--muted);margin:10px 0 6px">Premium-viable strikes and their touch probabilities:</div>`;
-        html += `<table class="odds-table"><thead><tr><th>Strike</th><th>Distance</th><th>Premium/lot</th><th>Touch prob</th></tr></thead><tbody>` +
+        html += `<div style="font-size:10px;color:var(--muted);margin:10px 0 6px">Strike layak premium dan probabilitas sentuhnya:</div>`;
+        html += `<table class="odds-table"><thead><tr><th>Strike</th><th>Jarak</th><th>Premium/lot</th><th>Prob. sentuh</th></tr></thead><tbody>` +
           plan.candidates.map(c => {
             const tp = c.touchProb ?? DataLayer.touchProbability(c.absDist, hv20?.oneDay);
             return `<tr><td>$${fmt(c.strike)}</td><td>${c.absDist?.toFixed(2)}%</td><td>$${fmt(c.premium, 2)}</td><td>${tp ? (tp*100).toFixed(0)+'%' : '—'}</td></tr>`;
@@ -215,36 +215,36 @@ const UI = (() => {
     }
 
     const netCreditClass = plan.netCredit > 0 ? 'pos' : 'neg';
-    const distSafety = plan.shortDistancePct > 15 ? 'Very safe' : plan.shortDistancePct > 10 ? 'Safe' : 'Moderate';
+    const distSafety = plan.shortDistancePct > 15 ? 'Sangat aman' : plan.shortDistancePct > 10 ? 'Aman' : 'Sedang';
     const kMultiplier = (plan.shortDistancePct / (hv20?.oneDay || 1));
 
     html += `<div class="rc-legs">
       <div class="leg go">
-        <div class="leg-type">LEG 1 · Buy (long gamma)</div>
+        <div class="leg-type">LEG 1 · Beli (long gamma)</div>
         <div class="leg-action">1× ATM $${fmt(plan.atmInfo.atmStrike)} STRADDLE</div>
-        <div class="leg-detail">Cost: <b>$${fmt(plan.straddleCost, 0)}</b> · ${plan.atmInfo.expiry} · ${plan.atmInfo.daysToExpiry.toFixed(1)}d</div>
+        <div class="leg-detail">Biaya: <b>$${fmt(plan.straddleCost, 0)}</b> · ${plan.atmInfo.expiry} · ${plan.atmInfo.daysToExpiry.toFixed(1)}h</div>
       </div>
       <div class="leg go">
-        <div class="leg-type">LEG 2 · Sell ${plan.shortLots}× (financing)</div>
+        <div class="leg-type">LEG 2 · Jual ${plan.shortLots}× (pembiayaan)</div>
         <div class="leg-action">${plan.shortLots}× $${fmt(plan.shortStrike)} ${plan.sellSide === 'P' ? 'PUTS' : 'CALLS'}</div>
         <div class="leg-detail">Premium/lot: <b>$${fmt(plan.shortPremiumPerLot, 2)}</b> · Total: <b>$${fmt(plan.totalShortPremium, 0)}</b></div>
       </div>
     </div>`;
 
     html += `<div class="rc-metrics">
-      <div class="rcm"><div class="rcm-l">Distance</div><div class="rcm-v">${plan.shortDistancePct.toFixed(2)}%</div><div class="rcm-s">${distSafety} · ${kMultiplier.toFixed(1)}× hv20_1d</div></div>
-      <div class="rcm"><div class="rcm-l">Touch probability</div><div class="rcm-v">${(plan.touchProb*100).toFixed(0)}%</div><div class="rcm-s">per PDF backtest</div></div>
-      <div class="rcm"><div class="rcm-l">Net credit</div><div class="rcm-v ${netCreditClass}">${plan.netCredit >= 0 ? '+' : ''}$${fmt(plan.netCredit, 0)}</div><div class="rcm-s">after financing</div></div>
-      <div class="rcm"><div class="rcm-l">Req/lot</div><div class="rcm-v">$${plan.reqPremPerLot.toFixed(2)}</div><div class="rcm-s">×${((plan.shortPremiumPerLot/plan.reqPremPerLot)*100).toFixed(0)}% coverage</div></div>
+      <div class="rcm"><div class="rcm-l">Jarak</div><div class="rcm-v">${plan.shortDistancePct.toFixed(2)}%</div><div class="rcm-s">${distSafety} · ${kMultiplier.toFixed(1)}× hv20_1h</div></div>
+      <div class="rcm"><div class="rcm-l">Probabilitas sentuh</div><div class="rcm-v">${(plan.touchProb*100).toFixed(0)}%</div><div class="rcm-s">per backtest PDF</div></div>
+      <div class="rcm"><div class="rcm-l">Kredit bersih</div><div class="rcm-v ${netCreditClass}">${plan.netCredit >= 0 ? '+' : ''}$${fmt(plan.netCredit, 0)}</div><div class="rcm-s">setelah pembiayaan</div></div>
+      <div class="rcm"><div class="rcm-l">Req/lot</div><div class="rcm-v">$${plan.reqPremPerLot.toFixed(2)}</div><div class="rcm-s">×${((plan.shortPremiumPerLot/plan.reqPremPerLot)*100).toFixed(0)}% cakupan</div></div>
     </div>`;
 
     html += `<div class="rc-risk-note">
-      ⚠️ <b>Risk:</b> Shorting ${plan.shortLots}× uncapped is extreme-gamma. If BTC touches $${fmt(plan.shortStrike)} (${plan.shortDistancePct.toFixed(1)}% move) the wing blows up. Use Delta's <b>strategy builder</b> to add cheap long protection 1–2× further OTM and cap max loss to &lt;10% of equity.
+      ⚠️ <b>Risiko:</b> Short ${plan.shortLots}× tanpa batas adalah extreme-gamma. Jika BTC menyentuh $${fmt(plan.shortStrike)} (gerakan ${plan.shortDistancePct.toFixed(1)}%) wing akan jebol. Gunakan <b>strategy builder</b> Delta untuk menambah proteksi long murah 1–2× lebih jauh OTM dan batasi max loss ke &lt;10% ekuitas.
     </div>`;
 
     if (plan.alternatives?.length) {
-      html += `<div style="font-size:10px;color:var(--muted);margin:12px 0 4px">Alternative strikes (also valid, closer to spot):</div>`;
-      html += `<table class="odds-table"><thead><tr><th>Strike</th><th>Distance</th><th>Premium</th><th>Touch</th><th>Net credit</th></tr></thead><tbody>` +
+      html += `<div style="font-size:10px;color:var(--muted);margin:12px 0 4px">Strike alternatif (juga valid, lebih dekat ke spot):</div>`;
+      html += `<table class="odds-table"><thead><tr><th>Strike</th><th>Jarak</th><th>Premium</th><th>Sentuh</th><th>Kredit bersih</th></tr></thead><tbody>` +
         plan.alternatives.map(a => {
           const nc = (a.premium * plan.shortLots) - plan.straddleCost;
           return `<tr><td>$${fmt(a.strike)}</td><td>${a.absDist.toFixed(2)}%</td><td>$${fmt(a.premium,2)}</td><td>${(a.touchProb*100).toFixed(0)}%</td><td style="color:${nc>=0?'var(--green)':'var(--red)'}">$${fmt(nc, 0)}</td></tr>`;
@@ -255,7 +255,7 @@ const UI = (() => {
   }
 
   function updateOddsTable(odds, hv20, price) {
-    set('oddsIntro', odds ? odds.description : 'Waiting for regime classification…');
+    set('oddsIntro', odds ? odds.description : 'Menunggu klasifikasi rezim…');
     const tbody = $('oddsBody');
     if (!tbody) return;
     if (!odds) { tbody.innerHTML = ''; return; }
@@ -279,38 +279,38 @@ const UI = (() => {
     }).join('');
   }
 
-  // ── BGTC DETAIL CARD ──────────────────────────────────────────────────────
+  // —— BGTC DETAIL CARD ————————————————————————————————————————————————————
   function updateBGTCCard(BGTC) {
     const body = $('BGTCCardBody');
     if (!body) return;
-    if (!BGTC) { body.innerHTML = '<div style="font-size:11px;color:var(--muted)">BGTC data unavailable.</div>'; return; }
+    if (!BGTC) { body.innerHTML = '<div style="font-size:11px;color:var(--muted)">Data BGTC tidak tersedia.</div>'; return; }
     const freshCls = BGTC.freshness === 'fresh' || BGTC.freshness === 'recent' ? 'fresh'
                   : BGTC.freshness === 'stale' ? 'stale' : 'very-stale';
 
     body.innerHTML = `
       <div class="kc-head">
         <div>
-          <div class="kc-title">BTC/USDT · Next 24h</div>
+          <div class="kc-title">BTC/USDT · 24j ke depan</div>
           <div style="font-size:10px;color:var(--muted);margin-top:2px">
-            Source ts: ${BGTC.sourceTs || 'unknown'} ${BGTC.ageHrs != null ? `(${BGTC.ageHrs < 1 ? '<1' : BGTC.ageHrs.toFixed(0)}h ago)` : ''}
+            Timestamp sumber: ${BGTC.sourceTs || 'tidak diketahui'} ${BGTC.ageHrs != null ? `(${BGTC.ageHrs < 1 ? '<1' : BGTC.ageHrs.toFixed(0)}j lalu)` : ''}
           </div>
         </div>
         <span class="kc-fresh ${freshCls}">${BGTC.freshness.toUpperCase()}</span>
       </div>
       <div class="kc-row">
         <div class="kc-metric">
-          <div class="kc-metric-l">Upside probability</div>
+          <div class="kc-metric-l">Probabilitas naik</div>
           <div class="kc-metric-v" style="color:${BGTC.upside < 45 ? 'var(--red)' : BGTC.upside < 55 ? 'var(--amber)' : 'var(--green)'}">${BGTC.upside.toFixed(1)}%</div>
-          <div class="kc-metric-s">${BGTC.upside < 45 ? 'Bearish lean' : BGTC.upside < 55 ? 'Neutral' : 'Bullish lean'}</div>
+          <div class="kc-metric-s">${BGTC.upside < 45 ? 'Cenderung bearish' : BGTC.upside < 55 ? 'Netral' : 'Cenderung bullish'}</div>
         </div>
         <div class="kc-metric">
-          <div class="kc-metric-l">Vol amplification</div>
+          <div class="kc-metric-l">Amplifikasi volatilitas</div>
           <div class="kc-metric-v" style="color:${BGTC.volAmp > 70 ? 'var(--red)' : BGTC.volAmp > 50 ? 'var(--amber)' : 'var(--green)'}">${BGTC.volAmp.toFixed(1)}%</div>
-          <div class="kc-metric-s">${BGTC.volAmp > 70 ? 'High vol expected' : BGTC.volAmp > 50 ? 'Elevated' : 'Calm'}</div>
+          <div class="kc-metric-s">${BGTC.volAmp > 70 ? 'Vol tinggi diperkirakan' : BGTC.volAmp > 50 ? 'Meningkat' : 'Tenang'}</div>
         </div>
       </div>
       <div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5">
-        Via ${BGTC.proxy || 'proxy'}. Model: NOCTUA-v2 · Context: last 360h.
+        Via ${BGTC.proxy || 'proxy'}. Model: NOCTUA-v2 · Konteks: 360j terakhir.
       </div>`;
   }
 
@@ -332,7 +332,7 @@ const UI = (() => {
     const bearZ  = $('bearZ'), safeZ = $('safeZ'), bullZ = $('bullZ');
     const needle = $('needleEl');
     if (bearZ) { bearZ.style.left='0'; bearZ.style.width=putPct+'%'; bearZ.style.background='rgba(248,113,113,0.12)'; bearZ.style.border='1px solid rgba(248,113,113,0.25)'; bearZ.style.color='#f87171'; bearZ.textContent='BEAR'; }
-    if (safeZ) { safeZ.style.left=putPct+'%'; safeZ.style.width=(callPct-putPct)+'%'; safeZ.style.background='rgba(74,222,128,0.08)'; safeZ.style.border='1px solid rgba(74,222,128,0.22)'; safeZ.style.color='#4ade80'; safeZ.textContent='SAFE'; }
+    if (safeZ) { safeZ.style.left=putPct+'%'; safeZ.style.width=(callPct-putPct)+'%'; safeZ.style.background='rgba(74,222,128,0.08)'; safeZ.style.border='1px solid rgba(74,222,128,0.22)'; safeZ.style.color='#4ade80'; safeZ.textContent='AMAN'; }
     if (bullZ) { bullZ.style.left=callPct+'%'; bullZ.style.width=(100-callPct)+'%'; bullZ.style.background='rgba(248,113,113,0.12)'; bullZ.style.border='1px solid rgba(248,113,113,0.25)'; bullZ.style.color='#f87171'; bullZ.textContent='BULL'; }
     if (needle) needle.style.left = curPct + '%';
     const pmPut = $('pmPut'), pmCall = $('pmCall'), pmCur = $('pmCur');
@@ -352,25 +352,24 @@ const UI = (() => {
 
   function updateSignals({ BGTC, hv20, regime, ranger, fg, funding, sentiment, session }) {
     const rows = [
-      ['BGTC direction',   BGTC ? BGTC.upside.toFixed(1) + '% upside'
-                                    : '—',
+      ['Arah BGTC',          BGTC ? BGTC.upside.toFixed(1) + '% naik' : '—',
        BGTC ? (BGTC.upside < 45 ? 'neg' : BGTC.upside < 55 ? 'neu' : 'pos') : 'neu'],
-      ['BGTC vol-amp',     BGTC ? BGTC.volAmp.toFixed(1) + '%' : '—',
+      ['Vol-amp BGTC',       BGTC ? BGTC.volAmp.toFixed(1) + '%' : '—',
        BGTC ? (BGTC.volAmp > 70 ? 'neg' : BGTC.volAmp > 50 ? 'neu' : 'pos') : 'neu'],
-      ['HV20 (annualised)',  hv20 ? hv20.annualised.toFixed(1) + '%' : '—',
+      ['HV20 (tahunan)',     hv20 ? hv20.annualised.toFixed(1) + '%' : '—',
        hv20 ? (hv20.annualised > 70 ? 'neu' : 'pos') : 'neu'],
-      ['IV/HV20 ratio',      regime?.ratio ? regime.ratio.toFixed(2) + '×' : '—',
+      ['Rasio IV/HV20',      regime?.ratio ? regime.ratio.toFixed(2) + '×' : '—',
        regime?.regime === 'green' ? 'pos' : regime?.regime === 'red' ? 'neg' : 'neu'],
-      ['Regime',             regime?.label || '—',
+      ['Rezim',              regime?.label || '—',
        regime?.regime === 'green' ? 'pos' : regime?.regime === 'red' ? 'neg' : 'neu'],
-      ['Funding 8h',         funding ? funding.ratePct.toFixed(4) + '%' : '—',
+      ['Funding 8j',         funding ? funding.ratePct.toFixed(4) + '%' : '—',
        funding?.flag?.includes('extreme') ? 'neg' : 'pos'],
-      ['Fear & Greed',       fg ? `${fg.value} · ${fg.label}` : '—',
+      ['Takut & Serakah',    fg ? `${fg.value} · ${fg.label}` : '—',
        fg?.value >= 40 && fg?.value <= 70 ? 'pos' : 'neu'],
-      ['Session',            session?.phase || '—',
+      ['Sesi',               session?.phase || '—',
        session?.tier === 'best' ? 'pos' : session?.tier === 'skip' ? 'neg' : 'neu'],
-      ['RANGER raw',         ranger ? ranger.raw.toFixed(2) + '%' : '—', 'neu'],
-      ['News sentiment',     sentiment ? sentiment.newsScore + '/100' : '—',
+      ['RANGER mentah',      ranger ? ranger.raw.toFixed(2) + '%' : '—', 'neu'],
+      ['Sentimen berita',    sentiment ? sentiment.newsScore + '/100' : '—',
        sentiment?.newsScore < 40 ? 'neg' : sentiment?.newsScore > 60 ? 'pos' : 'neu'],
     ];
     const list = rows.map(([l, v, cls]) => {
@@ -385,13 +384,13 @@ const UI = (() => {
     if (!el) return;
     const items = news?.items || [];
     const fr = news?._freshness || 'offline';
-    const glyph = fr === 'fresh' ? '✓' : fr.includes('snapshot') ? '○' : '✗';
+    const glyph = fr === 'fresh' ? '●' : fr.includes('snapshot') ? '◐' : '○';
     const glyphColor = fr === 'fresh' || fr === 'fresh-snapshot' ? 'var(--green)'
                      : fr === 'stale-snapshot' ? 'var(--amber)' : 'var(--red)';
     const ageMin = news?.ts ? Math.round((Date.now() - news.ts) / 60000) : null;
-    const ageStr = ageMin != null ? ` · ${ageMin < 1 ? 'just now' : ageMin + 'm ago'}` : '';
-    const header = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px"><span style="color:${glyphColor}" title="${escape(fr)}">${glyph}</span> Source: ${escape(news?.source || 'offline')} · ${items.length} items${ageStr}</div>`;
-    if (!items.length) { el.innerHTML = header + '<div style="font-size:11px;color:var(--muted)">No news loaded.</div>'; return; }
+    const ageStr = ageMin != null ? ` · ${ageMin < 1 ? 'baru saja' : ageMin + 'm lalu'}` : '';
+    const header = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px"><span style="color:${glyphColor}" title="${escape(fr)}">${glyph}</span> Sumber: ${escape(news?.source || 'offline')} · ${items.length} item${ageStr}</div>`;
+    if (!items.length) { el.innerHTML = header + '<div style="font-size:11px;color:var(--muted)">Tidak ada berita.</div>'; return; }
     el.innerHTML = header + items.slice(0, 8).map(item => {
       const dot = item.sent === 'pos' ? 'var(--green)' : item.sent === 'neg' ? 'var(--red)' : 'var(--amber)';
       const link = item.url ? `<a href="${escape(item.url)}" target="_blank" rel="noopener noreferrer">` : '<div>';
@@ -399,7 +398,7 @@ const UI = (() => {
       return `<div class="ni">
         <div class="ni-dot" style="background:${dot}"></div>
         <div style="flex:1">${link}<div class="ni-hl">${escape(item.headline)}</div>${end}
-          <div class="ni-src">${escape(item.src || 'Unknown')}</div></div>
+          <div class="ni-src">${escape(item.src || 'Tidak diketahui')}</div></div>
       </div>`;
     }).join('');
   }
@@ -412,8 +411,8 @@ const UI = (() => {
       const s = stats[key]; if (!s) return '';
       const dayPct = s.dayLimit ? (s.daily / s.dayLimit * 100) : 0;
       const color = dayPct > 80 ? 'var(--red)' : dayPct > 50 ? 'var(--amber)' : 'var(--green)';
-      const dayStr = s.dayLimit ? `${s.daily}/${s.dayLimit}/day` : `${s.daily}`;
-      const hrStr  = s.hourLimit ? `${s.hourly}/${s.hourLimit}/hr` : '—';
+      const dayStr = s.dayLimit ? `${s.daily}/${s.dayLimit}/hari` : `${s.daily}`;
+      const hrStr  = s.hourLimit ? `${s.hourly}/${s.hourLimit}/jam` : '—';
       return `<div class="rl-card">
         <div class="rl-name">${s.label}</div>
         <div class="rl-bar-bg"><div class="rl-bar-fill" style="width:${Math.min(100,dayPct)}%;background:${color}"></div></div>
