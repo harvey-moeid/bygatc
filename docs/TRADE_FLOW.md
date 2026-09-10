@@ -33,16 +33,16 @@ Dokumen ini menjelaskan pipeline end-to-end sistem BTC Dashboard: dari data ment
   1. Model memprediksi **sigma** (estimasi volatilitas window ke depan, horizon `H = 19` jam) dalam bentuk kuantil.
   2. **Koreksi kalibrasi** diterapkan (`model/serve/adaptive.py` → `volatility_correction`) karena model historisnya bias ketinggian (realized vol berada di bawah forecast 66.4% dari waktu). Koreksi ini dihitung hanya dari episode yang sudah settle, jadi tidak ada look-ahead bias.
   3. Dari sigma yang sudah dikoreksi, dihitung:
-     - `p_up` — probabilitas arah naik. **Ditandai eksplisit tidak reliable**: walk-forward log-loss-nya (0.6941) nyaris sama dengan lempar koin (0.6931).
-     - `p_vol_amplify` — probabilitas realized vol > vol historis (trailing RV). **Ini tervalidasi**: beda 2.79% QLIKE vs baseline Log-HAR (p = 0.043, 5/6 walk-forward folds).
-     - `barrier_curves` — probabilitas harga menyentuh level tertentu (grid ±0.5% s/d ±10%), dipecah sisi naik (`up`) dan turun (`dn`), masing-masing berisi `{ pct, price, touch_prob }` per level.
-     - `safe_levels` — strike call/put "aman" secara statistik untuk beberapa alpha (1%, 2%, 5%, 10%, 20%).
+     - `p_up` → probabilitas arah naik. **Ditandai eksplisit tidak reliable**: walk-forward log-loss-nya (0.6941) nyaris sama dengan lempar koin (0.6931).
+     - `p_vol_amplify` → probabilitas realized vol > vol historis (trailing RV). **Ini tervalidasi**: beda 2.79% QLIKE vs baseline Log-HAR (p = 0.043, 5/6 walk-forward folds).
+     - `barrier_curves` → probabilitas harga menyentuh level tertentu (grid ±0.5% s/d ±10%), dipecah sisi naik (`up`) dan turun (`dn`), masing-masing berisi `{ pct, price, touch_prob }` per level.
+     - `safe_levels` → strike call/put "aman" secara statistik untuk beberapa alpha (1%, 2%, 5%, 10%, 20%).
 
 ## 4. Publish Hasil
 
 - Dua file JSON ditulis oleh `predict.py`:
-  - `noctua.json` — payload lengkap dan jujur (semua angka di atas apa adanya).
-  - `kronos.json` — dibentuk lewat `to_legacy()`, kompatibel dengan format lama yang dikonsumsi frontend. Field `upside` **sengaja dipin ke 50.0** — bukan diisi `p_up` mentah — supaya sinyal arah yang tidak tervalidasi tidak dipakai untuk menggeser strike. Nilai mentah tetap dipublikasikan terpisah sebagai `p_up_raw`.
+  - `noctua.json` → payload lengkap dan jujur (semua angka di atas apa adanya).
+  - `kronos.json` → dibentuk lewat `to_legacy()`, kompatibel dengan format lama yang dikonsumsi frontend. Field `upside` **sengaja dipin ke 50.0** — bukan diisi `p_up` mentah — supaya sinyal arah yang tidak tervalidasi tidak dipakai untuk menggeser strike. Nilai mentah tetap dipublikasikan terpisah sebagai `p_up_raw`.
 - `model/serve/merge_payload.py` **menggabungkan** `noctua.json` + `kronos.json` menjadi satu payload sebelum dikirim ke Worker — jadi payload yang benar-benar sampai ke KV/browser berisi *keduanya*: field legacy (`upside`, `volAmp`, `freshness`) **dan** field lengkap (`p_up_raw`, `p_vol_amplify`, `barrier_curves`, `safe_levels`, `sigma_annualized_pct`, dll). Ini penting untuk bagian futures di bawah.
 - Workflow `.github/workflows/noctua-predict.yml` menjalankan `predict.py` tiap 30 menit, lalu POST hasilnya ke `POST /api/noctua/push` (Worker), divalidasi dengan header `Authorization: Bearer <NOCTUA_PUSH_SECRET>`.
 - Worker (`apps/worker/src/routes/noctua.ts`) menyimpan payload gabungan ke KV (`BTC_CACHE`, key `noctua:latest`, TTL 26 jam) dan mengekspos `GET /api/noctua/latest` untuk dibaca browser.
@@ -123,7 +123,7 @@ DataLayer.buildFuturesPlan({
 
 ```
 NOCTUA (vol forecast: p_vol_amplify, barrier_curves)
-        │
+        ↓
         ├── Opsi (jual premi):  + IV/HV20 regime + touch prob  → buildRetailPlan() + buildDecision()
         │
         └── Futures (BTCUSDT.P): + funding + arah dari luar  → buildFuturesPlan()
