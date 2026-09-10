@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,7 @@
      only self + cdnjs, no inline event handlers would be ideal but the page
      uses oninput= on sliders, hence 'unsafe-inline' for now. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https:; frame-src 'none'; object-src 'none'; base-uri 'self'">
-<title>BTC Options Desk &middot; BGTC / HV20 / Retail Seller v4</title>
+<title>Desk Opsi BTC &middot; BGTC / HV20 / Retail Seller v4</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#x20BF;</text></svg>">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
@@ -258,7 +258,7 @@ footer a:hover{color:var(--accent)}
 </head>
 <body>
 <div class="grid-bg"></div>
-<a href="#heroCard" class="skip-link">Skip to main decision card</a>
+<a href="#heroCard" class="skip-link">Lewati ke kartu keputusan utama</a>
 <main class="wrap">
 
 <!-- TOP BAR -->
@@ -266,16 +266,16 @@ footer a:hover{color:var(--accent)}
   <div class="brand">
     <div>
       <h1 class="brand-logo">BGTC<b>/</b>HV20 &middot; <span style="color:var(--cyan)">RETAIL</span></h1>
-      <div class="brand-sub">BTC Options Decision Desk &middot; v4</div>
+      <div class="brand-sub">Desk Keputusan Opsi BTC &middot; v4</div>
     </div>
     <div class="live-pill"><div class="pulse"></div>LIVE</div>
   </div>
   <div class="topbar-right">
-    <a href="options.html" class="pill-sm" style="text-decoration:none;color:#5b8cff;border:1px solid rgba(91,140,255,.35);border-radius:6px;padding:2px 8px" aria-label="Open Option-Selling Desk">&rarr; OPTIONS DESK</a>
-    <a href="futures.html" class="pill-sm" style="text-decoration:none;color:#2fd57b;border:1px solid rgba(47,213,123,.35);border-radius:6px;padding:2px 8px" aria-label="Open Futures Risk Desk">&rarr; FUTURES DESK</a>
+    <a href="options.html" class="pill-sm" style="text-decoration:none;color:#5b8cff;border:1px solid rgba(91,140,255,.35);border-radius:6px;padding:2px 8px" aria-label="Buka Desk Penjualan Opsi">&rarr; DESK OPSI</a>
+    <a href="futures.html" class="pill-sm" style="text-decoration:none;color:#2fd57b;border:1px solid rgba(47,213,123,.35);border-radius:6px;padding:2px 8px" aria-label="Buka Desk Risiko Futures">&rarr; DESK FUTURES</a>
     <span id="BGTCBadge" class="pill-sm muted">BGTC: &hellip;</span>
     <span id="clockIST" class="pill-sm muted">&mdash;</span>
-    <button class="btn" onclick="refreshAll()" aria-label="Refresh all data">&#8635; REFRESH</button>
+    <button class="btn" onclick="refreshAll()" aria-label="Segarkan semua data">&#8635; SEGARKAN</button>
   </div>
 </header>
 
@@ -285,14 +285,14 @@ footer a:hover{color:var(--accent)}
     <div class="hero-verdict">
       <div class="verdict-icon" id="heroIcon">&hellip;</div>
       <div class="verdict-text">
-        <div class="verdict-label">Today's Recommendation</div>
-        <div class="verdict-main" id="heroVerdict" aria-live="polite" role="status">LOADING&hellip;</div>
-        <div id="heroSub">Fetching Binance, Deribit, BGTC, alternative.me, funding&hellip;</div>
+        <div class="verdict-label">Rekomendasi Hari Ini</div>
+        <div class="verdict-main" id="heroVerdict" aria-live="polite" role="status">MEMUAT&hellip;</div>
+        <div id="heroSub">Mengambil data Binance, Deribit, BGTC, alternative.me, funding&hellip;</div>
       </div>
     </div>
     <div class="hero-right">
       <div class="conf-box">
-        <div class="conf-lbl">Confidence</div>
+        <div class="conf-lbl">Keyakinan</div>
         <div class="conf-num" id="heroConf">&mdash;</div>
         <div class="conf-bar-wrap"><div class="conf-bar-fill" id="heroConfBar" style="width:0%"></div></div>
       </div>
@@ -301,50 +301,50 @@ footer a:hover{color:var(--accent)}
 
   <div class="hero-reasons">
     <div>
-      <div class="hero-col-title pos">SUPPORTING</div>
+      <div class="hero-col-title pos">PENDUKUNG</div>
       <div id="heroReasons"></div>
     </div>
     <div>
-      <div class="hero-col-title neg">BLOCKERS</div>
+      <div class="hero-col-title neg">PEMBLOKIR</div>
       <div id="heroBlockers"></div>
     </div>
   </div>
 
   <div class="trade-structure-box" id="heroStructure" style="display:none">
     <div>
-      <div class="tsb-label">Recommended Structure</div>
+      <div class="tsb-label">Struktur yang Direkomendasikan</div>
       <div class="tsb-value" id="heroStructText">&mdash;</div>
       <div class="tsb-sub" id="heroStructSub">&mdash;</div>
     </div>
-    <a href="#retail" style="font-size:11px;color:var(--accent);text-decoration:none;font-family:var(--font-mono)">View full plan &rarr;</a>
+    <a href="#retail" style="font-size:11px;color:var(--accent);text-decoration:none;font-family:var(--font-mono)">Lihat rencana lengkap &rarr;</a>
   </div>
 </div>
 
 <!-- MARKET PULSE STRIP -->
 <div class="pulse-strip">
-  <div class="pulse-card"><div class="pc-lbl">BTC Spot</div><div class="pc-val" id="psPrice">$&mdash;</div><div class="pc-sub" id="psPriceSub">Binance</div><div class="pc-trend" id="psChange">&mdash;</div></div>
-  <div class="pulse-card"><div class="pc-lbl">24H High</div><div class="pc-val pos" id="psHigh">$&mdash;</div><div class="pc-sub" id="psHighPct">&mdash;</div></div>
-  <div class="pulse-card"><div class="pc-lbl">24H Low</div><div class="pc-val neg" id="psLow">$&mdash;</div><div class="pc-sub" id="psLowPct">&mdash;</div></div>
-  <div class="pulse-card"><div class="pc-lbl">HV20 (ann)</div><div class="pc-val cyan" id="psHv20">&mdash;%</div><div class="pc-sub" id="psHv20Sub">1-day: &mdash;</div></div>
-  <div class="pulse-card"><div class="pc-lbl">ATM IV</div><div class="pc-val purple" id="psAtmIv">&mdash;%</div><div class="pc-sub" id="psAtmIvSub">Deribit nearest</div></div>
-  <div class="pulse-card"><div class="pc-lbl">Funding 8h</div><div class="pc-val" id="psFunding">&mdash;</div><div class="pc-sub" id="psFundingSub">perp BTCUSDT</div></div>
-  <div class="pulse-card"><div class="pc-lbl">Fear &amp; Greed</div><div class="pc-val" id="psFg">&mdash;</div><div class="pc-sub" id="psFgSub">alt.me</div></div>
-  <div class="pulse-card"><div class="pc-lbl">BGTC Upside</div><div class="pc-val" id="psBGTC">&mdash;%</div><div class="pc-sub" id="psBGTCSub">NOCTUA model</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Spot BTC</div><div class="pc-val" id="psPrice">$&mdash;</div><div class="pc-sub" id="psPriceSub">Binance</div><div class="pc-trend" id="psChange">&mdash;</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Tertinggi 24J</div><div class="pc-val pos" id="psHigh">$&mdash;</div><div class="pc-sub" id="psHighPct">&mdash;</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Terendah 24J</div><div class="pc-val neg" id="psLow">$&mdash;</div><div class="pc-sub" id="psLowPct">&mdash;</div></div>
+  <div class="pulse-card"><div class="pc-lbl">HV20 (tahunan)</div><div class="pc-val cyan" id="psHv20">&mdash;%</div><div class="pc-sub" id="psHv20Sub">1-hari: &mdash;</div></div>
+  <div class="pulse-card"><div class="pc-lbl">IV ATM</div><div class="pc-val purple" id="psAtmIv">&mdash;%</div><div class="pc-sub" id="psAtmIvSub">Deribit terdekat</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Funding 8j</div><div class="pc-val" id="psFunding">&mdash;</div><div class="pc-sub" id="psFundingSub">perp BTCUSDT</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Takut &amp; Serakah</div><div class="pc-val" id="psFg">&mdash;</div><div class="pc-sub" id="psFgSub">alt.me</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Potensi Naik BGTC</div><div class="pc-val" id="psBGTC">&mdash;%</div><div class="pc-sub" id="psBGTCSub">Model NOCTUA</div></div>
 </div>
 
 <!-- SESSION RIBBON -->
 <div class="session-ribbon">
   <div>
-    <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Now in IST</div>
+    <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Sekarang di IST</div>
     <div class="sr-phase" id="srPhase">&mdash;</div>
   </div>
-  <div class="sr-advice" id="srAdvice">Loading session context&hellip;</div>
+  <div class="sr-advice" id="srAdvice">Memuat konteks sesi&hellip;</div>
   <div class="sr-clock" id="srClock">&mdash;</div>
   <div style="width:100%" id="srBarWrap"></div>
 </div>
 
 <!-- REGIME DIAL -->
-<div class="sh">IV/HV20 Regime <span class="sh-tag">PDF threshold 1.76 &middot; backtest 2017&ndash;2026</span></div>
+<div class="sh">Rezim IV/HV20 <span class="sh-tag">Ambang PDF 1.76 &middot; backtest 2017&ndash;2026</span></div>
 <div class="regime-dial-wrap">
   <div class="rd-grid">
     <div class="rd-main">
@@ -368,43 +368,43 @@ footer a:hover{color:var(--accent)}
       </div>
     </div>
     <div class="rd-size-card">
-      <div class="rd-size-l">Sizing tier (PDF &sect;4.3)</div>
+      <div class="rd-size-l">Tingkat ukuran posisi (PDF &sect;4.3)</div>
       <div class="rd-size-v" id="rdSize">&mdash;</div>
-      <div class="rd-size-s" id="rdSizeNote">Awaiting data</div>
+      <div class="rd-size-s" id="rdSizeNote">Menunggu data</div>
     </div>
     <div class="rd-explainer" id="rdExplainer">
-      Ratio &lt; 1.2 = calm (full size) &middot; 1.2&ndash;1.4 normal (70%) &middot; 1.4&ndash;1.6 caution (40%) &middot; 1.6&ndash;1.8 reduced (20%) &middot; &ge; 1.8 no-trade.
-      Threshold 1.76 is the 90th percentile of IV/HV20 historical ratios from 2017&ndash;2026; above that, realised vol overshoots 10% of the time.
+      Rasio &lt; 1.2 = tenang (ukuran penuh) &middot; 1.2&ndash;1.4 normal (70%) &middot; 1.4&ndash;1.6 waspada (40%) &middot; 1.6&ndash;1.8 dikurangi (20%) &middot; &ge; 1.8 jangan trading.
+      Ambang 1.76 adalah persentil ke-90 dari rasio historis IV/HV20 tahun 2017&ndash;2026; di atas itu, volatilitas riil melampaui perkiraan 10% dari waktu.
     </div>
   </div>
 </div>
 
 <!-- RETAIL PLAN CARD -->
-<div class="sh" id="retail">Retail Seller Mode &middot; $100 &middot; 50&times; &middot; 1&times; ATM straddle + 60&times; far-OTM wings <span class="sh-tag">PDF &sect;2</span></div>
+<div class="sh" id="retail">Mode Retail Seller &middot; $100 &middot; 50&times; &middot; 1&times; straddle ATM + 60&times; wing far-OTM <span class="sh-tag">PDF &sect;2</span></div>
 <div class="two-col">
   <div class="retail-card">
     <div class="rc-head">
       <div>
-        <div class="rc-title">&#9889; Straddle-Financed OTM Wing Selector</div>
-        <div class="rc-sub">Solves for OTM strike where 60&times; short premium &ge; 1.15&times; straddle cost AND touch prob &le; threshold</div>
+        <div class="rc-title">&#9889; Pemilih Wing OTM Dibiayai Straddle</div>
+        <div class="rc-sub">Mencari strike OTM di mana 60&times; premium short &ge; 1.15&times; biaya straddle DAN prob. sentuh &le; ambang</div>
       </div>
       <div class="pill-sm muted" id="retailExpiry">&mdash;</div>
     </div>
     <div class="rc-body" id="retailBody">
-      <div style="padding:30px;text-align:center;color:var(--muted);font-size:12px">Loading plan&hellip;</div>
+      <div style="padding:30px;text-align:center;color:var(--muted);font-size:12px">Memuat rencana&hellip;</div>
     </div>
     <div class="rc-controls">
       <div class="rcc-slider">
-        <div class="rcc-label">SHORT LOTS <b id="rpLotsOut">60</b></div>
-        <input type="range" id="rpLots" min="20" max="100" step="5" value="60" aria-label="Short lots" oninput="document.getElementById('rpLotsOut').textContent=this.value; onRetailSliderChange()">
+        <div class="rcc-label">LOT SHORT <b id="rpLotsOut">60</b></div>
+        <input type="range" id="rpLots" min="20" max="100" step="5" value="60" aria-label="Lot short" oninput="document.getElementById('rpLotsOut').textContent=this.value; onRetailSliderChange()">
       </div>
       <div class="rcc-slider">
-        <div class="rcc-label">MAX TOUCH PROB <b id="rpTouchOut">10%</b></div>
-        <input type="range" id="rpTouch" min="0.03" max="0.20" step="0.01" value="0.10" aria-label="Maximum touch probability" oninput="document.getElementById('rpTouchOut').textContent=(parseFloat(this.value)*100).toFixed(0)+'%'; onRetailSliderChange()">
+        <div class="rcc-label">PROB SENTUH MAKS <b id="rpTouchOut">10%</b></div>
+        <input type="range" id="rpTouch" min="0.03" max="0.20" step="0.01" value="0.10" aria-label="Probabilitas sentuh maksimum" oninput="document.getElementById('rpTouchOut').textContent=(parseFloat(this.value)*100).toFixed(0)+'%'; onRetailSliderChange()">
       </div>
       <div class="rcc-slider">
-        <div class="rcc-label">SAFETY FACTOR <b id="rpSafetyOut">1.15&times;</b></div>
-        <input type="range" id="rpSafety" min="1.0" max="1.5" step="0.05" value="1.15" aria-label="Safety factor multiplier" oninput="document.getElementById('rpSafetyOut').textContent=(parseFloat(this.value)).toFixed(2)+'&times;'; onRetailSliderChange()">
+        <div class="rcc-label">FAKTOR KEAMANAN <b id="rpSafetyOut">1.15&times;</b></div>
+        <input type="range" id="rpSafety" min="1.0" max="1.5" step="0.05" value="1.15" aria-label="Pengali faktor keamanan" oninput="document.getElementById('rpSafetyOut').textContent=(parseFloat(this.value)).toFixed(2)+'&times;'; onRetailSliderChange()">
       </div>
     </div>
   </div>
@@ -412,21 +412,21 @@ footer a:hover{color:var(--accent)}
   <!-- Right col: next-day move odds + timing -->
   <div class="col-stack">
     <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--cyan)"></span>Next 24h Move Odds</div>
+      <div class="card-title"><span class="dot" style="background:var(--cyan)"></span>Peluang Pergerakan 24J Berikutnya</div>
       <div id="oddsPane">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:8px" id="oddsIntro">Loading&hellip;</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px" id="oddsIntro">Memuat&hellip;</div>
         <table class="odds-table"><tbody id="oddsBody"></tbody></table>
       </div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>BGTC Live Forecast</div>
-      <div id="BGTCCardBody">Loading&hellip;</div>
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Perkiraan Langsung BGTC</div>
+      <div id="BGTCCardBody">Memuat&hellip;</div>
     </div>
   </div>
 </div>
 
 <!-- RANGER RANGE + CHART -->
-<div class="sh">RANGER Band &amp; 48h Price</div>
+<div class="sh">Pita RANGER &amp; Harga 48J</div>
 <div class="two-col">
   <div class="range-mini">
     <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px">
@@ -435,8 +435,8 @@ footer a:hover{color:var(--accent)}
         <div style="font-size:11px;color:var(--muted)">ATR-7 &times; (IV/HV20)<sup>0.2</sup> &times; vol &times; DOW &times; F&amp;G</div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap">
-        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent)" id="rangerRaw">&mdash;</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">raw</div></div>
-        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--cyan)" id="rangerSafe">&mdash;</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">safe &times;2.2</div></div>
+        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent)" id="rangerRaw">&mdash;</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">mentah</div></div>
+        <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--cyan)" id="rangerSafe">&mdash;</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">aman &times;2.2</div></div>
         <div><div style="font-family:var(--font-mono);font-size:16px;font-weight:700" id="rangerAtr">&mdash;</div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">ATR-7</div></div>
       </div>
     </div>
@@ -451,35 +451,35 @@ footer a:hover{color:var(--accent)}
     </div>
   </div>
   <div class="card">
-    <div class="card-title"><span class="dot" style="background:var(--cyan)"></span>48h Price &middot; 1h candles</div>
+    <div class="card-title"><span class="dot" style="background:var(--cyan)"></span>Harga 48J &middot; candle 1J</div>
     <div class="ch-wrap"><canvas id="priceC"></canvas></div>
   </div>
 </div>
 
 <!-- EVIDENCE ROW -->
-<div class="sh">Evidence &amp; inputs</div>
+<div class="sh">Bukti &amp; input</div>
 <div class="two-col">
   <div class="card">
-    <div class="card-title"><span class="dot" style="background:var(--amber)"></span>Live news flow</div>
-    <div id="newsFeed">Loading&hellip;</div>
+    <div class="card-title"><span class="dot" style="background:var(--amber)"></span>Arus berita langsung</div>
+    <div id="newsFeed">Memuat&hellip;</div>
   </div>
   <div class="col-stack">
     <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Signal confluence</div>
+      <div class="card-title"><span class="dot" style="background:var(--accent)"></span>Konfluensi sinyal</div>
       <div id="signalList"></div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="dot" style="background:var(--blue)"></span>API budget</div>
+      <div class="card-title"><span class="dot" style="background:var(--blue)"></span>Anggaran API</div>
       <div class="rl-grid" id="rlGrid"></div>
     </div>
   </div>
 </div>
 
 <footer>
-  <div>Data: Binance &middot; Deribit &middot; BGTC (NOCTUA/AAAI 2026) &middot; alternative.me &middot; CryptoPanic / GDELT &middot; optional Exa</div>
+  <div>Data: Binance &middot; Deribit &middot; BGTC (NOCTUA/AAAI 2026) &middot; alternative.me &middot; CryptoPanic / GDELT &middot; Exa opsional</div>
   <div style="display:flex;gap:14px;align-items:center">
-    <a href="https://shiyu-coder.github.io/Kronos-demo/" target="_blank">BGTC demo</a>
-    <span>Not financial advice</span>
+    <a href="https://shiyu-coder.github.io/Kronos-demo/" target="_blank">Demo BGTC</a>
+    <span>Bukan nasihat finansial</span>
     <span id="footerTs"></span>
   </div>
 </footer>
