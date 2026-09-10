@@ -20,17 +20,17 @@ Dashboard prediksi harga BTC. Frontend di **Cloudflare Pages**, backend di **Clo
 
 ```
 Browser  →  Cloudflare Pages (HTML/JS)
-               │ /api/*
-               ▼
+               → /api/*
+               ↓
          Cloudflare Worker  →  KV Cache
-               │ scheduled
-               ▼
+               → scheduled
+               ↓
          Cron Trigger (setiap jam)  →  fetch news, fear & greed
-               │
-               ▼
+               ↓
+               ↓
          GitHub Actions (setiap 30 menit)  →  Python NOCTUA model
-               │ POST /api/noctua/push
-               ▼
+               → POST /api/noctua/push
+               ↓
          Worker KV
 ```
 
