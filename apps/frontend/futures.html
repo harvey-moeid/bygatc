@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https:; frame-src 'none'; object-src 'none'; base-uri 'self'">
-<title>BTC Futures Risk Desk &middot; BTCUSDT.P</title>
+<title>Desk Risiko Futures BTC &middot; BTCUSDT.P</title>
 <style>
   :root{
     --bg:#0b0e14; --panel:#11151f; --panel2:#161b28; --line:#222a3a;
@@ -88,112 +88,112 @@
 <body>
 
 <header>
-  <h1>BTC <span>Futures Risk Desk</span> <span class="tag">BTCUSDT.P &middot; v2</span></h1>
-  <a class="back" href="index.html">&larr; dashboard</a>
-  <span id="status" role="status" aria-live="polite">loading&hellip;</span>
-  <button id="btnRefresh">&#8635; Refresh</button>
+  <h1>BTC <span>Desk Risiko Futures</span> <span class="tag">BTCUSDT.P &middot; v2</span></h1>
+  <a class="back" href="index.html">&larr; dasbor</a>
+  <span id="status" role="status" aria-live="polite">memuat&hellip;</span>
+  <button id="btnRefresh">&#8635; Segarkan</button>
 </header>
 
-<!-- ── Row 1: market / NOCTUA / session ─────────────────────────────────── -->
+<!-- Row 1: market / NOCTUA / session -->
 <div class="grid">
 
   <div class="card">
-    <h2>Market</h2>
+    <h2>Pasar</h2>
     <div class="big" id="spot">&mdash;</div>
-    <div class="kv"><span>HV20 (annualised)</span>  <b id="hv20">&mdash;</b></div>
-    <div class="kv"><span>HV20 (1-day)</span>       <b id="hv20d">&mdash;</b></div>
-    <div class="kv"><span>Funding 8h (Binance)</span><b id="funding">&mdash;</b></div>
-    <div class="kv"><span>NOCTUA p(vol amp, 19h)</span><b id="volAmp">&mdash;</b></div>
+    <div class="kv"><span>HV20 (tahunan)</span>  <b id="hv20">&mdash;</b></div>
+    <div class="kv"><span>HV20 (1-hari)</span>       <b id="hv20d">&mdash;</b></div>
+    <div class="kv"><span>Funding 8j (Binance)</span><b id="funding">&mdash;</b></div>
+    <div class="kv"><span>NOCTUA p(amplifikasi vol, 19j)</span><b id="volAmp">&mdash;</b></div>
   </div>
 
   <div class="card" id="noctuaCard">
-    <h2>NOCTUA Signal</h2>
+    <h2>Sinyal NOCTUA</h2>
     <div class="kv"><span>Model</span>                <b id="nModel">&mdash;</b></div>
     <div class="kv"><span>Horizon</span>              <b id="nHorizon">&mdash;</b></div>
     <div class="kv"><span>Anchor (UTC)</span>         <b id="nAnchor">&mdash;</b></div>
     <div class="kv"><span>Settlement (UTC)</span>     <b id="nSettle">&mdash;</b></div>
-    <div class="kv"><span>&sigma; window (19h)</span> <b id="nSigmaW">&mdash;</b></div>
-    <div class="kv"><span>&sigma; annualized</span>   <b id="nSigmaA">&mdash;</b></div>
-    <div class="kv"><span>Trailing RV (same H)</span> <b id="nTrailingRV">&mdash;</b></div>
-    <div class="kv"><span>Forecast vs trailing</span> <b id="nVolRatio" class="dim">&mdash;</b></div>
-    <div class="kv"><span>Vol calibration</span>      <b id="nCalib">&mdash;</b></div>
+    <div class="kv"><span>Jendela &sigma; (19j)</span> <b id="nSigmaW">&mdash;</b></div>
+    <div class="kv"><span>&sigma; tahunan</span>   <b id="nSigmaA">&mdash;</b></div>
+    <div class="kv"><span>RV trailing (H sama)</span> <b id="nTrailingRV">&mdash;</b></div>
+    <div class="kv"><span>Perkiraan vs trailing</span> <b id="nVolRatio" class="dim">&mdash;</b></div>
+    <div class="kv"><span>Kalibrasi vol</span>      <b id="nCalib">&mdash;</b></div>
   </div>
 
   <div class="card">
-    <h2>Session (IST)</h2>
-    <div id="sessionPhase" class="verdict v-neutral">computing&hellip;</div>
+    <h2>Sesi (IST)</h2>
+    <div id="sessionPhase" class="verdict v-neutral">menghitung&hellip;</div>
     <p id="sessionAdvice"></p>
     <p id="sessionIst"></p>
   </div>
 
 </div><!-- /row 1 -->
 
-<!-- ── Row 2: barrier curves ────────────────────────────────────────────── -->
+<!-- Row 2: barrier curves -->
 <div class="grid" style="margin-bottom:14px">
   <div class="card wide" id="barrierCard">
-    <h2>NOCTUA Barrier Curves — touch probability during 19h window</h2>
+    <h2>Kurva Barrier NOCTUA &mdash; probabilitas sentuh selama jendela 19j</h2>
     <div class="tbl-wrap">
       <table>
         <thead>
           <tr>
-            <th style="text-align:left">Distance</th>
-            <th>&uarr; Call level</th>
-            <th>Touch prob</th>
-            <th>&darr; Put level</th>
-            <th>Touch prob</th>
+            <th style="text-align:left">Jarak</th>
+            <th>&uarr; Level Call</th>
+            <th>Prob. sentuh</th>
+            <th>&darr; Level Put</th>
+            <th>Prob. sentuh</th>
           </tr>
         </thead>
         <tbody id="barrierBody">
-          <tr><td colspan="5" class="dim" style="text-align:center;padding:10px">loading&hellip;</td></tr>
+          <tr><td colspan="5" class="dim" style="text-align:center;padding:10px">memuat&hellip;</td></tr>
         </tbody>
       </table>
     </div>
     <p style="font-size:11px;color:var(--dim);margin-top:8px">
-      Touch prob = P(price reaches that level at any point during the 19h window). Green &lt; 15% &middot; Yellow 15-30% &middot; Orange 30-50% &middot; Red &ge;50%.
+      Prob. sentuh = P(harga mencapai level tersebut kapan saja selama jendela 19j). Hijau &lt; 15% &middot; Kuning 15-30% &middot; Oranye 30-50% &middot; Merah &ge;50%.
     </p>
   </div>
 </div>
 
-<!-- ── Row 3: safe levels ────────────────────────────────────────────────── -->
+<!-- Row 3: safe levels -->
 <div class="grid" style="margin-bottom:14px">
   <div class="card wide" id="safeCard">
-    <h2>NOCTUA Safe Levels — calibrated no-touch zones at &alpha; confidence</h2>
+    <h2>Level Aman NOCTUA &mdash; zona no-touch terkalibrasi pada keyakinan &alpha;</h2>
     <div class="tbl-wrap">
       <table>
         <thead>
           <tr>
-            <th style="text-align:left">&alpha; (touch risk)</th>
-            <th>Call level (price)</th>
-            <th>Call level (%)</th>
-            <th>Put level (price)</th>
-            <th>Put level (%)</th>
+            <th style="text-align:left">&alpha; (risiko sentuh)</th>
+            <th>Level Call (harga)</th>
+            <th>Level Call (%)</th>
+            <th>Level Put (harga)</th>
+            <th>Level Put (%)</th>
           </tr>
         </thead>
         <tbody id="safeBody">
-          <tr><td colspan="5" class="dim" style="text-align:center;padding:10px">loading&hellip;</td></tr>
+          <tr><td colspan="5" class="dim" style="text-align:center;padding:10px">memuat&hellip;</td></tr>
         </tbody>
       </table>
     </div>
     <p style="font-size:11px;color:var(--dim);margin-top:8px">
-      Safe level = smallest distance such that P(touch) &le; &alpha; over the 19h window.
-      1% = very conservative, 20% = aggressively tight.
-      <b>For futures SL/TP</b>: use &alpha; = 35% as SL zone, &alpha; = 20% as TP zone &mdash; or use the sliders below to pick from the barrier curves directly.
+      Level aman = jarak terkecil sehingga P(sentuh) &le; &alpha; selama jendela 19j.
+      1% = sangat konservatif, 20% = agresif/ketat.
+      <b>Untuk SL/TP futures</b>: gunakan &alpha; = 35% sebagai zona SL, &alpha; = 20% sebagai zona TP &mdash; atau gunakan slider di bawah untuk memilih langsung dari kurva barrier.
     </p>
   </div>
 </div>
 
-<!-- ── Row 4: direction + risk plan ──────────────────────────────────────── -->
+<!-- Row 4: direction + risk plan -->
 <div class="grid">
 
   <div class="card">
-    <h2>Direction &amp; Sizing</h2>
+    <h2>Arah &amp; Ukuran Posisi</h2>
     <p style="font-size:12px;color:var(--dim);margin-bottom:10px">
-      Direction is <b>your</b> call &mdash; NOCTUA has no directional skill at 19h
-      (<a href="https://github.com/harvey-moeid/btb/blob/main/docs/TRADE_FLOW.md" style="color:var(--acc)">docs</a>).
-      This desk sizes the risk around whichever side you pick.
+      Arah adalah keputusan <b>Anda</b> &mdash; NOCTUA tidak punya kemampuan arah di horizon 19j
+      (<a href="https://github.com/harvey-moeid/btb/blob/main/docs/TRADE_FLOW.md" style="color:var(--acc)">dokumentasi</a>).
+      Desk ini mengatur ukuran risiko di sekitar sisi manapun yang Anda pilih.
     </p>
     <div class="controls">
-      <label>Direction
+      <label>Arah
         <div class="dir-toggle">
           <button id="btnLong"  class="long active"  type="button">LONG</button>
           <button id="btnShort" class="short"         type="button">SHORT</button>
@@ -201,15 +201,15 @@
       </label>
     </div>
     <div class="controls">
-      <label>Account equity (USD)
+      <label>Ekuitas akun (USD)
         <input type="number" id="equityInput" value="10000" min="0" step="100">
       </label>
-      <label>Risk per trade (%)
+      <label>Risiko per trade (%)
         <input type="number" id="riskInput" value="1" min="0.1" max="10" step="0.1">
       </label>
     </div>
     <div class="controls">
-      <label>SL touch-prob target
+      <label>Target prob-sentuh SL
         <div style="display:flex;align-items:center;gap:8px">
           <input type="range" id="slSlider" min="0.10" max="0.60" value="0.35" step="0.05">
           <span class="mono" id="slVal">35%</span>
@@ -217,7 +217,7 @@
       </label>
     </div>
     <div class="controls">
-      <label>TP touch-prob target
+      <label>Target prob-sentuh TP
         <div style="display:flex;align-items:center;gap:8px">
           <input type="range" id="tpSlider" min="0.05" max="0.40" value="0.20" step="0.05">
           <span class="mono" id="tpVal">20%</span>
@@ -227,8 +227,8 @@
   </div>
 
   <div class="card" style="border-color:rgba(91,140,255,.4)">
-    <h2>Risk Plan</h2>
-    <div id="planVerdict" class="verdict v-caution">computing&hellip;</div>
+    <h2>Rencana Risiko</h2>
+    <div id="planVerdict" class="verdict v-caution">menghitung&hellip;</div>
     <div class="plan-grid">
       <div>
         <div class="kv"><span>Entry</span>          <b id="pEntry">&mdash;</b></div>
@@ -237,10 +237,10 @@
         <div class="kv"><span>Risk / reward</span>  <b id="pRR">&mdash;</b></div>
       </div>
       <div>
-        <div class="kv"><span>SL touch prob</span>  <b id="pSlTouch">&mdash;</b></div>
-        <div class="kv"><span>TP touch prob</span>  <b id="pTpTouch">&mdash;</b></div>
-        <div class="kv"><span>Size multiplier</span><b id="pSize">&mdash;</b></div>
-        <div class="kv"><span>Risk / notional</span><b id="pRisk">&mdash;</b></div>
+        <div class="kv"><span>Prob. sentuh SL</span>  <b id="pSlTouch">&mdash;</b></div>
+        <div class="kv"><span>Prob. sentuh TP</span>  <b id="pTpTouch">&mdash;</b></div>
+        <div class="kv"><span>Pengali ukuran</span><b id="pSize">&mdash;</b></div>
+        <div class="kv"><span>Risiko / notional</span><b id="pRisk">&mdash;</b></div>
       </div>
     </div>
     <ul class="warn-list" id="pWarnings"></ul>
@@ -249,14 +249,14 @@
 </div><!-- /row 4 -->
 
 <div class="foot">
-  <b>Method.</b>
-  SL/TP are read from NOCTUA's <code>barrier_curves</code> (19h window) at your chosen touch-probability targets.
-  Size multiplier scales down when <code>p_vol_amplify</code> is high and again when funding is extreme in your direction.
-  Falls back to HV20 daily-move multiples if barrier curves aren't in the payload.
+  <b>Metode.</b>
+  SL/TP dibaca dari <code>barrier_curves</code> NOCTUA (jendela 19j) pada target probabilitas-sentuh pilihan Anda.
+  Pengali ukuran mengecil saat <code>p_vol_amplify</code> tinggi, dan mengecil lagi saat funding ekstrem searah posisi Anda.
+  Kembali ke pengali pergerakan harian HV20 jika kurva barrier tidak ada di payload.
   <br>
-  <b>Horizon:</b> curves are calibrated to 19h &mdash; apply a discount if you plan to hold much shorter/longer.
-  <b>No liquidation modelling</b> &mdash; check your exchange's margin price separately.
-  <b>Not financial advice.</b>
+  <b>Horizon:</b> kurva dikalibrasi untuk 19j &mdash; terapkan diskon jika Anda berencana hold jauh lebih singkat/lama.
+  <b>Tidak ada pemodelan likuidasi</b> &mdash; cek harga margin exchange Anda secara terpisah.
+  <b>Bukan nasihat finansial.</b>
 </div>
 
 <script src="src/config.js" onerror="this.remove()"></script>
