@@ -3,8 +3,8 @@
 # Deploy Cloudflare Worker secara otomatis saat push ke branch main.
 #
 # Secrets yang dibutuhkan:
-#   CLOUDFLARE_API_TOKEN  — API token dengan scope Workers:Edit + KV:Edit
-#   CLOUDFLARE_ACCOUNT_ID — Account ID dari dashboard Cloudflare
+#   CLOUDFLARE_API_TOKEN  Ã¢ API token dengan scope Workers:Edit + KV:Edit
+#   CLOUDFLARE_ACCOUNT_ID Ã¢ Account ID dari dashboard Cloudflare
 
 name: deploy-worker
 
@@ -13,6 +13,7 @@ on:
     branches: [main]
     paths:
       - 'apps/worker/**'
+      - 'apps/frontend/**'
       - '.github/workflows/deploy-worker.yml'
   workflow_dispatch: {}
 
