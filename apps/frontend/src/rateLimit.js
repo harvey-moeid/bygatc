@@ -4,10 +4,10 @@
  * localStorage-tracked budget enforcer.
  *
  * v4.1 fixes:
- *   • Month prefix collision bug (Jan matching Oct/Nov/Dec keys) — use
+ *   \u2022 Month prefix collision bug (Jan matching Oct/Nov/Dec keys) \u2013 use
  *     zero-padded month and startsWith-safe prefixes for GC.
- *   • Atomic begin/end semantics to avoid parallel-fetch over-counting.
- *   • Preflight + post-confirm pattern: beginCall() optimistically
+ *   \u2022 Atomic begin/end semantics to avoid parallel-fetch over-counting.
+ *   \u2022 Preflight + post-confirm pattern: beginCall() optimistically
  *     increments and returns a handle; endCall(handle, ok) either keeps
  *     the increment (success) or rolls back (failure).
  */
@@ -28,7 +28,7 @@ const RateLimit = (() => {
   }
   function saveStore(s) { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {} }
 
-  // Zero-padded helpers — so "2026-01" never substring-matches "2026-10".
+  // Zero-padded helpers \u2013 so "2026-01" never substring-matches "2026-10".
   const pad = n => String(n).padStart(2, '0');
 
   function windows() {
@@ -86,7 +86,7 @@ const RateLimit = (() => {
     };
   }
 
-  // Back-compat wrapper — existing data.js callers still work.
+  // Back-compat wrapper \u2013 existing data.js callers still work.
   function record(apiKey) {
     beginCall(apiKey);
   }
@@ -109,14 +109,14 @@ const RateLimit = (() => {
     return out;
   }
 
-  // Garbage-collect old keys — prefix-safe, matches only the current month.
+  // Garbage-collect old keys \u2013 prefix-safe, matches only the current month.
   try {
     const s = getStore();
     const { monKey } = windows();
     // Any counter key ends with one of the three forms:
-    //   *_m_YYYY-MM                 — exact match
-    //   *_d_YYYY-MM-DD              — startsWith _m_ prefix's month part
-    //   *_h_YYYY-MM-DD-HH           — startsWith _h_ prefix's month part
+    //   *_m_YYYY-MM                 \u2013 exact match
+    //   *_d_YYYY-MM-DD              \u2013 startsWith _m_ prefix's month part
+    //   *_h_YYYY-MM-DD-HH           \u2013 startsWith _h_ prefix's month part
     // Keep keys whose window starts with the current month.
     let changed = false;
     for (const k of Object.keys(s)) {
