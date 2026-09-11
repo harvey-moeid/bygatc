@@ -1,5 +1,5 @@
 /**
- * charts.js (v4) — simplified. Only the 48h price chart now; sentiment
+ * charts.js (v4) \u2014 simplified. Only the 48h price chart now; sentiment
  * gauges are absorbed into the pulse strip; theta chart is dropped as
  * the PDF analysis showed theta decay is deterministic and not worth
  * screen real estate on the decision desk.
