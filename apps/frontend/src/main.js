@@ -15,7 +15,7 @@ let state = {
 let refreshInFlight = false;
 
 async function refreshAll() {
-  if (refreshInFlight) { console.warn('[v4] refreshAll skipped — already running'); return; }
+  if (refreshInFlight) { console.warn('[v4] refreshAll skipped \u2014 already running'); return; }
   refreshInFlight = true;
   try {
     await doRefreshAll();
@@ -146,9 +146,9 @@ function startLoops() {
 }
 
 (async function boot() {
-  console.log('[v4] Booting BGTC/HV20 Retail desk…');
+  console.log('[v4] Booting BGTC/HV20 Retail desk\u2026');
   UI.updateClock();
   await refreshAll();
   startLoops();
-  console.log('[v4] Ready · price 60s · full 30m');
+  console.log('[v4] Ready \u00b7 price 60s \u00b7 full 30m');
 })();
