@@ -1,20 +1,20 @@
 /**
  * cron/enrichment.ts
- * ─────────────────────────────────────────────────────────────────────
+ * -------------------------------------------------------------------
  * Dijalankan oleh Cloudflare Cron Trigger setiap jam.
  * Port dari scripts/fetch-enrichment.js (GH Actions) ke Worker.
  * Bedanya: tidak ada fs.writeFileSync, output disimpan ke KV.
  *
  * KV keys yang ditulis:
- *   enrichment:news   — merged CryptoPanic + GDELT + Exa (optional)
- *   enrichment:fg     — Fear & Greed index
+ *   enrichment:news   → merged CryptoPanic + GDELT + Exa (optional)
+ *   enrichment:fg     → Fear & Greed index
  *
  * TTL KV = 2 jam (7200 s) — cukup untuk 1-jam cron cycle + buffer.
  */
 
 import type { Env } from '../index';
 
-// ── sentiment scorer (sama dengan fetch-enrichment.js) ─────────────────
+// ---- sentiment scorer (sama dengan fetch-enrichment.js) ----
 function scoreSentiment(text: string): 'pos' | 'neg' | 'neu' {
   const t = (text || '').toLowerCase();
   const bull = [
@@ -74,7 +74,7 @@ async function get(url: string, ms = 15000, headers: Record<string, string> = {}
   return r;
 }
 
-// ── sumber berita ────────────────────────────────────────────────────────
+// ---- sumber berita ----
 
 async function fetchCryptoPanic(): Promise<NewsItem[]> {
   const xml = await (await get('https://cryptopanic.com/news/rss/?currencies=BTC')).text();
@@ -144,12 +144,12 @@ async function fetchFearGreed() {
   };
 }
 
-// ── main export ──────────────────────────────────────────────────────────
+// ---- main export ----
 
 export async function runEnrichmentCron(env: Env): Promise<void> {
   console.log('[cron:enrichment] start');
 
-  // ── News ──────────────────────────────────────────────────────────────
+  // ---- News ----
   const exaKey =
     env.EXA_API_KEY && env.EXA_API_KEY.length > 20 ? env.EXA_API_KEY : null;
 
@@ -189,7 +189,7 @@ export async function runEnrichmentCron(env: Env): Promise<void> {
     console.warn('[cron:enrichment] all news sources failed — keeping existing KV entry');
   }
 
-  // ── Fear & Greed ──────────────────────────────────────────────────────
+  // ---- Fear & Greed ----
   try {
     const fg = await fetchFearGreed();
     await env.BTC_CACHE.put('enrichment:fg', JSON.stringify(fg), {

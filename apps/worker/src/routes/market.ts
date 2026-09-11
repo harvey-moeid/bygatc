@@ -1,15 +1,15 @@
 /**
  * routes/market.ts
- * ────────────────────────────────────────────────────────────────────────────
+ * -------------------------------------------------------------------
  * Server-side proxy untuk semua market data API yang di browser kena CORS.
  * Worker fetch langsung ke sumber, browser fetch ke /api/market/*.
  *
  * Cache KV keys (TTL sesuai kebutuhan):
- *   market:price    – 60 s
- *   market:hourly   – 5 menit
- *   market:daily    – 1 jam
- *   market:funding  – 10 menit
- *   market:options  – 10 menit
+ *   market:price    → 60 s
+ *   market:hourly   → 5 menit
+ *   market:daily    → 1 jam
+ *   market:funding  → 10 menit
+ *   market:options  → 10 menit
  *
  * v4.3: Binance mulai memblokir request dari IP Cloudflare Worker ke
  *   /api/v3/klines (451) dan fapi.binance.com/premiumIndex (403).
@@ -23,7 +23,7 @@ import type { Env } from '../index';
 
 export const marketRoutes = new Hono<{ Bindings: Env }>();
 
-// ── helpers ────────────────────────────────────────────────
+// ---- helpers ----
 
 async function kvGet<T>(kv: KVNamespace, key: string): Promise<T | null> {
   const raw = await kv.get(key);
@@ -35,7 +35,7 @@ async function kvPut(kv: KVNamespace, key: string, data: unknown, ttl: number): 
   await kv.put(key, JSON.stringify(data), { expirationTtl: ttl });
 }
 
-// ── GET /api/market/price ────────────────────────────────────
+// ---- GET /api/market/price ----
 
 marketRoutes.get('/price', async (c) => {
   const cached = await kvGet(c.env.BTC_CACHE, 'market:price');
@@ -93,7 +93,7 @@ marketRoutes.get('/price', async (c) => {
   }
 });
 
-// ── GET /api/market/hourly ────────────────────────────────────
+// ---- GET /api/market/hourly ----
 
 marketRoutes.get('/hourly', async (c) => {
   const cached = await kvGet(c.env.BTC_CACHE, 'market:hourly');
@@ -137,7 +137,7 @@ marketRoutes.get('/hourly', async (c) => {
   }
 });
 
-// ── GET /api/market/daily ──────────────────────────────────────
+// ---- GET /api/market/daily ----
 
 marketRoutes.get('/daily', async (c) => {
   const cached = await kvGet(c.env.BTC_CACHE, 'market:daily');
@@ -181,7 +181,7 @@ marketRoutes.get('/daily', async (c) => {
   }
 });
 
-// ── GET /api/market/funding ────────────────────────────────────
+// ---- GET /api/market/funding ----
 
 marketRoutes.get('/funding', async (c) => {
   const cached = await kvGet(c.env.BTC_CACHE, 'market:funding');
@@ -262,7 +262,7 @@ marketRoutes.get('/funding', async (c) => {
   }
 });
 
-// ── GET /api/market/options ────────────────────────────────────
+// ---- GET /api/market/options ----
 
 marketRoutes.get('/options', async (c) => {
   const cached = await kvGet(c.env.BTC_CACHE, 'market:options');

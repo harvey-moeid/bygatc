@@ -33,7 +33,7 @@ app.use(
   }),
 );
 
-// ── Routes ──────────────────────────────────────────────────────────────
+// ---- Routes ----
 app.route('/api/market', marketRoutes);
 app.route('/api/enrichment', enrichmentRoutes);
 app.route('/api/noctua', noctuaRoutes);
@@ -43,7 +43,7 @@ app.get('/api/health', (c) =>
   c.json({ ok: true, ts: Date.now(), env: c.env.BTC_CACHE ? 'kv-ok' : 'no-kv' }),
 );
 
-// ── Cron handler ─────────────────────────────────────────────────────────
+// ---- Cron handler ----
 // Dipanggil Cloudflare setiap jam sesuai `crons` di wrangler.toml
 export default {
   fetch: app.fetch,
