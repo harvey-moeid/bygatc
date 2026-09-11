@@ -21,6 +21,12 @@ const fmt$  = (v) => v == null ? '\u2014' : '$' + Math.round(v).toLocaleString()
 const fmtPct = (v, d = 2) => v == null ? '\u2014' : v.toFixed(d) + '%';
 const or = (v, fb = '\u2014') => (v != null && v !== '' && v !== 'undefined') ? v : fb;
 
+// Premium inline SVG icons (replaces \u2713 / \u26a0 glyph usage)
+const ICONS = {
+  check:   '<svg class="ic ic-check" viewBox="0 0 20 20" fill="none" width="13" height="13" style="vertical-align:-2px"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M6 10.5l2.5 2.5L14 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warning: '<svg class="ic ic-warn" viewBox="0 0 20 20" fill="none" width="13" height="13" style="vertical-align:-2px"><path d="M10 2.5l8.5 14.7H1.5L10 2.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 8v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="14.6" r="0.9" fill="currentColor"/></svg>',
+};
+
 /* ------------------------------ helpers ---------------------------------- */
 
 function tpClass(p) {
@@ -249,7 +255,7 @@ function renderPlan(plan) {
     return;
   }
 
-  v.textContent = `${plan.direction.toUpperCase()} plan ready \u2014 ${plan.usedBarrierCurves ? '\u2713 NOCTUA barrier curves' : '\u26a0 HV20 fallback'}`;
+  v.innerHTML = `${plan.direction.toUpperCase()} plan ready \u2014 ${plan.usedBarrierCurves ? ICONS.check + ' NOCTUA barrier curves' : ICONS.warning + ' HV20 fallback'}`;
   v.className   = 'verdict ' + (plan.direction === 'long' ? 'v-sell' : 'v-caution');
 
   $('pEntry').textContent   = fmt$(plan.entryPrice);
