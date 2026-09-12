@@ -1,6 +1,6 @@
 # .github/workflows/noctua-predict.yml
 # =====================================================================
-# Jalankan NOCTUA Python model (predict.py) setiap 30 menit.
+# Jalankan NOCTUA Python model (predict.py) setiap 60 menit (per jam).
 # Hasilnya di-push ke Cloudflare Worker KV via POST /api/noctua/push
 #
 # Secrets yang dibutuhkan di repo settings:
@@ -14,12 +14,18 @@
 #   repo di sini (step "Commit bundle history jika berubah") -- kalau tidak,
 #   bundle yang ter-commit beku di kondisi bootstrap dan cron ini akan mulai
 #   gagal terus-menerus begitu gap-nya melebihi batas tail-fetch (~30 hari).
+#
+# Catatan anggaran menit CI:
+#   Cron diturunkan dari tiap 30 menit ke tiap 60 menit (24 run/hari, ~720
+#   run/bulan) untuk menekan pemakaian menit Actions di repo private.
+#   Step install juga pakai cache pip supaya numpy/scipy/pandas/pyarrow
+#   tidak di-download & di-build ulang dari nol di setiap run.
 
 name: noctua-predict
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '0 * * * *'
   workflow_dispatch: {}
 
 concurrency:
@@ -42,6 +48,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: model/serve/requirements-ci.txt
 
       - name: Install NOCTUA runtime
         run: pip install --quiet -r model/serve/requirements-ci.txt
