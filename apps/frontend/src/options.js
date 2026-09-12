@@ -37,7 +37,7 @@ function black76Delta(F, K, T, sigma, isCall) {
 }
 
 function impliedVol(price, F, K, T, isCall) {
-  // bisection: robust, monotone in sigma; 60 iters — 1e-9 precision
+  // bisection: robust, monotone in sigma; 60 iters → 1e-9 precision
   if (!(price > 0) || !(F > 0) || !(K > 0) || !(T > 0)) return null;
   const intrinsic = Math.max(isCall ? F - K : K - F, 0);
   if (price <= intrinsic + 1e-9) return null;          // at/below intrinsic
@@ -482,9 +482,9 @@ function renderSellerCompass() {
   if (!el) return;
   const t = S.trend, f = S.fundHist, dv = S.dvol, sh = S.shock;
 
-  $('scTrend').textContent = t ? `${t.above ? 'NAIK (di atas MA100)' : 'TURUN (di bawah MA100)'} &middot; ${t.dd90.toFixed(1)}% dari tertinggi 90h` : '—';
+  $('scTrend').textContent = t ? `${t.above ? 'NAIK (di atas MA100)' : 'TURUN (di bawah MA100)'} · ${t.dd90.toFixed(1)}% dari tertinggi 90h` : '—';
   $('scTrend').className = t ? (t.above ? 'pos' : 'neg') : '';
-  $('scFund').textContent = f ? `${(f.avg7 * 100).toFixed(4)}%/hari (rata-rata 7h) &middot; persentil ke-${f.pct.toFixed(0)} (180h)` : '—';
+  $('scFund').textContent = f ? `${(f.avg7 * 100).toFixed(4)}%/hari (rata-rata 7h) · persentil ke-${f.pct.toFixed(0)} (180h)` : '—';
   $('scFund').className = f ? (f.avg7 < 0 || f.pct < 20 ? 'pos' : f.pct > 80 ? 'warn' : '') : '';
   $('scRsi').textContent = t ? t.rsi.toFixed(0) : '—';
   $('scRsi').className = t ? (t.rsi < 30 || t.rsi > 70 ? 'neg' : '') : '';
@@ -574,7 +574,7 @@ function renderDailyDesk() {
       const iv = atmIv(rows);
       if (iv != null) {
         const ratio = iv * 100 / dv;
-        ivLine = `IV ATM expiry terdekat ${(iv * 100).toFixed(0)}% vs DVOL ${dv.toFixed(0)} — ${ratio.toFixed(2)}×`;
+        ivLine = `IV ATM expiry terdekat ${(iv * 100).toFixed(0)}% vs DVOL ${dv.toFixed(0)} — ${ratio.toFixed(2)}× tenor pendek`;
         if (ratio <= 0.60) { ivLine += ' — IV tenor pendek sudah tergerus: pasar SUDAH memberi harga jendela tenang; EV backtest adalah batas atas, harapkan lebih sedikit.'; ivCls = 'warn'; }
         else if (ratio >= 0.90) { ivLine += ' — IV tenor pendek mendekati level 30h: diskon kalender BELUM ter-price; edge backtest masih hidup.'; ivCls = 'pos'; }
         else { ivLine += ' — diskon parsial (tipikal): kira-kira separuh edge struktural tersisa.'; }
@@ -596,7 +596,7 @@ function renderDailyDesk() {
   } else if (expDow === 0) {
     cls = 'v-sell'; label = 'PRIME — lull Sabtu: jual straddle ATM / strangle 25Δ';
     why.push(`Sabtu siang–Minggu siang hanya merealisasikan 33–45% vol hari kerja tiap tahun sejak 2022 (tanpa sesi AS, tanpa makro, tanpa aliran ETF). Straddle +1.20%/h, menang 92.3%, terburuk -3.2% (p=0.0000); strangle +0.66%/h, menang 93%.`);
-    why.push(`Peringatan peluruhan: EV Sabtu 2023 +1.50% – 2026 +0.55%. Edge-nya struktural tapi menyusut — trading dengan SETENGAH ukuran yang disarankan keberanian backtest Anda, dan cek dulu baris IV live di atas.`);
+    why.push(`Peringatan peluruhan: EV Sabtu 2023 +1.50% → 2026 +0.55%. Edge-nya struktural tapi menyusut — trading dengan SETENGAH ukuran yang disarankan keberanian backtest Anda, dan cek dulu baris IV live di atas.`);
   } else if (expDow === 6) {
     cls = 'v-sell'; label = 'GOOD — entry Jumat: trade weekend junior';
     why.push(`Jumat siang–Sabtu siang sudah condong ke lull: straddle +0.65%/h (p=0.033), dan Jumat+Sabtu gabungan berjalan +0.93%/h (p=0.0000). Entry Sabtu besok adalah acara utamanya.`);
@@ -650,7 +650,7 @@ function renderAll() {
   $('krUp').textContent  = S.kronos?.upside  != null ? S.kronos.upside + '%'  : 'n/a (jalankan snapshot atau bgtc_local)';
   $('krVol').textContent = S.kronos?.volAmp != null ? S.kronos.volAmp + '%' : 'n/a';
   $('krVol').className   = (S.kronos?.volAmp ?? 0) >= 80 ? 'neg' : (S.kronos?.volAmp ?? 0) >= 60 ? 'warn' : 'pos';
-  $('fng').textContent   = S.fng?.value != null ? `${S.fng.value} &middot; ${S.fng.label || ''}` : 'n/a';
+  $('fng').textContent   = S.fng?.value != null ? `${S.fng.value} · ${S.fng.label || ''}` : 'n/a';
   $('vrp').textContent   = gate.ivhv != null ? (gate.ivhv >= 1.15 ? 'PRESENT' : gate.ivhv >= 1.0 ? 'THIN' : 'ABSENT') : '—';
 
   const v = $('verdict');
@@ -708,12 +708,12 @@ function renderStrangle(rows, T, em) {
 }
 
 function renderChain(rows, expiry) {
-  $('chainExpiry').textContent = '&middot; ' + expLabel(expiry);
+  $('chainExpiry').textContent = '· ' + expLabel(expiry);
   const tb = $('chainTbl').querySelector('tbody');
   const atmStrike = rows.length ? rows.reduce((a, b) =>
     Math.abs(b.strike - S.spot) < Math.abs(a.strike - S.spot) ? b : a).strike : null;
   tb.innerHTML = rows
-    .filter(r => Math.abs(r.strike - S.spot) / S.spot < 0.35)  // jendela &plusmn;35%
+    .filter(r => Math.abs(r.strike - S.spot) / S.spot < 0.35)  // jendela ±35%
     .map(r => {
       const cls = r.strike === atmStrike ? 'atm'
         : (S._legs && (r.strike === S._legs.put || r.strike === S._legs.call)) ? 'leg' : '';
