@@ -1,37 +1,12 @@
 # TODO — `harvey-moeid/btb`
 
 Disusun dari `REVIEW_btb.md` (commit `d370f1b`) + verifikasi ulang terhadap
-HEAD saat ini (`c415a13`). Yang sudah selesai dicoret dan diberi catatan;
-sisanya masih perlu dikerjakan.
+HEAD saat ini. Yang sudah selesai dicoret dan diberi catatan; sisanya masih
+perlu dikerjakan.
 
----
-
-## 🔴 High priority (belum diperbaiki)
-
-- [ ] **CORS pakai substring match, bukan hostname check**
-      `apps/worker/src/index.ts`
-      `origin.includes('btc-dashboard') || origin.includes('pages.dev') || ...`
-      lolos untuk domain apa pun yang *mengandung* string itu (mis.
-      `btc-dashboard.evil.com`, atau situs lain di `*.pages.dev`).
-      **Fix:** ganti ke exact-match / suffix-match, mis.
-      `origin.endsWith('.pages.dev')` atau allow-list eksplisit.
-
-- [ ] **`/api/noctua/push` tidak validasi schema + 2 field lolos ke `innerHTML` tanpa escape**
-      `apps/worker/src/routes/noctua.ts` — hanya `upside`/`volAmp` di-range-check,
-      sisa body di-spread (`...b`) mentah ke KV.
-      `apps/frontend/src/ui.js::updateBGTCCard()` — `BGTC.sourceTs` dan
-      `BGTC.proxy` di-interpolasi langsung ke `innerHTML`, tidak lewat
-      `escape()` seperti field lain di file yang sama.
-      **Risiko:** stored-XSS kalau `NOCTUA_PUSH_SECRET` bocor.
-      **Fix:** allow-list schema di server, dan panggil `escape()` pada
-      *semua* field dinamis sebelum masuk `innerHTML`.
-
-- [ ] **Link berita tidak validasi skema URL**
-      `apps/frontend/src/ui.js::updateNewsFeed()` — `href="${escape(item.url)}"`,
-      tapi `escape()` cuma menetralkan `& < > " '`, tidak menolak
-      `javascript:...`.
-      **Fix:** hanya render sebagai `<a>` jika
-      `/^https?:\/\//.test(item.url)`, selain itu render sebagai teks biasa.
+> **Update:** ketiga item High priority sudah diperbaiki di commit `cef013a`
+> dan `fbab784` (setelah HEAD `c415a13` yang jadi acuan awal TODO ini).
+> Dipindah ke bagian "Sudah diperbaiki" di bawah, per verifikasi ulang kode.
 
 ---
 
@@ -116,6 +91,25 @@ sisanya masih perlu dikerjakan.
 
 ## ✅ Sudah diperbaiki (tidak perlu dikerjakan lagi)
 
+- [x] ~~CORS pakai substring match, bukan hostname check~~
+      → diperbaiki di commit `cef013a`. `apps/worker/src/index.ts` sekarang
+      pakai `isAllowedOrigin()` yang parse `new URL(origin).hostname` dan
+      cek `hostname.endsWith('.pages.dev')` (bukan `origin.includes(...)`),
+      jadi `btc-dashboard.evil.com` atau `evil-pages.dev.attacker.com` tidak
+      lolos lagi.
+- [x] ~~`/api/noctua/push` tidak validasi schema + field lolos ke `innerHTML` tanpa escape~~
+      → diperbaiki di commit `cef013a` (server) dan `fbab784` (frontend).
+      `apps/worker/src/routes/noctua.ts` sekarang punya `sanitizePayload()`
+      dengan allow-list field (STRING_FIELDS/NUMBER_FIELDS/BOOL_FIELDS/
+      JSON_FIELDS) — tidak ada lagi `...b` mentah masuk KV. Di
+      `apps/frontend/src/ui.js::updateBGTCCard()`, `BGTC.sourceTs`,
+      `BGTC.freshness`, dan `BGTC.proxy` sekarang di-escape lewat `escape()`
+      sebelum masuk `innerHTML`.
+- [x] ~~Link berita tidak validasi skema URL~~
+      → diperbaiki di commit `fbab784`. `apps/frontend/src/ui.js::updateNewsFeed()`
+      sekarang cek `isSafeUrl = /^https?:\/\//i.test(item.url)` sebelum
+      render sebagai `<a href>`; kalau bukan http/https, item dirender
+      sebagai teks biasa (bukan link yang bisa diklik).
 - [x] ~~Bundle history NOCTUA tidak pernah di-commit balik setelah bootstrap~~
       → diperbaiki di commit `244f807` (step "Commit bundle history jika
       berubah" ditambahkan ke `noctua-predict.yml`).
