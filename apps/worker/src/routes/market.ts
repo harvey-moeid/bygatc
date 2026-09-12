@@ -10,6 +10,20 @@
  *   market:daily    → 1 jam
  *   market:funding  → 10 menit
  *   market:options  → 10 menit
+ *   market:options_stale → 24 jam (fallback kalau Deribit gagal, lihat v4.4)
+ *
+ * v4.4: /market/options adalah satu-satunya route di file ini yang tidak
+ *   punya fallback sama sekali -- semua route lain sudah failover ke
+ *   exchange kedua (lihat catatan v4.3 di bawah), tapi options 100%
+ *   bergantung ke satu live call Deribit. Kalau Deribit timeout/rate-limit/
+ *   ubah format instrument_name, route langsung 503 kosong -> frontend
+ *   (findAtmIv -> classifyRegime) melihat ratio: null -> "IV/HV20 = ?
+ *   (undefined)" -> paksa NO-TRADE walau sinyal lain bagus. Ditambahkan
+ *   KV terpisah `market:options_stale` (TTL 24 jam) yang ditulis tiap kali
+ *   fetch sukses, dan dibaca sebagai jalan terakhir sebelum balikin 503.
+ *   0 baris ke-parse (regex instrument_name berhenti match) juga dianggap
+ *   gagal supaya ikut lewat jalur fallback yang sama, bukan diam-diam
+ *   nge-cache array kosong selama 10 menit.
  *
  * v4.3: Binance mulai memblokir request dari IP Cloudflare Worker ke
  *   /api/v3/klines (451) dan fapi.binance.com/premiumIndex (403).
@@ -265,7 +279,7 @@ marketRoutes.get('/funding', async (c) => {
 // ---- GET /api/market/options ----
 
 marketRoutes.get('/options', async (c) => {
-  const cached = await kvGet(c.env.BTC_CACHE, 'market:options');
+  const cached = await kvGet<Array<Record<string, unknown>>>(c.env.BTC_CACHE, 'market:options');
   if (cached) return c.json(cached);
 
   try {
@@ -295,10 +309,30 @@ marketRoutes.get('/options', async (c) => {
         };
       })
       .filter(Boolean);
+
+    // Deribit responding 200 with a body that no longer matches our
+    // instrument_name regex (e.g. an API format change) is functionally
+    // the same failure mode as a timeout -- treat it as one so it falls
+    // through to the stale-cache path below instead of silently caching
+    // an empty array for 10 minutes.
+    if (!parsed.length) throw new Error('Deribit returned 0 parseable option rows');
+
     await kvPut(c.env.BTC_CACHE, 'market:options', parsed, 600);
+    // Long-TTL copy used only as a last-resort fallback below. Written on
+    // every successful fetch so it's always close to the last known-good
+    // book, unlike the 10-min primary key.
+    await kvPut(c.env.BTC_CACHE, 'market:options_stale', parsed, 86400);
     return c.json(parsed);
   } catch (e) {
-    console.error('[market/options]', (e as Error).message);
+    console.error('[market/options] deribit failed, trying stale cache:', (e as Error).message);
+    const stale = await kvGet<Array<Record<string, unknown>>>(c.env.BTC_CACHE, 'market:options_stale');
+    if (stale?.length) {
+      // Signal via header, not body -- findAtmIv() on the frontend expects
+      // a plain array with .length, so the response shape stays identical
+      // whether it's live or stale. Consumers that care can check the header.
+      c.header('X-Data-Freshness', 'stale');
+      return c.json(stale);
+    }
     return c.json({ error: 'options unavailable' }, 503);
   }
 });
