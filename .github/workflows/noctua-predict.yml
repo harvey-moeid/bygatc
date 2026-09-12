@@ -6,6 +6,14 @@
 # Secrets yang dibutuhkan di repo settings:
 #   NOCTUA_WORKER_URL   -- misal: https://btc-dashboard-worker-production.xxx.workers.dev
 #   NOCTUA_PUSH_SECRET  -- sama dengan wrangler secret NOCTUA_PUSH_SECRET di Worker
+#
+# Catatan bundle history:
+#   serve/history.py::get_hours() menulis ulang data/noctua_history.parquet
+#   di disk kira-kira sekali seminggu (PERSIST_AFTER_HOURS) supaya live-fetch
+#   tail-nya tidak terus membengkak. Perubahan itu HARUS di-commit balik ke
+#   repo di sini (step "Commit bundle history jika berubah") -- kalau tidak,
+#   bundle yang ter-commit beku di kondisi bootstrap dan cron ini akan mulai
+#   gagal terus-menerus begitu gap-nya melebihi batas tail-fetch (~30 hari).
 
 name: noctua-predict
 
@@ -61,6 +69,27 @@ jobs:
 
       - name: Run NOCTUA forecast
         run: python model/serve/predict.py --out-dir /tmp/noctua_out
+
+      - name: Commit bundle history jika berubah
+        run: |
+          set -e
+          # get_hours() menulis ulang data/noctua_history.parquet di disk saat
+          # gap sejak commit terakhir >= PERSIST_AFTER_HOURS (lihat header file
+          # ini). Cek langsung ke git status -- tidak bergantung pada bookkeeping
+          # internal Python -- supaya kejadian ini tetap ke-commit walau logika
+          # di history.py berubah nanti.
+          if [ -n "$(git status --porcelain -- data/noctua_history.parquet)" ]; then
+            echo "[CI] Bundle history ditulis ulang oleh run ini -- commit & push."
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/noctua_history.parquet
+            git commit -m "chore: refresh noctua history bundle via CI [skip ci]"
+            git pull --rebase origin main
+            git push
+            echo "[CI] Bundle history berhasil di-refresh."
+          else
+            echo "[CI] Bundle history tidak berubah pada run ini -- tidak ada yang di-commit."
+          fi
 
       - name: Push hasil ke Cloudflare Worker KV
         env:
