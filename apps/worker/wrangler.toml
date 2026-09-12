@@ -19,9 +19,13 @@ compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
 # -- Cron Triggers ---------------------------------------------------------
-# Setiap jam: fetch news + fear & greed -> simpan ke KV
+# '0 * * * *'   -- tiap jam: fetch news + fear & greed -> simpan ke KV
+# '*/5 * * * *' -- tiap 5 menit: cek breakout harga BTC vs threshold di KV
+#                  (alert:price_config) -> notif Discord kalau tembus.
+#                  Lihat src/cron/priceAlert.ts. No-op kalau threshold belum
+#                  pernah diset lewat PUT /api/alerts/config.
 [triggers]
-crons = ["0 * * * *"]
+crons = ["0 * * * *", "*/5 * * * *"]
 
 # -- KV cache ---------------------------------------------------------------
 [[kv_namespaces]]
@@ -31,6 +35,18 @@ id = "ed38018b3b2e4f6e832ddc996d256cc9"
 # NB: sebelumnya ada binding D1 `BITBOT_DB` di sini. Dihapus -- tidak ada
 # referensi Env.BITBOT_DB di apps/worker/src/** (dicek: index.ts, routes/*,
 # cron/*), sisa boilerplate dari project lain. Lihat TODO_btb.md.
+
+# -- Price alert (Discord) ---------------------------------------------------
+# Secrets (wrangler secret put ...), tidak ditulis di sini:
+#   DISCORD_WEBHOOK_URL -- webhook Discord tujuan notif breakout
+#   ALERTS_SECRET        -- proteksi GET/PUT /api/alerts/config
+#
+# Threshold breakout diatur runtime lewat KV (PUT /api/alerts/config), bukan
+# di sini. [vars] di bawah cuma dipakai sebagai default kalau KV masih kosong
+# -- opsional, hapus/comment kalau tidak perlu default.
+# [vars]
+# ALERT_PRICE_UPPER = "120000"
+# ALERT_PRICE_LOWER = "100000"
 
 # -- Static assets (frontend dashboard) --------------------------------------
 # Serve apps/frontend sebagai static assets dari worker yang sama.

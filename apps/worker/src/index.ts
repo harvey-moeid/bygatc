@@ -3,16 +3,22 @@ import { cors } from 'hono/cors';
 import { marketRoutes } from './routes/market';
 import { enrichmentRoutes } from './routes/enrichment';
 import { noctuaRoutes } from './routes/noctua';
+import { alertsRoutes } from './routes/alerts';
 import { runEnrichmentCron } from './cron/enrichment';
+import { runPriceAlertCron } from './cron/priceAlert';
 
 export type Env = {
   BTC_CACHE: KVNamespace;
   EXA_API_KEY?: string; // optional secret
+  DISCORD_WEBHOOK_URL?: string; // secret -- webhook Discord untuk price alert
+  ALERTS_SECRET?: string; // secret -- proteksi PUT/GET /api/alerts/config
+  ALERT_PRICE_UPPER?: string; // optional var -- default threshold atas kalau KV kosong
+  ALERT_PRICE_LOWER?: string; // optional var -- default threshold bawah kalau KV kosong
 };
 
 const app = new Hono<{ Bindings: Env }>();
 
-// CORS – izinkan hostname yang benar-benar diketahui, bukan sekadar
+// CORS â izinkan hostname yang benar-benar diketahui, bukan sekadar
 // "mengandung" string tertentu.
 //
 // Sebelumnya: origin.includes('btc-dashboard') / .includes('pages.dev') /
@@ -56,6 +62,7 @@ app.use(
 app.route('/api/market', marketRoutes);
 app.route('/api/enrichment', enrichmentRoutes);
 app.route('/api/noctua', noctuaRoutes);
+app.route('/api/alerts', alertsRoutes);
 
 // Health check
 app.get('/api/health', (c) =>
@@ -63,7 +70,9 @@ app.get('/api/health', (c) =>
 );
 
 // ---- Cron handler ----
-// Dipanggil Cloudflare setiap jam sesuai `crons` di wrangler.toml
+// Dipanggil Cloudflare sesuai `crons` di wrangler.toml:
+//   '0 * * * *'   -> enrichment (news + fear & greed), tiap jam
+//   '*/5 * * * *' -> price alert (breakout threshold Discord), tiap 5 menit
 export default {
   fetch: app.fetch,
 
@@ -73,6 +82,10 @@ export default {
     ctx: ExecutionContext,
   ): Promise<void> {
     console.log(`[cron] scheduled fired: ${event.cron} at ${new Date(event.scheduledTime).toISOString()}`);
-    ctx.waitUntil(runEnrichmentCron(env));
+    if (event.cron === '0 * * * *') {
+      ctx.waitUntil(runEnrichmentCron(env));
+    } else if (event.cron === '*/5 * * * *') {
+      ctx.waitUntil(runPriceAlertCron(env));
+    }
   },
 };
