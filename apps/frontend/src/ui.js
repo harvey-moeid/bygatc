@@ -1,5 +1,5 @@
 /**
- * ui.js (v4.1) — decision-focused UI bindings
+ * ui.js (v4.1) â decision-focused UI bindings
  * =====================================================================
  * Merender hero decision card, pulse strip, regime dial, session ribbon,
  * retail plan, odds table, BGTC card, signal list, dan rate limit grid.
@@ -9,9 +9,20 @@
  *   di BGTC card dan signal list, sebagai INFO SAJA. Tidak menyentuh
  *   buildDecision()/buildRetailPlan()/computeSentiment() di data.js --
  *   semua keputusan trade tetap pakai BGTC.upside (pinned 50), sesuai
- *   alasan yang didokumentasikan di docs/TRADE_FLOW.md §3 (walk-forward
+ *   alasan yang didokumentasikan di docs/TRADE_FLOW.md Â§3 (walk-forward
  *   log-loss 0.6941 vs 0.6931 coin flip -- tidak ada validated directional
  *   skill di horizon ini).
+ *
+ * v4.2 (security): updateBGTCCard() dulu menaruh BGTC.sourceTs, BGTC.proxy,
+ *   dan BGTC.freshness langsung ke innerHTML tanpa escape() -- beda dari
+ *   hampir semua tempat lain di file ini. BGTC berasal dari model pipeline
+ *   tepercaya lewat POST /api/noctua/push, tapi kalau NOCTUA_PUSH_SECRET
+ *   pernah bocor ini jadi jalur stored-XSS langsung. Sekarang ketiganya
+ *   di-escape juga. updateNewsFeed() juga sekarang menolak me-render
+ *   item.url sebagai <a href> kecuali skemanya http/https -- item.url
+ *   datang dari feed eksternal (CryptoPanic/GDELT/Exa) yang tidak
+ *   terautentikasi, dan escape() saja tidak menghalangi `javascript:...`
+ *   sebagai href yang bisa diklik.
  */
 const UI = (() => {
   const fmt  = (n, d = 0) => new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
@@ -39,7 +50,7 @@ const UI = (() => {
     set('footerTs', 'Diperbarui ' + new Date().toLocaleTimeString());
   }
 
-  // ── BGTC BADGE (header) ───────────────────────────────────────────────────
+  // ââ BGTC BADGE (header) âââââââââââââââââââââââââââââââââââââââââââââââââââ
   function updateBGTCBadge(BGTC) {
     const el = $('BGTCBadge');
     if (!el) return;
@@ -50,7 +61,7 @@ const UI = (() => {
               :                                   'err';
     const age = BGTC.ageHrs == null ? '?' : BGTC.ageHrs < 1 ? '<1j' : BGTC.ageHrs.toFixed(0)+'j';
     el.className = 'pill-sm ' + cls;
-    el.textContent = `BGTC ${BGTC.upside.toFixed(1)}% · ${age} lalu`;
+    el.textContent = `BGTC ${BGTC.upside.toFixed(1)}% Â· ${age} lalu`;
   }
 
   function updateHero(decision) {
@@ -62,10 +73,10 @@ const UI = (() => {
                : decision.verdictClass === 'cau' ? ICONS.warning
                :                                    ICONS.dash;
     setH('heroIcon', icon);
-    set('heroVerdict', decision.verdict || '—');
+    set('heroVerdict', decision.verdict || 'â');
     set('heroSub', decision.tradeStructure
-      ? `Bias ${decision.direction?.toUpperCase() || 'NETRAL'} · ${decision.reasons.length} sinyal selaras, ${decision.blockers.length} pemblokir`
-      : decision.blockers[0] || 'Mengevaluasi semua sinyal…');
+      ? `Bias ${decision.direction?.toUpperCase() || 'NETRAL'} Â· ${decision.reasons.length} sinyal selaras, ${decision.blockers.length} pemblokir`
+      : decision.blockers[0] || 'Mengevaluasi semua sinyalâ¦');
     set('heroConf', Math.round(decision.confidence) + '%');
     const bar = $('heroConfBar');
     if (bar) {
@@ -90,7 +101,7 @@ const UI = (() => {
     if (decision.tradeStructure) {
       if (sb) sb.style.display = 'flex';
       set('heroStructText', decision.tradeStructure);
-      set('heroStructSub', `Arah: ${decision.direction} · Keyakinan ${Math.round(decision.confidence)}%`);
+      set('heroStructSub', `Arah: ${decision.direction} Â· Keyakinan ${Math.round(decision.confidence)}%`);
     } else if (sb) sb.style.display = 'none';
   }
 
@@ -100,14 +111,14 @@ const UI = (() => {
       const chg = (price.change * 100);
       const chgEl = $('psChange');
       if (chgEl) {
-        chgEl.textContent = (chg >= 0 ? '▲' : '▼') + ' ' + Math.abs(chg).toFixed(2) + '%';
+        chgEl.textContent = (chg >= 0 ? 'â²' : 'â¼') + ' ' + Math.abs(chg).toFixed(2) + '%';
         chgEl.style.color = chg >= 0 ? 'var(--green)' : 'var(--red)';
       }
       set('psHigh',    '$' + fmt(Math.round(price.high)));
       set('psHighPct', '+' + ((price.high - price.price) / price.price * 100).toFixed(2) + '% di atas');
       set('psLow',     '$' + fmt(Math.round(price.low)));
       set('psLowPct',  ((price.low - price.price) / price.price * 100).toFixed(2) + '% dari');
-      set('psPriceSub', 'Binance · vol ' + fmtS(price.volUsd));
+      set('psPriceSub', 'Binance Â· vol ' + fmtS(price.volUsd));
     }
     if (hv20) {
       set('psHv20',    hv20.annualised.toFixed(1) + '%');
@@ -115,7 +126,7 @@ const UI = (() => {
     }
     if (atmInfo) {
       set('psAtmIv',    atmInfo.atmIv.toFixed(1) + '%');
-      set('psAtmIvSub', atmInfo.expiry + ' · ' + atmInfo.daysToExpiry.toFixed(1) + 'h');
+      set('psAtmIvSub', atmInfo.expiry + ' Â· ' + atmInfo.daysToExpiry.toFixed(1) + 'h');
     }
     if (funding) {
       const el = $('psFunding');
@@ -123,7 +134,7 @@ const UI = (() => {
         el.textContent = funding.ratePct.toFixed(4) + '%';
         el.className = 'pc-val ' + (funding.flag.includes('extreme') ? 'neg' : funding.flag === 'neutral' ? 'neu' : 'cyan');
       }
-      set('psFundingSub', 'tah ' + funding.annualizedPct.toFixed(1) + '% · ' + funding.flag);
+      set('psFundingSub', 'tah ' + funding.annualizedPct.toFixed(1) + '% Â· ' + funding.flag);
     }
     if (fg) {
       const el = $('psFg');
@@ -154,13 +165,13 @@ const UI = (() => {
     set('srClock', 'IST ' + Math.floor(session.istHour) + ':' + String(Math.floor((session.istHour % 1) * 60)).padStart(2,'0'));
 
     const segs = [
-      { w: 22.9, bg: 'rgba(96,165,250,0.15)',  lbl: '00–05:30' },
-      { w: 12.5, bg: 'rgba(74,222,128,0.2)',   lbl: '05:30–08:30' },
-      { w: 16.7, bg: 'rgba(74,222,128,0.5)',   lbl: ICONS.star + ' 08:30–12:30' },
-      { w: 6.3,  bg: 'rgba(74,222,128,0.2)',   lbl: '12:30–14' },
-      { w: 14.6, bg: 'rgba(251,191,36,0.25)',  lbl: '14–17:30' },
-      { w: 4.2,  bg: 'rgba(248,113,113,0.35)', lbl: '17:30–18:30' },
-      { w: 22.8, bg: 'rgba(248,113,113,0.25)', lbl: '18:30–00:00' },
+      { w: 22.9, bg: 'rgba(96,165,250,0.15)',  lbl: '00â05:30' },
+      { w: 12.5, bg: 'rgba(74,222,128,0.2)',   lbl: '05:30â08:30' },
+      { w: 16.7, bg: 'rgba(74,222,128,0.5)',   lbl: ICONS.star + ' 08:30â12:30' },
+      { w: 6.3,  bg: 'rgba(74,222,128,0.2)',   lbl: '12:30â14' },
+      { w: 14.6, bg: 'rgba(251,191,36,0.25)',  lbl: '14â17:30' },
+      { w: 4.2,  bg: 'rgba(248,113,113,0.35)', lbl: '17:30â18:30' },
+      { w: 22.8, bg: 'rgba(248,113,113,0.25)', lbl: '18:30â00:00' },
     ];
     const nowPct = (session.istHour / 24) * 100;
     const wrap = $('srBarWrap');
@@ -177,13 +188,13 @@ const UI = (() => {
 
   function updateRegimeDial(regime, hv20, atmInfo) {
     if (!regime) return;
-    set('rdRatio',  regime.ratio ? regime.ratio.toFixed(2) : '—');
+    set('rdRatio',  regime.ratio ? regime.ratio.toFixed(2) : 'â');
     const lbl = $('rdLabel');
     if (lbl) {
-      lbl.textContent = regime.label || '—';
+      lbl.textContent = regime.label || 'â';
       lbl.className = 'rd-label ' + regime.regime;
     }
-    set('rdIvHv', atmInfo && hv20 ? `IV ${atmInfo.atmIv.toFixed(1)}% / HV20 ${hv20.annualised.toFixed(1)}%` : 'IV — / HV20 —');
+    set('rdIvHv', atmInfo && hv20 ? `IV ${atmInfo.atmIv.toFixed(1)}% / HV20 ${hv20.annualised.toFixed(1)}%` : 'IV â / HV20 â');
 
     const arc = $('rdArc');
     if (arc && regime.ratio) {
@@ -207,10 +218,10 @@ const UI = (() => {
     if (!body) return;
 
     const exp = $('retailExpiry');
-    if (exp) exp.textContent = atmInfo ? 'Kedaluwarsa: ' + atmInfo.expiry : '—';
+    if (exp) exp.textContent = atmInfo ? 'Kedaluwarsa: ' + atmInfo.expiry : 'â';
 
     if (!plan) {
-      body.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:12px">Menunggu harga / opsi / HV20…</div>`;
+      body.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:12px">Menunggu harga / opsi / HV20â¦</div>`;
       return;
     }
 
@@ -226,7 +237,7 @@ const UI = (() => {
         html += `<table class="odds-table"><thead><tr><th>Strike</th><th>Jarak</th><th>Premium/lot</th><th>Prob. sentuh</th></tr></thead><tbody>` +
           plan.candidates.map(c => {
             const tp = c.touchProb ?? DataLayer.touchProbability(c.absDist, hv20?.oneDay);
-            return `<tr><td>$${fmt(c.strike)}</td><td>${c.absDist?.toFixed(2)}%</td><td>$${fmt(c.premium, 2)}</td><td>${tp ? (tp*100).toFixed(0)+'%' : '—'}</td></tr>`;
+            return `<tr><td>$${fmt(c.strike)}</td><td>${c.absDist?.toFixed(2)}%</td><td>$${fmt(c.premium, 2)}</td><td>${tp ? (tp*100).toFixed(0)+'%' : 'â'}</td></tr>`;
           }).join('') + `</tbody></table>`;
       }
       body.innerHTML = html;
@@ -239,26 +250,26 @@ const UI = (() => {
 
     html += `<div class="rc-legs">
       <div class="leg go">
-        <div class="leg-type">LEG 1 · Beli (long gamma)</div>
-        <div class="leg-action">1× ATM $${fmt(plan.atmInfo.atmStrike)} STRADDLE</div>
-        <div class="leg-detail">Biaya: <b>$${fmt(plan.straddleCost, 0)}</b> · ${plan.atmInfo.expiry} · ${plan.atmInfo.daysToExpiry.toFixed(1)}h</div>
+        <div class="leg-type">LEG 1 Â· Beli (long gamma)</div>
+        <div class="leg-action">1Ã ATM $${fmt(plan.atmInfo.atmStrike)} STRADDLE</div>
+        <div class="leg-detail">Biaya: <b>$${fmt(plan.straddleCost, 0)}</b> Â· ${plan.atmInfo.expiry} Â· ${plan.atmInfo.daysToExpiry.toFixed(1)}h</div>
       </div>
       <div class="leg go">
-        <div class="leg-type">LEG 2 · Jual ${plan.shortLots}× (pembiayaan)</div>
-        <div class="leg-action">${plan.shortLots}× $${fmt(plan.shortStrike)} ${plan.sellSide === 'P' ? 'PUTS' : 'CALLS'}</div>
-        <div class="leg-detail">Premium/lot: <b>$${fmt(plan.shortPremiumPerLot, 2)}</b> · Total: <b>$${fmt(plan.totalShortPremium, 0)}</b></div>
+        <div class="leg-type">LEG 2 Â· Jual ${plan.shortLots}Ã (pembiayaan)</div>
+        <div class="leg-action">${plan.shortLots}Ã $${fmt(plan.shortStrike)} ${plan.sellSide === 'P' ? 'PUTS' : 'CALLS'}</div>
+        <div class="leg-detail">Premium/lot: <b>$${fmt(plan.shortPremiumPerLot, 2)}</b> Â· Total: <b>$${fmt(plan.totalShortPremium, 0)}</b></div>
       </div>
     </div>`;
 
     html += `<div class="rc-metrics">
-      <div class="rcm"><div class="rcm-l">Jarak</div><div class="rcm-v">${plan.shortDistancePct.toFixed(2)}%</div><div class="rcm-s">${distSafety} · ${kMultiplier.toFixed(1)}× hv20_1h</div></div>
+      <div class="rcm"><div class="rcm-l">Jarak</div><div class="rcm-v">${plan.shortDistancePct.toFixed(2)}%</div><div class="rcm-s">${distSafety} Â· ${kMultiplier.toFixed(1)}Ã hv20_1h</div></div>
       <div class="rcm"><div class="rcm-l">Probabilitas sentuh</div><div class="rcm-v">${(plan.touchProb*100).toFixed(0)}%</div><div class="rcm-s">per backtest PDF</div></div>
       <div class="rcm"><div class="rcm-l">Kredit bersih</div><div class="rcm-v ${netCreditClass}">${plan.netCredit >= 0 ? '+' : ''}$${fmt(plan.netCredit, 0)}</div><div class="rcm-s">setelah pembiayaan</div></div>
-      <div class="rcm"><div class="rcm-l">Req/lot</div><div class="rcm-v">$${plan.reqPremPerLot.toFixed(2)}</div><div class="rcm-s">×${((plan.shortPremiumPerLot/plan.reqPremPerLot)*100).toFixed(0)}% cakupan</div></div>
+      <div class="rcm"><div class="rcm-l">Req/lot</div><div class="rcm-v">$${plan.reqPremPerLot.toFixed(2)}</div><div class="rcm-s">Ã${((plan.shortPremiumPerLot/plan.reqPremPerLot)*100).toFixed(0)}% cakupan</div></div>
     </div>`;
 
     html += `<div class="rc-risk-note">
-      ${ICONS.warning} <b>Risiko:</b> Short ${plan.shortLots}× tanpa batas adalah extreme-gamma. Jika BTC menyentuh $${fmt(plan.shortStrike)} (gerakan ${plan.shortDistancePct.toFixed(1)}%) wing akan jebol. Gunakan <b>strategy builder</b> Delta untuk menambah proteksi long murah 1–2× lebih jauh OTM dan batasi max loss ke &lt;10% ekuitas.
+      ${ICONS.warning} <b>Risiko:</b> Short ${plan.shortLots}Ã tanpa batas adalah extreme-gamma. Jika BTC menyentuh $${fmt(plan.shortStrike)} (gerakan ${plan.shortDistancePct.toFixed(1)}%) wing akan jebol. Gunakan <b>strategy builder</b> Delta untuk menambah proteksi long murah 1â2Ã lebih jauh OTM dan batasi max loss ke &lt;10% ekuitas.
     </div>`;
 
     if (plan.alternatives?.length) {
@@ -274,19 +285,19 @@ const UI = (() => {
   }
 
   function updateOddsTable(odds, hv20, price) {
-    set('oddsIntro', odds ? odds.description : 'Menunggu klasifikasi rezim…');
+    set('oddsIntro', odds ? odds.description : 'Menunggu klasifikasi rezimâ¦');
     const tbody = $('oddsBody');
     if (!tbody) return;
     if (!odds) { tbody.innerHTML = ''; return; }
 
     tbody.innerHTML = odds.odds.map(row => {
       const barW = Math.round(row.prob * 100);
-      const dollarNote = hv20 && price && odds.regimeType === 'normal' && row.move.includes('×') ? (() => {
-        const m = row.move.match(/([\d.]+)\s*×/);
+      const dollarNote = hv20 && price && odds.regimeType === 'normal' && row.move.includes('Ã') ? (() => {
+        const m = row.move.match(/([\d.]+)\s*Ã/);
         if (!m) return '';
         const k = parseFloat(m[1]);
         const band = (hv20.oneDay / 100) * price * k;
-        return `<span style="color:var(--muted);font-size:10px"> (~±$${fmt(Math.round(band))})</span>`;
+        return `<span style="color:var(--muted);font-size:10px"> (~Â±$${fmt(Math.round(band))})</span>`;
       })() : '';
       return `<tr>
         <td>${row.move}${dollarNote}</td>
@@ -298,7 +309,7 @@ const UI = (() => {
     }).join('');
   }
 
-  // ── BGTC DETAIL CARD ─────────────────────────────────────────────────────
+  // ââ BGTC DETAIL CARD âââââââââââââââââââââââââââââââââââââââââââââââââââââ
   function updateBGTCCard(BGTC) {
     const body = $('BGTCCardBody');
     if (!body) return;
@@ -306,28 +317,35 @@ const UI = (() => {
     const freshCls = BGTC.freshness === 'fresh' || BGTC.freshness === 'recent' ? 'fresh'
                   : BGTC.freshness === 'stale' ? 'stale' : 'very-stale';
 
+    // Semua field mentah dari BGTC (datang lewat POST /api/noctua/push,
+    // lihat routes/noctua.ts) di-escape sebelum masuk innerHTML -- termasuk
+    // sourceTs, freshness, dan proxy, yang sebelumnya lolos tanpa escape().
+    const sourceTsSafe  = escape(BGTC.sourceTs || 'tidak diketahui');
+    const freshLabelSafe = escape(String(BGTC.freshness || 'unknown').toUpperCase());
+    const proxySafe     = escape(BGTC.proxy || 'proxy');
+
     // Arah mentah model (P(naik) sebelum dipin ke 50.0). Info diagnostik saja --
     // sengaja TIDAK diberi warna hijau/merah seperti metrik di atas, supaya
     // tidak terlihat seperti sinyal yang bisa ditradingkan. Lihat
-    // model/serve/predict.py::to_legacy() dan docs/TRADE_FLOW.md §3 untuk
+    // model/serve/predict.py::to_legacy() dan docs/TRADE_FLOW.md Â§3 untuk
     // alasan kenapa "upside" di atas dipin, bukan angka ini.
     const rawNote = BGTC.p_up_raw != null
       ? `<div style="font-size:10px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);line-height:1.6">
-          <b style="color:#94a3b8">Arah mentah model:</b> ${BGTC.p_up_raw.toFixed(1)}% ·
-          <span style="color:#f59e0b">belum tervalidasi</span> (log-loss walk-forward 0.6941 vs 0.6931 lempar koin) —
-          info saja, <b>tidak</b> dipakai untuk strike atau verdict di atas. Lihat docs/TRADE_FLOW.md §3.
+          <b style="color:#94a3b8">Arah mentah model:</b> ${BGTC.p_up_raw.toFixed(1)}% Â·
+          <span style="color:#f59e0b">belum tervalidasi</span> (log-loss walk-forward 0.6941 vs 0.6931 lempar koin) â
+          info saja, <b>tidak</b> dipakai untuk strike atau verdict di atas. Lihat docs/TRADE_FLOW.md Â§3.
         </div>`
       : '';
 
     body.innerHTML = `
       <div class="kc-head">
         <div>
-          <div class="kc-title">BTC/USDT · 24j ke depan</div>
+          <div class="kc-title">BTC/USDT Â· 24j ke depan</div>
           <div style="font-size:10px;color:var(--muted);margin-top:2px">
-            Timestamp sumber: ${BGTC.sourceTs || 'tidak diketahui'} ${BGTC.ageHrs != null ? `(${BGTC.ageHrs < 1 ? '<1' : BGTC.ageHrs.toFixed(0)}j lalu)` : ''}
+            Timestamp sumber: ${sourceTsSafe} ${BGTC.ageHrs != null ? `(${BGTC.ageHrs < 1 ? '<1' : BGTC.ageHrs.toFixed(0)}j lalu)` : ''}
           </div>
         </div>
-        <span class="kc-fresh ${freshCls}">${BGTC.freshness.toUpperCase()}</span>
+        <span class="kc-fresh ${freshCls}">${freshLabelSafe}</span>
       </div>
       <div class="kc-row">
         <div class="kc-metric">
@@ -343,7 +361,7 @@ const UI = (() => {
       </div>
       ${rawNote}
       <div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5">
-        Via ${BGTC.proxy || 'proxy'}. Model: NOCTUA-v2 · Konteks: 360j terakhir.
+        Via ${proxySafe}. Model: NOCTUA-v2 Â· Konteks: 360j terakhir.
       </div>`;
   }
 
@@ -371,7 +389,7 @@ const UI = (() => {
     const pmPut = $('pmPut'), pmCall = $('pmCall'), pmCur = $('pmCur');
     if (pmPut)  { pmPut.style.left = putPct+'%';  pmPut.textContent  = '$' + putStrike.toLocaleString(); }
     if (pmCall) { pmCall.style.left = callPct+'%'; pmCall.textContent = '$' + callStrike.toLocaleString(); }
-    if (pmCur)  { pmCur.style.left = curPct+'%'; pmCur.textContent = '▼ $' + Math.round(price).toLocaleString(); }
+    if (pmCur)  { pmCur.style.left = curPct+'%'; pmCur.textContent = 'â¼ $' + Math.round(price).toLocaleString(); }
   }
 
   function computeStrikes(price, ranger, BGTCUpside) {
@@ -385,28 +403,28 @@ const UI = (() => {
 
   function updateSignals({ BGTC, hv20, regime, ranger, fg, funding, sentiment, session }) {
     const rows = [
-      ['Arah BGTC (dipakai)', BGTC ? BGTC.upside.toFixed(1) + '% naik' : '—',
+      ['Arah BGTC (dipakai)', BGTC ? BGTC.upside.toFixed(1) + '% naik' : 'â',
        BGTC ? (BGTC.upside < 45 ? 'neg' : BGTC.upside < 55 ? 'neu' : 'pos') : 'neu'],
       // Info saja -- warna selalu netral (amber) supaya tidak dibaca sebagai
       // sinyal actionable seperti baris di atas. Tidak dipakai di buildDecision()
-      // ataupun buildRetailPlan(); lihat docs/TRADE_FLOW.md §3.
-      ['Arah mentah (belum tervalidasi)', BGTC?.p_up_raw != null ? BGTC.p_up_raw.toFixed(1) + '%' : '—', 'neu'],
-      ['Vol-amp BGTC',       BGTC ? BGTC.volAmp.toFixed(1) + '%' : '—',
+      // ataupun buildRetailPlan(); lihat docs/TRADE_FLOW.md Â§3.
+      ['Arah mentah (belum tervalidasi)', BGTC?.p_up_raw != null ? BGTC.p_up_raw.toFixed(1) + '%' : 'â', 'neu'],
+      ['Vol-amp BGTC',       BGTC ? BGTC.volAmp.toFixed(1) + '%' : 'â',
        BGTC ? (BGTC.volAmp > 70 ? 'neg' : BGTC.volAmp > 50 ? 'neu' : 'pos') : 'neu'],
-      ['HV20 (tahunan)',     hv20 ? hv20.annualised.toFixed(1) + '%' : '—',
+      ['HV20 (tahunan)',     hv20 ? hv20.annualised.toFixed(1) + '%' : 'â',
        hv20 ? (hv20.annualised > 70 ? 'neu' : 'pos') : 'neu'],
-      ['Rasio IV/HV20',      regime?.ratio ? regime.ratio.toFixed(2) + '×' : '—',
+      ['Rasio IV/HV20',      regime?.ratio ? regime.ratio.toFixed(2) + 'Ã' : 'â',
        regime?.regime === 'green' ? 'pos' : regime?.regime === 'red' ? 'neg' : 'neu'],
-      ['Rezim',              regime?.label || '—',
+      ['Rezim',              regime?.label || 'â',
        regime?.regime === 'green' ? 'pos' : regime?.regime === 'red' ? 'neg' : 'neu'],
-      ['Funding 8j',         funding ? funding.ratePct.toFixed(4) + '%' : '—',
+      ['Funding 8j',         funding ? funding.ratePct.toFixed(4) + '%' : 'â',
        funding?.flag?.includes('extreme') ? 'neg' : 'pos'],
-      ['Takut & Serakah',    fg ? `${fg.value} · ${fg.label}` : '—',
+      ['Takut & Serakah',    fg ? `${fg.value} Â· ${fg.label}` : 'â',
        fg?.value >= 40 && fg?.value <= 70 ? 'pos' : 'neu'],
-      ['Sesi',               session?.phase || '—',
+      ['Sesi',               session?.phase || 'â',
        session?.tier === 'best' ? 'pos' : session?.tier === 'skip' ? 'neg' : 'neu'],
-      ['RANGER mentah',      ranger ? ranger.raw.toFixed(2) + '%' : '—', 'neu'],
-      ['Sentimen berita',    sentiment ? sentiment.newsScore + '/100' : '—',
+      ['RANGER mentah',      ranger ? ranger.raw.toFixed(2) + '%' : 'â', 'neu'],
+      ['Sentimen berita',    sentiment ? sentiment.newsScore + '/100' : 'â',
        sentiment?.newsScore < 40 ? 'neg' : sentiment?.newsScore > 60 ? 'pos' : 'neu'],
     ];
     const list = rows.map(([l, v, cls]) => {
@@ -425,13 +443,20 @@ const UI = (() => {
     const glyphColor = fr === 'fresh' || fr === 'fresh-snapshot' ? 'var(--green)'
                      : fr === 'stale-snapshot' ? 'var(--amber)' : 'var(--red)';
     const ageMin = news?.ts ? Math.round((Date.now() - news.ts) / 60000) : null;
-    const ageStr = ageMin != null ? ` · ${ageMin < 1 ? 'baru saja' : ageMin + 'm lalu'}` : '';
-    const header = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px"><span style="color:${glyphColor}" title="${escape(fr)}">${glyph}</span> Sumber: ${escape(news?.source || 'offline')} · ${items.length} item${ageStr}</div>`;
+    const ageStr = ageMin != null ? ` Â· ${ageMin < 1 ? 'baru saja' : ageMin + 'm lalu'}` : '';
+    const header = `<div style="font-size:10px;color:var(--muted);margin-bottom:8px"><span style="color:${glyphColor}" title="${escape(fr)}">${glyph}</span> Sumber: ${escape(news?.source || 'offline')} Â· ${items.length} item${ageStr}</div>`;
     if (!items.length) { el.innerHTML = header + '<div style="font-size:11px;color:var(--muted)">Tidak ada berita.</div>'; return; }
     el.innerHTML = header + items.slice(0, 8).map(item => {
       const dot = item.sent === 'pos' ? 'var(--green)' : item.sent === 'neg' ? 'var(--red)' : 'var(--amber)';
-      const link = item.url ? `<a href="${escape(item.url)}" target="_blank" rel="noopener noreferrer">` : '<div>';
-      const end  = item.url ? `</a>` : '</div>';
+      // item.url datang dari feed eksternal (CryptoPanic/GDELT/Exa), tidak
+      // terautentikasi. escape() saja tidak cukup -- itu cuma mencegah
+      // keluar dari atribut href, bukan skema URL. "javascript:..." tetap
+      // lolos escape() dan tetap bisa dieksekusi saat link diklik. Jadi cek
+      // skema secara eksplisit dulu; kalau bukan http/https, render sebagai
+      // teks biasa (bukan link).
+      const isSafeUrl = typeof item.url === 'string' && /^https?:\/\//i.test(item.url);
+      const link = isSafeUrl ? `<a href="${escape(item.url)}" target="_blank" rel="noopener noreferrer">` : '<div>';
+      const end  = isSafeUrl ? `</a>` : '</div>';
       return `<div class="ni">
         <div class="ni-dot" style="background:${dot}"></div>
         <div style="flex:1">${link}<div class="ni-hl">${escape(item.headline)}</div>${end}
@@ -449,7 +474,7 @@ const UI = (() => {
       const dayPct = s.dayLimit ? (s.daily / s.dayLimit * 100) : 0;
       const color = dayPct > 80 ? 'var(--red)' : dayPct > 50 ? 'var(--amber)' : 'var(--green)';
       const dayStr = s.dayLimit ? `${s.daily}/${s.dayLimit}/hari` : `${s.daily}`;
-      const hrStr  = s.hourLimit ? `${s.hourly}/${s.hourLimit}/jam` : '—';
+      const hrStr  = s.hourLimit ? `${s.hourly}/${s.hourLimit}/jam` : 'â';
       return `<div class="rl-card">
         <div class="rl-name">${s.label}</div>
         <div class="rl-bar-bg"><div class="rl-bar-fill" style="width:${Math.min(100,dayPct)}%;background:${color}"></div></div>
