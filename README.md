@@ -1,4 +1,4 @@
-# BTC Dashboard — Cloudflare Edition
+# BTC Dashboard â Cloudflare Edition
 
 Dashboard prediksi harga BTC. Frontend di **Cloudflare Pages**, backend di **Cloudflare Worker + KV**, model prediksi (NOCTUA) jalan periodik lewat **GitHub Actions**.
 
@@ -19,18 +19,18 @@ Dashboard prediksi harga BTC. Frontend di **Cloudflare Pages**, backend di **Clo
 ## Arsitektur
 
 ```
-Browser  →  Cloudflare Pages (HTML/JS)
-               │ /api/*
-               ↓
-         Cloudflare Worker  →  KV Cache
-               │ scheduled
-               ↓
-         Cron Trigger (setiap jam)  →  fetch news, fear & greed
-               ↓
-               ↓
-         GitHub Actions (setiap 30 menit)  →  Python NOCTUA model
-               │ POST /api/noctua/push
-               ↓
+Browser  â  Cloudflare Pages (HTML/JS)
+               â /api/*
+               â
+         Cloudflare Worker  â  KV Cache
+               â scheduled
+               â
+         Cron Trigger (setiap jam)  â  fetch news, fear & greed
+               â
+               â
+         GitHub Actions (setiap 30 menit)  â  Python NOCTUA model
+               â POST /api/noctua/push
+               â
          Worker KV
 ```
 
@@ -45,16 +45,16 @@ Alur singkat:
 
 ```
 .
-├── .github/workflows/     # CI: deploy-worker.yml, noctua-predict.yml
-├── apps/
-│   ├── frontend/          # Static site (HTML/JS), deploy ke Cloudflare Pages
-│   └── worker/            # Cloudflare Worker (API + cron)
-├── data/                  # Data pendukung
-├── model/                 # Model Python NOCTUA (serve/predict.py, dll)
-├── scripts/                # Script bantu
-├── package.json           # Root workspace (Turborepo + pnpm)
-├── pnpm-workspace.yaml
-└── pnpm-lock.yaml
+âââ .github/workflows/     # CI: deploy-worker.yml, noctua-predict.yml
+âââ apps/
+â   âââ frontend/          # Static site (HTML/JS), deploy ke Cloudflare Pages
+â   âââ worker/            # Cloudflare Worker (API + cron)
+âââ data/                  # Data pendukung
+âââ model/                 # Model Python NOCTUA (serve/predict.py, dll)
+âââ scripts/                # Script bantu
+âââ package.json           # Root workspace (Turborepo + pnpm)
+âââ pnpm-workspace.yaml
+âââ pnpm-lock.yaml
 ```
 
 Ini pnpm monorepo yang dikelola dengan **Turborepo**.
@@ -63,33 +63,34 @@ Ini pnpm monorepo yang dikelola dengan **Turborepo**.
 
 ## Setup Awal
 
+> Catatan: hanya ada **satu environment (production)** di `wrangler.toml` --
+> tidak ada lagi `staging` (dulu ada, tapi selalu menunjuk ke KV/D1 yang sama
+> dengan production dan tidak pernah benar-benar dipakai). Semua perintah
+> `wrangler` di bawah dijalankan tanpa flag `--env`.
+
 ### 1. Buat KV Namespace
 
 ```bash
 cd apps/worker
 pnpm install
-pnpm wrangler kv namespace create BTC_CACHE --env production
-pnpm wrangler kv namespace create BTC_CACHE --env staging
+pnpm wrangler kv namespace create BTC_CACHE
 ```
 
 Salin ID yang muncul ke `wrangler.toml`:
 
 ```toml
-[[env.production.kv_namespaces]]
-id = "PASTE_ID_PRODUCTION_DI_SINI"
-
-[[env.staging.kv_namespaces]]
-id = "PASTE_ID_STAGING_DI_SINI"
+[[kv_namespaces]]
+id = "PASTE_ID_DI_SINI"
 ```
 
 ### 2. Set Secrets Worker
 
 ```bash
 # Secret untuk validasi push dari GitHub Actions
-echo "isi-secret-acak-panjang" | pnpm wrangler secret put NOCTUA_PUSH_SECRET --env production
+echo "isi-secret-acak-panjang" | pnpm wrangler secret put NOCTUA_PUSH_SECRET
 
 # Optional: Exa API key untuk kualitas news lebih baik
-echo "exa-api-key-kamu" | pnpm wrangler secret put EXA_API_KEY --env production
+echo "exa-api-key-kamu" | pnpm wrangler secret put EXA_API_KEY
 ```
 
 ### 3. Deploy Worker
@@ -105,10 +106,10 @@ Catat URL Worker yang muncul, misalnya:
 
 ### 4. Setup Cloudflare Pages
 
-1. Buka **Cloudflare Dashboard → Pages → Create project**
+1. Buka **Cloudflare Dashboard â Pages â Create project**
 2. Connect ke repo GitHub ini
 3. Build settings:
-   - **Build command**: *(kosongkan — static site)*
+   - **Build command**: *(kosongkan â static site)*
    - **Build output directory**: `apps/frontend`
 4. Setelah deploy, catat URL Pages (misal: `btc-dashboard.pages.dev`)
 
@@ -122,7 +123,7 @@ Edit `apps/frontend/_redirects`, ganti URL Worker:
 
 ### 6. Set GitHub Secrets
 
-Di repo settings → Secrets → Actions, tambahkan:
+Di repo settings â Secrets â Actions, tambahkan:
 
 | Secret | Nilai |
 |---|---|
@@ -141,21 +142,24 @@ model/serve/predict.py
 model/serve/requirements-ci.txt
 ```
 
-(Salin dari repo lama — tidak ada perubahan di Python model.)
+(Salin dari repo lama â tidak ada perubahan di Python model.)
 
 ---
 
 ## Dev Lokal
 
 ```bash
-# Terminal 1 — jalankan Worker
+# Terminal 1 â jalankan Worker
 cd apps/worker && pnpm dev
 
-# Terminal 2 — serve frontend
+# Terminal 2 â serve frontend
 cd apps/frontend && npx serve .
 # buka http://localhost:3000
 # Worker jalan di http://localhost:8787
 ```
+
+> `wrangler dev` memakai KV/D1 yang sama dengan production (tidak ada
+> environment terpisah lagi) -- hati-hati menulis data uji coba dari sini.
 
 Override `WORKER_BASE` supaya frontend lokal manggil Worker lokal, bukan production. Tambahkan di browser console:
 
@@ -197,12 +201,13 @@ curl https://btc-dashboard-worker-production.YOUR_SUBDOMAIN.workers.dev/api/noct
 
 ## Catatan Developer
 
-- Root workspace pakai **Turborepo** (`turbo`) + **pnpm workspaces** — lihat `pnpm-workspace.yaml` untuk daftar package.
+- Root workspace pakai **Turborepo** (`turbo`) + **pnpm workspaces** â lihat `pnpm-workspace.yaml` untuk daftar package.
 - Script utama di root `package.json`:
-  - `pnpm dev:worker` — jalankan Worker secara lokal
-  - `pnpm deploy:worker:production` — deploy Worker ke production
+  - `pnpm dev:worker` â jalankan Worker secara lokal
+  - `pnpm deploy:worker:production` â deploy Worker ke production
 - CI ada dua workflow di `.github/workflows/`:
-  - `deploy-worker.yml` — deploy Worker ke Cloudflare
-  - `noctua-predict.yml` — jalankan model Python NOCTUA & push hasil ke Worker KV
-- Model Python (NOCTUA) tidak diubah dari repo lama — hanya dipindahkan ke `model/serve/`.
+  - `deploy-worker.yml` â deploy Worker ke Cloudflare
+  - `noctua-predict.yml` â jalankan model Python NOCTUA & push hasil ke Worker KV
+- Model Python (NOCTUA) tidak diubah dari repo lama â hanya dipindahkan ke `model/serve/`.
 - Data pendukung ada di folder `data/`, script bantu (misalnya migrasi atau utilitas) ada di `scripts/`.
+- `wrangler.toml` hanya punya satu environment (production) -- lihat catatan di awal bagian Setup Awal.
