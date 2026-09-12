@@ -1,8 +1,17 @@
 /**
- * ui.js (v4) — decision-focused UI bindings
+ * ui.js (v4.1) — decision-focused UI bindings
  * =====================================================================
  * Merender hero decision card, pulse strip, regime dial, session ribbon,
  * retail plan, odds table, BGTC card, signal list, dan rate limit grid.
+ *
+ * v4.1: Tambah tampilan `BGTC.p_up_raw` (probabilitas arah mentah dari
+ *   model, sebelum dipin ke 50.0 -- lihat model/serve/predict.py::to_legacy)
+ *   di BGTC card dan signal list, sebagai INFO SAJA. Tidak menyentuh
+ *   buildDecision()/buildRetailPlan()/computeSentiment() di data.js --
+ *   semua keputusan trade tetap pakai BGTC.upside (pinned 50), sesuai
+ *   alasan yang didokumentasikan di docs/TRADE_FLOW.md §3 (walk-forward
+ *   log-loss 0.6941 vs 0.6931 coin flip -- tidak ada validated directional
+ *   skill di horizon ini).
  */
 const UI = (() => {
   const fmt  = (n, d = 0) => new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
@@ -30,7 +39,7 @@ const UI = (() => {
     set('footerTs', 'Diperbarui ' + new Date().toLocaleTimeString());
   }
 
-  // ── BGTC BADGE (header) ──────────────────────────────────────────────────
+  // ── BGTC BADGE (header) ───────────────────────────────────────────────────
   function updateBGTCBadge(BGTC) {
     const el = $('BGTCBadge');
     if (!el) return;
@@ -53,7 +62,7 @@ const UI = (() => {
                : decision.verdictClass === 'cau' ? ICONS.warning
                :                                    ICONS.dash;
     setH('heroIcon', icon);
-    set('heroVerdict', decision.verdict || '–');
+    set('heroVerdict', decision.verdict || '—');
     set('heroSub', decision.tradeStructure
       ? `Bias ${decision.direction?.toUpperCase() || 'NETRAL'} · ${decision.reasons.length} sinyal selaras, ${decision.blockers.length} pemblokir`
       : decision.blockers[0] || 'Mengevaluasi semua sinyal…');
@@ -168,13 +177,13 @@ const UI = (() => {
 
   function updateRegimeDial(regime, hv20, atmInfo) {
     if (!regime) return;
-    set('rdRatio',  regime.ratio ? regime.ratio.toFixed(2) : '–');
+    set('rdRatio',  regime.ratio ? regime.ratio.toFixed(2) : '—');
     const lbl = $('rdLabel');
     if (lbl) {
-      lbl.textContent = regime.label || '–';
+      lbl.textContent = regime.label || '—';
       lbl.className = 'rd-label ' + regime.regime;
     }
-    set('rdIvHv', atmInfo && hv20 ? `IV ${atmInfo.atmIv.toFixed(1)}% / HV20 ${hv20.annualised.toFixed(1)}%` : 'IV – / HV20 –');
+    set('rdIvHv', atmInfo && hv20 ? `IV ${atmInfo.atmIv.toFixed(1)}% / HV20 ${hv20.annualised.toFixed(1)}%` : 'IV — / HV20 —');
 
     const arc = $('rdArc');
     if (arc && regime.ratio) {
@@ -198,7 +207,7 @@ const UI = (() => {
     if (!body) return;
 
     const exp = $('retailExpiry');
-    if (exp) exp.textContent = atmInfo ? 'Kedaluwarsa: ' + atmInfo.expiry : '–';
+    if (exp) exp.textContent = atmInfo ? 'Kedaluwarsa: ' + atmInfo.expiry : '—';
 
     if (!plan) {
       body.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:12px">Menunggu harga / opsi / HV20…</div>`;
@@ -217,7 +226,7 @@ const UI = (() => {
         html += `<table class="odds-table"><thead><tr><th>Strike</th><th>Jarak</th><th>Premium/lot</th><th>Prob. sentuh</th></tr></thead><tbody>` +
           plan.candidates.map(c => {
             const tp = c.touchProb ?? DataLayer.touchProbability(c.absDist, hv20?.oneDay);
-            return `<tr><td>$${fmt(c.strike)}</td><td>${c.absDist?.toFixed(2)}%</td><td>$${fmt(c.premium, 2)}</td><td>${tp ? (tp*100).toFixed(0)+'%' : '–'}</td></tr>`;
+            return `<tr><td>$${fmt(c.strike)}</td><td>${c.absDist?.toFixed(2)}%</td><td>$${fmt(c.premium, 2)}</td><td>${tp ? (tp*100).toFixed(0)+'%' : '—'}</td></tr>`;
           }).join('') + `</tbody></table>`;
       }
       body.innerHTML = html;
@@ -289,13 +298,26 @@ const UI = (() => {
     }).join('');
   }
 
-  // ── BGTC DETAIL CARD ───────────────────────────────────────────────────────
+  // ── BGTC DETAIL CARD ─────────────────────────────────────────────────────
   function updateBGTCCard(BGTC) {
     const body = $('BGTCCardBody');
     if (!body) return;
     if (!BGTC) { body.innerHTML = '<div style="font-size:11px;color:var(--muted)">Data BGTC tidak tersedia.</div>'; return; }
     const freshCls = BGTC.freshness === 'fresh' || BGTC.freshness === 'recent' ? 'fresh'
                   : BGTC.freshness === 'stale' ? 'stale' : 'very-stale';
+
+    // Arah mentah model (P(naik) sebelum dipin ke 50.0). Info diagnostik saja --
+    // sengaja TIDAK diberi warna hijau/merah seperti metrik di atas, supaya
+    // tidak terlihat seperti sinyal yang bisa ditradingkan. Lihat
+    // model/serve/predict.py::to_legacy() dan docs/TRADE_FLOW.md §3 untuk
+    // alasan kenapa "upside" di atas dipin, bukan angka ini.
+    const rawNote = BGTC.p_up_raw != null
+      ? `<div style="font-size:10px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);line-height:1.6">
+          <b style="color:#94a3b8">Arah mentah model:</b> ${BGTC.p_up_raw.toFixed(1)}% ·
+          <span style="color:#f59e0b">belum tervalidasi</span> (log-loss walk-forward 0.6941 vs 0.6931 lempar koin) —
+          info saja, <b>tidak</b> dipakai untuk strike atau verdict di atas. Lihat docs/TRADE_FLOW.md §3.
+        </div>`
+      : '';
 
     body.innerHTML = `
       <div class="kc-head">
@@ -319,6 +341,7 @@ const UI = (() => {
           <div class="kc-metric-s">${BGTC.volAmp > 70 ? 'Vol tinggi diperkirakan' : BGTC.volAmp > 50 ? 'Meningkat' : 'Tenang'}</div>
         </div>
       </div>
+      ${rawNote}
       <div style="font-size:10px;color:var(--muted);margin-top:10px;line-height:1.5">
         Via ${BGTC.proxy || 'proxy'}. Model: NOCTUA-v2 · Konteks: 360j terakhir.
       </div>`;
@@ -362,24 +385,28 @@ const UI = (() => {
 
   function updateSignals({ BGTC, hv20, regime, ranger, fg, funding, sentiment, session }) {
     const rows = [
-      ['Arah BGTC',          BGTC ? BGTC.upside.toFixed(1) + '% naik' : '–',
+      ['Arah BGTC (dipakai)', BGTC ? BGTC.upside.toFixed(1) + '% naik' : '—',
        BGTC ? (BGTC.upside < 45 ? 'neg' : BGTC.upside < 55 ? 'neu' : 'pos') : 'neu'],
-      ['Vol-amp BGTC',       BGTC ? BGTC.volAmp.toFixed(1) + '%' : '–',
+      // Info saja -- warna selalu netral (amber) supaya tidak dibaca sebagai
+      // sinyal actionable seperti baris di atas. Tidak dipakai di buildDecision()
+      // ataupun buildRetailPlan(); lihat docs/TRADE_FLOW.md §3.
+      ['Arah mentah (belum tervalidasi)', BGTC?.p_up_raw != null ? BGTC.p_up_raw.toFixed(1) + '%' : '—', 'neu'],
+      ['Vol-amp BGTC',       BGTC ? BGTC.volAmp.toFixed(1) + '%' : '—',
        BGTC ? (BGTC.volAmp > 70 ? 'neg' : BGTC.volAmp > 50 ? 'neu' : 'pos') : 'neu'],
-      ['HV20 (tahunan)',     hv20 ? hv20.annualised.toFixed(1) + '%' : '–',
+      ['HV20 (tahunan)',     hv20 ? hv20.annualised.toFixed(1) + '%' : '—',
        hv20 ? (hv20.annualised > 70 ? 'neu' : 'pos') : 'neu'],
-      ['Rasio IV/HV20',      regime?.ratio ? regime.ratio.toFixed(2) + '×' : '–',
+      ['Rasio IV/HV20',      regime?.ratio ? regime.ratio.toFixed(2) + '×' : '—',
        regime?.regime === 'green' ? 'pos' : regime?.regime === 'red' ? 'neg' : 'neu'],
-      ['Rezim',              regime?.label || '–',
+      ['Rezim',              regime?.label || '—',
        regime?.regime === 'green' ? 'pos' : regime?.regime === 'red' ? 'neg' : 'neu'],
-      ['Funding 8j',         funding ? funding.ratePct.toFixed(4) + '%' : '–',
+      ['Funding 8j',         funding ? funding.ratePct.toFixed(4) + '%' : '—',
        funding?.flag?.includes('extreme') ? 'neg' : 'pos'],
-      ['Takut & Serakah',    fg ? `${fg.value} · ${fg.label}` : '–',
+      ['Takut & Serakah',    fg ? `${fg.value} · ${fg.label}` : '—',
        fg?.value >= 40 && fg?.value <= 70 ? 'pos' : 'neu'],
-      ['Sesi',               session?.phase || '–',
+      ['Sesi',               session?.phase || '—',
        session?.tier === 'best' ? 'pos' : session?.tier === 'skip' ? 'neg' : 'neu'],
-      ['RANGER mentah',      ranger ? ranger.raw.toFixed(2) + '%' : '–', 'neu'],
-      ['Sentimen berita',    sentiment ? sentiment.newsScore + '/100' : '–',
+      ['RANGER mentah',      ranger ? ranger.raw.toFixed(2) + '%' : '—', 'neu'],
+      ['Sentimen berita',    sentiment ? sentiment.newsScore + '/100' : '—',
        sentiment?.newsScore < 40 ? 'neg' : sentiment?.newsScore > 60 ? 'pos' : 'neu'],
     ];
     const list = rows.map(([l, v, cls]) => {
@@ -422,7 +449,7 @@ const UI = (() => {
       const dayPct = s.dayLimit ? (s.daily / s.dayLimit * 100) : 0;
       const color = dayPct > 80 ? 'var(--red)' : dayPct > 50 ? 'var(--amber)' : 'var(--green)';
       const dayStr = s.dayLimit ? `${s.daily}/${s.dayLimit}/hari` : `${s.daily}`;
-      const hrStr  = s.hourLimit ? `${s.hourly}/${s.hourLimit}/jam` : '–';
+      const hrStr  = s.hourLimit ? `${s.hourly}/${s.hourLimit}/jam` : '—';
       return `<div class="rl-card">
         <div class="rl-name">${s.label}</div>
         <div class="rl-bar-bg"><div class="rl-bar-fill" style="width:${Math.min(100,dayPct)}%;background:${color}"></div></div>
