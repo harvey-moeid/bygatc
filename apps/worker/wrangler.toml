@@ -46,8 +46,11 @@ id = "ed38018b3b2e4f6e832ddc996d256cc9"
 # kalau KV masih kosong -- opsional, uncomment kalau perlu.
 # DASHBOARD_URL dipakai buat deep-link di notif Discord (lib/discord.ts) --
 # klik judul embed di Discord langsung buka halaman dashboard terkait.
+# Custom domain bygatc.muidsoft.com sudah di-route ke worker ini (dicek
+# manual: /api/health lewat custom domain merespons identik dengan lewat
+# *.workers.dev) -- dipakai sebagai DASHBOARD_URL, bukan workers.dev.
 [vars]
-DASHBOARD_URL = "https://btc-dashboard-worker-production.harveymoeid.workers.dev"
+DASHBOARD_URL = "https://bygatc.muidsoft.com"
 # ALERT_PRICE_UPPER = "120000"
 # ALERT_PRICE_LOWER = "100000"
 

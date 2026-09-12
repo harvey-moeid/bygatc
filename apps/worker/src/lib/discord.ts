@@ -26,8 +26,9 @@ export type DiscordMessage = {
 
 // Fallback kalau env.DASHBOARD_URL belum diset (mis. lupa deploy var baru).
 // env.DASHBOARD_URL tetap sumber utama supaya tidak hardcode URL di banyak
-// tempat kalau worker pindah subdomain/custom domain nanti.
-const FALLBACK_DASHBOARD_URL = 'https://btc-dashboard-worker-production.harveymoeid.workers.dev';
+// tempat kalau worker pindah subdomain/custom domain nanti. Custom domain
+// bygatc.muidsoft.com sudah di-route ke worker ini, dipakai sebagai default.
+const FALLBACK_DASHBOARD_URL = 'https://bygatc.muidsoft.com';
 
 /**
  * Bangun URL dashboard untuk deep-link di notif Discord.
