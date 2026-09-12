@@ -1,0 +1,4 @@
+ASCII_OK
+EMDASH:—
+EMOJI:🔴
+DELTA:Δ
