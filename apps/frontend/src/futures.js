@@ -1,5 +1,10 @@
 /* =========================================================================
-   BTC Futures Risk Desk -- src/futures.js (v2.0)
+   BTC Futures Risk Desk -- src/futures.js (v2.1)
+   v2.1: hero decision card
+     - renderHero(): TRADE OK / CAUTION / NO-TRADE readiness verdict, same
+       visual language as the Options desk hero card (index.html + ui.js),
+       driven by DataLayer.buildFuturesDecision() so it can never disagree
+       with the Risk Plan card below it.
    v2.0: full NOCTUA payload rendering
      - Barrier curves table (up + dn, semua level)
      - Safe levels table (alpha-based strike distances)
@@ -25,7 +30,13 @@ const or = (v, fb = '\u2014') => (v != null && v !== '' && v !== 'undefined') ? 
 const ICONS = {
   check:   '<svg class="ic ic-check" viewBox="0 0 20 20" fill="none" width="13" height="13" style="vertical-align:-2px"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M6 10.5l2.5 2.5L14 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   warning: '<svg class="ic ic-warn" viewBox="0 0 20 20" fill="none" width="13" height="13" style="vertical-align:-2px"><path d="M10 2.5l8.5 14.7H1.5L10 2.5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 8v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="10" cy="14.6" r="0.9" fill="currentColor"/></svg>',
+  dash:    '<svg class="ic ic-dash" viewBox="0 0 20 20" fill="none" width="13" height="13" style="vertical-align:-2px"><circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M6 10h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
 };
+
+function escape(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 /* ------------------------------ helpers ---------------------------------- */
 
@@ -272,6 +283,39 @@ function renderSafeLevels() {
   }
 }
 
+/* ------------------------------ hero decision card ------------------------ */
+
+function renderHero(decision) {
+  const hero = $('heroCard');
+  if (!hero || !decision) return;
+
+  hero.className = 'hero ' + decision.verdictClass;
+
+  const icon = decision.verdictClass === 'go'  ? ICONS.check
+             : decision.verdictClass === 'cau' ? ICONS.warning
+             :                                    ICONS.dash;
+  $('heroIcon').innerHTML = icon;
+  $('heroVerdict').textContent = decision.verdict;
+  $('heroSub').textContent = decision.canTrade
+    ? `Arah dipilih: ${decision.direction.toUpperCase()} \u00b7 ${decision.reasons.length} sinyal selaras, ${decision.blockers.length} pemblokir`
+    : (decision.blockers[0] || 'Mengevaluasi semua sinyal\u2026');
+
+  $('heroConf').textContent = Math.round(decision.confidence) + '%';
+  const bar = $('heroConfBar');
+  const color = decision.verdictClass === 'go' ? 'var(--grn)'
+              : decision.verdictClass === 'cau' ? 'var(--amb)' : 'var(--red)';
+  bar.style.background = color;
+  bar.style.width = decision.confidence + '%';
+
+  $('heroReasons').innerHTML = decision.reasons.length
+    ? decision.reasons.map(r => `<div class="hero-reason pos"><span class="hero-reason-dot"></span><span>${escape(r)}</span></div>`).join('')
+    : '<div style="font-size:11px;color:var(--dim);padding:4px 0">Belum ada.</div>';
+
+  $('heroBlockers').innerHTML = decision.blockers.length
+    ? decision.blockers.map(b => `<div class="hero-reason neg"><span class="hero-reason-dot"></span><span>${escape(b)}</span></div>`).join('')
+    : '<div style="font-size:11px;color:var(--dim);padding:4px 0">Semua aman.</div>';
+}
+
 /* ------------------------------ recompute (risk plan) -------------------- */
 
 function recompute() {
@@ -291,6 +335,12 @@ function recompute() {
   });
 
   renderPlan(plan);
+
+  const session = DataLayer.computeSessionContext();
+  const decision = DataLayer.buildFuturesDecision({
+    plan, BGTC: FS.BGTC, session, funding: FS.funding, direction: FS.direction,
+  });
+  renderHero(decision);
 }
 
 function renderPlan(plan) {

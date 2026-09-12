@@ -83,16 +83,92 @@
   /* session advice */
   #sessionAdvice{font-size:12px;color:var(--dim);margin-top:8px;line-height:1.5}
   #sessionIst{font-size:11px;color:var(--dim);margin-top:4px;font-family:var(--mono)}
+
+  /* ===================== HERO DECISION CARD ===================== */
+  /* Sama secara visual dengan hero card di Desk Opsi (index.html), dipetakan
+     ke palet warna futures.html sendiri (--grn/--red/--amb/--acc/--line/--dim).
+     Verdict di sini menilai KESIAPAN trading (timing + ukuran posisi), bukan
+     arah -- arah LONG/SHORT tetap keputusan pengguna di kartu "Arah & Ukuran
+     Posisi" di bawah. Lihat DataLayer.buildFuturesDecision() di data.js. */
+  .hero{position:relative;border-radius:12px;padding:20px 22px;margin-bottom:16px;border:2px solid;overflow:hidden}
+  .hero.go{border-color:var(--grn);background:linear-gradient(135deg,rgba(47,213,123,.08),rgba(47,213,123,.02))}
+  .hero.cau{border-color:var(--amb);background:linear-gradient(135deg,rgba(255,179,71,.08),rgba(255,179,71,.02))}
+  .hero.nt{border-color:var(--red);background:linear-gradient(135deg,rgba(255,84,112,.08),rgba(255,84,112,.02))}
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:14px}
+  .hero-verdict{display:flex;align-items:center;gap:16px}
+  .verdict-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .hero.go .verdict-icon{background:rgba(47,213,123,.12);color:var(--grn);border:1px solid var(--grn)}
+  .hero.cau .verdict-icon{background:rgba(255,179,71,.12);color:var(--amb);border:1px solid var(--amb)}
+  .hero.nt .verdict-icon{background:rgba(255,84,112,.12);color:var(--red);border:1px solid var(--red)}
+  .verdict-text{display:flex;flex-direction:column;gap:2px}
+  .verdict-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em}
+  .verdict-main{font-size:28px;font-weight:700;line-height:1.15;font-family:var(--mono);letter-spacing:-.02em}
+  .hero.go .verdict-main{color:var(--grn)}.hero.cau .verdict-main{color:var(--amb)}.hero.nt .verdict-main{color:var(--red)}
+  .verdict-sub{font-size:12px;color:var(--dim);margin-top:4px;max-width:480px}
+  .hero-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .conf-box{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:160px}
+  .conf-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+  .conf-num{font-family:var(--mono);font-size:20px;font-weight:700;line-height:1}
+  .hero.go .conf-num{color:var(--grn)}.hero.cau .conf-num{color:var(--amb)}.hero.nt .conf-num{color:var(--red)}
+  .conf-bar-wrap{width:160px;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+  .conf-bar-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+  .hero-reasons{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+  @media(max-width:640px){.hero-reasons{grid-template-columns:1fr}}
+  .hero-col-title{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .hero-col-title::before{content:'';width:5px;height:5px;border-radius:50%}
+  .hero-col-title.pos::before{background:var(--grn)}
+  .hero-col-title.neg::before{background:var(--red)}
+  .hero-reason{display:flex;align-items:flex-start;gap:8px;font-size:12px;padding:4px 0;line-height:1.4}
+  .hero-reason-dot{width:4px;height:4px;border-radius:50%;margin-top:7px;flex-shrink:0}
+  .hero-reason.pos .hero-reason-dot{background:var(--grn)}
+  .hero-reason.neg .hero-reason-dot{background:var(--red)}
+  .hero-note{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:var(--dim);line-height:1.5}
+  .hero-note b{color:var(--txt)}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>BTC <span>Desk Risiko Futures</span> <span class="tag">BTCUSDT.P &middot; v2.1</span></h1>
+  <h1>BTC <span>Desk Risiko Futures</span> <span class="tag">BTCUSDT.P &middot; v2.2</span></h1>
   <a class="back" href="index.html">&larr; dasbor</a>
+  <a class="back" href="options.html">Desk Opsi &rarr;</a>
   <span id="status" role="status" aria-live="polite">memuat&hellip;</span>
   <button id="btnRefresh"><svg viewBox="0 0 20 20" width="11" height="11" fill="none" style="vertical-align:-1px"><path d="M16 6.5A6.5 6.5 0 1 0 17 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M16 2.5v4.3h-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Segarkan</button>
 </header>
+
+<!-- HERO DECISION CARD -->
+<div class="hero nt" id="heroCard">
+  <div class="hero-top">
+    <div class="hero-verdict">
+      <div class="verdict-icon" id="heroIcon">&hellip;</div>
+      <div class="verdict-text">
+        <div class="verdict-label">Rekomendasi Kesiapan Trading</div>
+        <div class="verdict-main" id="heroVerdict" aria-live="polite" role="status">MEMUAT&hellip;</div>
+        <div class="verdict-sub" id="heroSub">Mengambil data pasar, NOCTUA, funding&hellip;</div>
+      </div>
+    </div>
+    <div class="hero-right">
+      <div class="conf-box">
+        <div class="conf-lbl">Keyakinan</div>
+        <div class="conf-num" id="heroConf">&mdash;</div>
+        <div class="conf-bar-wrap"><div class="conf-bar-fill" id="heroConfBar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-reasons">
+    <div>
+      <div class="hero-col-title pos">PENDUKUNG</div>
+      <div id="heroReasons"></div>
+    </div>
+    <div>
+      <div class="hero-col-title neg">PEMBLOKIR</div>
+      <div id="heroBlockers"></div>
+    </div>
+  </div>
+
+  <div class="hero-note">Verdict ini menilai <b>kesiapan trading</b> (timing &amp; ukuran posisi dari p_vol_amplify + funding), bukan arah. Arah LONG/SHORT tetap keputusan Anda sendiri &mdash; lihat kartu &ldquo;Arah &amp; Ukuran Posisi&rdquo; di bawah.</div>
+</div>
 
 <!-- Row 1: market / NOCTUA / session -->
 <div class="grid">
@@ -260,6 +336,8 @@
   Semua harga di halaman ini &mdash; Entry/SL/TP, tabel kurva barrier, tabel level aman &mdash; sudah di-mark ulang memakai mark price BTCUSDT.P
   (<code>/api/market/funding</code>, Binance dengan fallback Bybit) sebagai referensi. Hanya <i>persentase jarak</i> yang diwarisi dari NOCTUA,
   bukan level dolarnya, jadi basis spot/perp tidak ikut terbawa ke level yang Anda lihat.
+  <br>
+  <b>Kartu rekomendasi di atas</b> menilai kesiapan trading (timing/ukuran) dari sinyal yang sama dengan Rencana Risiko di bawah &mdash; keduanya tidak akan pernah saling bertentangan.
   <br>
   <b>Horizon:</b> kurva dikalibrasi untuk 19j &mdash; terapkan diskon jika Anda berencana hold jauh lebih singkat/lama.
   <b>Tidak ada pemodelan likuidasi</b> &mdash; cek harga margin exchange Anda secara terpisah.
