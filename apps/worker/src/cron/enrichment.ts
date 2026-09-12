@@ -6,8 +6,8 @@
  * Bedanya: tidak ada fs.writeFileSync, output disimpan ke KV.
  *
  * KV keys yang ditulis:
- *   enrichment:news   → merged CryptoPanic + GDELT + Exa (optional)
- *   enrichment:fg     → Fear & Greed index
+ *   enrichment:news   — merged CryptoPanic + GDELT + Exa (optional)
+ *   enrichment:fg     — Fear & Greed index
  *
  * TTL KV = 2 jam (7200 s) — cukup untuk 1-jam cron cycle + buffer.
  */
