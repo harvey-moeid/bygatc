@@ -14,11 +14,12 @@ export type Env = {
   ALERTS_SECRET?: string; // secret -- proteksi PUT/GET /api/alerts/config
   ALERT_PRICE_UPPER?: string; // optional var -- default threshold atas kalau KV kosong
   ALERT_PRICE_LOWER?: string; // optional var -- default threshold bawah kalau KV kosong
+  DASHBOARD_URL?: string; // optional var -- base URL dashboard untuk deep-link di notif Discord
 };
 
 const app = new Hono<{ Bindings: Env }>();
 
-// CORS â izinkan hostname yang benar-benar diketahui, bukan sekadar
+// CORS Ã¢ izinkan hostname yang benar-benar diketahui, bukan sekadar
 // "mengandung" string tertentu.
 //
 // Sebelumnya: origin.includes('btc-dashboard') / .includes('pages.dev') /

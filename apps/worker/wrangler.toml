@@ -42,9 +42,12 @@ id = "ed38018b3b2e4f6e832ddc996d256cc9"
 #   ALERTS_SECRET        -- proteksi GET/PUT /api/alerts/config
 #
 # Threshold breakout diatur runtime lewat KV (PUT /api/alerts/config), bukan
-# di sini. [vars] di bawah cuma dipakai sebagai default kalau KV masih kosong
-# -- opsional, hapus/comment kalau tidak perlu default.
-# [vars]
+# di sini. ALERT_PRICE_UPPER/LOWER di bawah cuma dipakai sebagai default
+# kalau KV masih kosong -- opsional, uncomment kalau perlu.
+# DASHBOARD_URL dipakai buat deep-link di notif Discord (lib/discord.ts) --
+# klik judul embed di Discord langsung buka halaman dashboard terkait.
+[vars]
+DASHBOARD_URL = "https://btc-dashboard-worker-production.harveymoeid.workers.dev"
 # ALERT_PRICE_UPPER = "120000"
 # ALERT_PRICE_LOWER = "100000"
 
