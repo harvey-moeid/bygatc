@@ -3,8 +3,11 @@
  * -------------------------------------------------------------------
  * Endpoint admin untuk atur threshold price alert (dipakai cron/priceAlert.ts
  * lewat KV key `alert:price_config`). Diproteksi dengan pola yang sama
- * dengan NOCTUA_PUSH_SECRET di routes/noctua.ts -- header
- * `Authorization: Bearer <ALERTS_SECRET>`.
+ * dengan NOCTUA_PUSH_SECRET di routes/noctua.ts.
+ *
+ * Auth diterima dari salah satu:
+ *   - header  Authorization: Bearer <ALERTS_SECRET>  (dipakai script/curl)
+ *   - query   ?token=<ALERTS_SECRET>                 (dipakai tes cepat lewat link/browser)
  *
  *   GET  /api/alerts/config
  *     -> { upper?: number, lower?: number }
@@ -18,14 +21,22 @@
  *         -H "Content-Type: application/json" \
  *         -d '{"upper": 120000, "lower": 100000}'
  *
- * Setiap kali threshold diganti, status breakout (alert:price_state) di-reset
- * supaya threshold baru dievaluasi dari nol, bukan mewarisi status "above"/
- * "below" dari threshold lama.
+ *   GET  /api/alerts/test
+ *     Kirim satu pesan test ke Discord webhook (DISCORD_WEBHOOK_URL) supaya
+ *     bisa langsung dicek apakah notif aktif -- tidak menyentuh KV apa pun.
+ *       curl "https://.../api/alerts/test?token=$ALERTS_SECRET"
+ *     -> { ok: true } kalau Discord terima (cek channel-nya), { ok: false }
+ *        kalau webhook gagal/DISCORD_WEBHOOK_URL belum diset.
+ *
+ * Setiap kali threshold diganti (PUT /config), status breakout
+ * (alert:price_state) di-reset supaya threshold baru dievaluasi dari nol,
+ * bukan mewarisi status "above"/"below" dari threshold lama.
  */
 
 import { Hono } from 'hono';
 import type { Context } from 'hono';
 import type { Env } from '../index';
+import { sendDiscordAlert } from '../lib/discord';
 
 type AlertsEnv = Env & { ALERTS_SECRET?: string };
 
@@ -35,7 +46,9 @@ function checkAuth(c: Context<{ Bindings: AlertsEnv }>): boolean {
   const secret = c.env.ALERTS_SECRET;
   if (!secret) return false; // belum dikonfigurasi -- tolak semua akses
   const authHeader = c.req.header('Authorization') || '';
-  const token = authHeader.replace(/^Bearer\s+/, '');
+  const bearerToken = authHeader.replace(/^Bearer\s+/, '');
+  const queryToken = c.req.query('token') || '';
+  const token = bearerToken || queryToken;
   return !!token && token === secret;
 }
 
@@ -82,4 +95,21 @@ alertsRoutes.put('/config', async (c) => {
   await c.env.BTC_CACHE.delete('alert:price_state');
 
   return c.json({ ok: true, config });
+});
+
+alertsRoutes.get('/test', async (c) => {
+  if (!checkAuth(c)) return c.json({ error: 'unauthorized' }, 401);
+
+  const ok = await sendDiscordAlert(c.env.DISCORD_WEBHOOK_URL, {
+    embeds: [
+      {
+        title: 'Test notifikasi -- bygatc',
+        description: 'Kalau pesan ini muncul di Discord, DISCORD_WEBHOOK_URL sudah aktif dan benar.',
+        color: 0x5865f2, // warna brand Discord (blurple), sekadar biar kelihatan beda dari alert asli
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  });
+
+  return c.json(ok ? { ok: true } : { ok: false, error: 'send failed -- cek DISCORD_WEBHOOK_URL / worker logs' }, ok ? 200 : 502);
 });
