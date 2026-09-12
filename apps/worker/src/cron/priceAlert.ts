@@ -10,6 +10,9 @@
  * berulang tiap 5 menit selama masih di luar band -- notif cuma sekali per
  * crossing, reset otomatis begitu harga balik ke dalam band.
  *
+ * Tiap notif breakout sekarang deep-link ke dashboard (klik judul embed di
+ * Discord langsung buka halaman utama) -- lihat lib/discord.ts::dashboardUrl().
+ *
  * KV keys:
  *   alert:price_config -- { upper?: number, lower?: number }
  *     Diset lewat PUT /api/alerts/config (lihat routes/alerts.ts).
@@ -23,7 +26,7 @@
  */
 
 import type { Env } from '../index';
-import { sendDiscordAlert } from '../lib/discord';
+import { sendDiscordAlert, dashboardUrl } from '../lib/discord';
 
 type PriceConfig = { upper?: number; lower?: number };
 type PriceState = { above: boolean; below: boolean };
@@ -125,6 +128,7 @@ export async function runPriceAlertCron(env: Env): Promise<void> {
         embeds: [
           {
             title: 'BTC Breakout - Upper',
+            url: dashboardUrl(env),
             description: `Harga BTC menembus threshold atas **$${fmtUsd(upper)}**`,
             color: 0x22c55e, // hijau
             fields: [{ name: 'Harga saat ini', value: `$${fmtUsd(price)}`, inline: true }],
@@ -148,6 +152,7 @@ export async function runPriceAlertCron(env: Env): Promise<void> {
         embeds: [
           {
             title: 'BTC Breakdown - Lower',
+            url: dashboardUrl(env),
             description: `Harga BTC menembus ke bawah threshold **$${fmtUsd(lower)}**`,
             color: 0xef4444, // merah
             fields: [{ name: 'Harga saat ini', value: `$${fmtUsd(price)}`, inline: true }],

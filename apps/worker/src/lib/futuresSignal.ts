@@ -5,29 +5,41 @@
  * futures desk untuk position sizing (lihat docs/TRADE_FLOW.md bagian 8).
  *
  * PENTING -- ini BUKAN sinyal arah (long/short). upside dan p_up_raw di
- * payload NOCTUA sengaja tidak dipakai di sini: log-loss walk-forward-nya
- * (0.6941) nyaris sama dengan lempar koin (0.6931) -- lihat
- * docs/TRADE_FLOW.md bagian 3 dan bagian 8 ("Kenapa arah tetap harus dari
- * luar model"). buildFuturesPlan() di frontend juga mewajibkan `direction`
- * dari pemanggil, bukan dari NOCTUA, dengan alasan yang sama.
+ * payload NOCTUA sengaja tidak dipakai sebagai sinyal arah: log-loss
+ * walk-forward-nya (0.6941) nyaris sama dengan lempar koin (0.6931) --
+ * lihat docs/TRADE_FLOW.md bagian 3 dan bagian 8 ("Kenapa arah tetap harus
+ * dari luar model"). buildFuturesPlan() di frontend juga mewajibkan
+ * `direction` dari pemanggil, bukan dari NOCTUA, dengan alasan yang sama.
  *
- * Yang dipakai di sini cuma p_vol_amplify -- satu-satunya komponen NOCTUA
- * yang tervalidasi lewat walk-forward testing (beda 2.79% QLIKE vs
- * baseline, p = 0.043). Tier-nya sama dengan blocker/reason di
+ * p_up_raw TETAP disertakan di notif (sebagai field terpisah, bukan
+ * dihilangkan) supaya datanya tetap terlihat -- tapi berlabel jelas
+ * "info saja, TIDAK tervalidasi", bukan dibingkai sebagai rekomendasi
+ * beli/jual yang bisa diandalkan. Jangan hapus label ini kalau field-nya
+ * diubah nanti -- itu satu-satunya hal yang mencegah angka lempar-koin ini
+ * kelihatan seperti sinyal trading asli.
+ *
+ * Yang dipakai buat tier di sini cuma p_vol_amplify -- satu-satunya
+ * komponen NOCTUA yang tervalidasi lewat walk-forward testing (beda 2.79%
+ * QLIKE vs baseline, p = 0.043). Tier-nya sama dengan blocker/reason di
  * buildFuturesDecision() (apps/frontend/src/data.js):
  *   >= 0.70 -> "high"     (blocker: ukuran wajib dikecilkan)
  *   >= 0.55 -> "elevated" (waspada, ukuran dikurangi otomatis)
  *   else    -> "calm"     (tenang, ukuran penuh)
  *
  * Notif dikirim tiap kali tier BERUBAH (naik atau turun) dibanding push
- * sebelumnya -- bukan tiap push (yang jalan tiap 30 menit dari GH Actions,
- * akan spam kalau dikirim tiap kali).
+ * sebelumnya -- bukan tiap push (yang jalan tiap jam dari GH Actions, akan
+ * spam kalau dikirim tiap kali).
+ *
+ * Tier "high" di-mention @here di content pesan (bukan cuma embed) supaya
+ * tidak kelewat di channel yang ramai. Tier calm/elevated cukup embed biasa
+ * tanpa mention. Embed juga deep-link ke /futures.html (klik judul embed
+ * di Discord langsung buka desk futures) -- lihat lib/discord.ts::dashboardUrl().
  *
  * KV key: alert:vol_regime_state -- { tier: 'calm' | 'elevated' | 'high' }
  */
 
 import type { Env } from '../index';
-import { sendDiscordAlert } from './discord';
+import { sendDiscordAlert, dashboardUrl, type DiscordEmbedField } from './discord';
 
 type VolTier = 'calm' | 'elevated' | 'high';
 
@@ -87,16 +99,25 @@ export async function checkFuturesVolAlert(
   const meta = TIER_META[tier];
   const pctStr = (pVolAmplify * 100).toFixed(0);
   const pUpRaw = payload['p_up_raw'];
-  const pUpNote = typeof pUpRaw === 'number'
-    ? `\n\np_up_raw: ${(pUpRaw * 100).toFixed(0)}% (info saja -- bukan sinyal arah tervalidasi, lihat docs/TRADE_FLOW.md bagian 3)`
-    : '';
+
+  const fields: DiscordEmbedField[] = [];
+  if (typeof pUpRaw === 'number') {
+    fields.push({
+      name: 'Arah (p_up_raw) -- info saja, TIDAK tervalidasi',
+      value: `${(pUpRaw * 100).toFixed(0)}% ke arah naik. Akurasi historis walk-forward nyaris sama dengan lempar koin -- jangan dipakai sebagai sinyal tunggal (lihat docs/TRADE_FLOW.md #3).`,
+      inline: false,
+    });
+  }
 
   const ok = await sendDiscordAlert(env.DISCORD_WEBHOOK_URL, {
+    content: tier === 'high' ? '@here' : undefined,
     embeds: [
       {
         title: meta.title,
-        description: `p(amplifikasi vol) = **${pctStr}%**${prevTier ? ` (sebelumnya: ${prevTier})` : ''}\n\n${meta.note}${pUpNote}`,
+        url: dashboardUrl(env, '/futures.html'),
+        description: `p(amplifikasi vol) = **${pctStr}%**${prevTier ? ` (sebelumnya: ${prevTier})` : ''}\n\n${meta.note}`,
         color: meta.color,
+        fields,
         timestamp: new Date().toISOString(),
       },
     ],
