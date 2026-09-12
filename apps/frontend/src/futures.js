@@ -46,6 +46,23 @@ function settleCountdown(settleUtc) {
   return `${h}h ${m}m`;
 }
 
+// The instrument this desk is actually for: BTCUSDT.P (perp), not spot.
+// FS.price.price comes from /api/market/price -- a SPOT ticker (Binance
+// BTCUSDT spot, falls back to Crypto.com). FS.funding.markPrice comes from
+// /api/market/funding -- the actual perp mark price (Binance fapi
+// premiumIndex, falls back to Bybit linear). Every price shown on this page
+// (entry, SL/TP, barrier table, safe-level table) should be anchored to the
+// perp mark, with NOCTUA's spot-anchored barrier curves contributing only
+// their *percentage* distances -- not its absolute dollar levels, which are
+// computed off Bitstamp BTC-USD and would otherwise carry a small spot/perp
+// basis into every printed price. Falls back to the spot ticker only if
+// funding data hasn't loaded yet.
+function refPrice() {
+  const mark = FS.funding?.markPrice;
+  if (typeof mark === 'number' && mark > 0) return mark;
+  return FS.price?.price ?? null;
+}
+
 /* ------------------------------ data load -------------------------------- */
 
 async function loadAll() {
@@ -87,7 +104,27 @@ function renderAll() {
 /* ------------------------------ market card ------------------------------ */
 
 function renderMarket() {
-  $('spot').textContent = FS.price?.price ? '$' + Math.round(FS.price.price).toLocaleString() : '\u2014';
+  const spot = FS.price?.price ?? null;   // Binance/Crypto.com spot ticker
+  const mark = FS.funding?.markPrice ?? null; // BTCUSDT.P mark price
+  const ref  = refPrice();
+
+  $('spot').textContent = ref ? '$' + Math.round(ref).toLocaleString() : '\u2014';
+  if ($('spotRef')) {
+    $('spotRef').textContent = spot ? '$' + Math.round(spot).toLocaleString() : '\u2014';
+  }
+  if ($('basis')) {
+    if (mark && mark > 0 && spot) {
+      const basis = mark - spot;
+      const basisPct = 100 * basis / spot;
+      $('basis').textContent =
+        `${basis >= 0 ? '+' : ''}$${basis.toFixed(2)} (${basisPct >= 0 ? '+' : ''}${basisPct.toFixed(3)}%)`;
+      $('basis').className = Math.abs(basisPct) > 0.15 ? 'warn' : '';
+    } else {
+      $('basis').textContent = '\u2014';
+      $('basis').className = '';
+    }
+  }
+
   $('hv20').textContent   = FS.hv20 ? FS.hv20.annualised.toFixed(1) + '%' : '\u2014';
   $('hv20d').textContent  = FS.hv20 ? FS.hv20.oneDay.toFixed(2) + '%' : '\u2014';
   if (FS.funding) {
@@ -173,17 +210,24 @@ function renderBarrierCurves() {
   }
   $('barrierCard').style.opacity = '1';
 
+  // Re-anchor NOCTUA's percentage distances to the BTCUSDT.P mark price
+  // instead of trusting the absolute dollar levels in the payload (those
+  // are computed off Bitstamp spot and carry the spot/perp basis).
+  const ref = refPrice();
+
   const dnMap = {};
   (curves.dn || []).forEach(c => { dnMap[Math.abs(c.pct)] = c; });
 
   for (const up of curves.up) {
     const dn = dnMap[up.pct];
+    const upPrice = ref ? ref * (1 + up.pct / 100) : up.price;
+    const dnPrice = ref && dn ? ref * (1 + dn.pct / 100) : dn?.price;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="mono" style="color:var(--dim)">${up.pct.toFixed(1)}%</td>
-      <td class="mono pos">${up.price ? '$' + Math.round(up.price).toLocaleString() : '\u2014'}</td>
+      <td class="mono pos">${upPrice ? '$' + Math.round(upPrice).toLocaleString() : '\u2014'}</td>
       <td class="mono" style="${tpClass(up.touch_prob)}">${up.touch_prob != null ? (up.touch_prob * 100).toFixed(1) + '%' : '\u2014'}</td>
-      <td class="mono neg">${dn?.price ? '$' + Math.round(dn.price).toLocaleString() : '\u2014'}</td>
+      <td class="mono neg">${dnPrice ? '$' + Math.round(dnPrice).toLocaleString() : '\u2014'}</td>
       <td class="mono" style="${tpClass(dn?.touch_prob)}">${dn?.touch_prob != null ? (dn.touch_prob * 100).toFixed(1) + '%' : '\u2014'}</td>
     `;
     el.appendChild(tr);
@@ -206,16 +250,22 @@ function renderSafeLevels() {
   }
   $('safeCard').style.opacity = '1';
 
+  // Same re-anchoring as the barrier table: keep NOCTUA's calibrated
+  // percentage distances, price them off the BTCUSDT.P mark.
+  const ref = refPrice();
+
   for (const s of safe) {
     const alphaPct = (s.alpha * 100).toFixed(0);
+    const callPrice = ref ? ref * (1 + s.call_pct / 100) : s.call_strike;
+    const putPrice  = ref ? ref * (1 + s.put_pct  / 100) : s.put_strike;
     const tr = document.createElement('tr');
     const hl = (s.alpha === 0.01 || s.alpha === 0.05) ? 'background:rgba(91,140,255,.06)' : '';
     tr.setAttribute('style', hl);
     tr.innerHTML = `
       <td class="mono" style="color:var(--acc)">${alphaPct}%</td>
-      <td class="mono pos">$${Math.round(s.call_strike).toLocaleString()}</td>
+      <td class="mono pos">$${Math.round(callPrice).toLocaleString()}</td>
       <td class="mono pos">+${s.call_pct.toFixed(2)}%</td>
-      <td class="mono neg">$${Math.round(s.put_strike).toLocaleString()}</td>
+      <td class="mono neg">$${Math.round(putPrice).toLocaleString()}</td>
       <td class="mono neg">${s.put_pct.toFixed(2)}%</td>
     `;
     el.appendChild(tr);
@@ -225,10 +275,11 @@ function renderSafeLevels() {
 /* ------------------------------ recompute (risk plan) -------------------- */
 
 function recompute() {
-  if (!FS.price?.price) return;
+  const price = refPrice();
+  if (!price) return;
 
   const plan = DataLayer.buildFuturesPlan({
-    price:         FS.price.price,
+    price,                    // BTCUSDT.P mark price (falls back to spot ticker)
     direction:     FS.direction,
     hv20:          FS.hv20,
     BGTC:          FS.BGTC,

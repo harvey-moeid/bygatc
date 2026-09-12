@@ -88,7 +88,7 @@
 <body>
 
 <header>
-  <h1>BTC <span>Desk Risiko Futures</span> <span class="tag">BTCUSDT.P &middot; v2</span></h1>
+  <h1>BTC <span>Desk Risiko Futures</span> <span class="tag">BTCUSDT.P &middot; v2.1</span></h1>
   <a class="back" href="index.html">&larr; dasbor</a>
   <span id="status" role="status" aria-live="polite">memuat&hellip;</span>
   <button id="btnRefresh"><svg viewBox="0 0 20 20" width="11" height="11" fill="none" style="vertical-align:-1px"><path d="M16 6.5A6.5 6.5 0 1 0 17 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M16 2.5v4.3h-4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg> Segarkan</button>
@@ -98,8 +98,10 @@
 <div class="grid">
 
   <div class="card">
-    <h2>Pasar</h2>
+    <h2>Pasar &middot; mark BTCUSDT.P</h2>
     <div class="big" id="spot">&mdash;</div>
+    <div class="kv"><span>Spot ref. (Binance BTCUSDT)</span> <b id="spotRef">&mdash;</b></div>
+    <div class="kv"><span>Basis (perp &minus; spot)</span>   <b id="basis">&mdash;</b></div>
     <div class="kv"><span>HV20 (tahunan)</span>  <b id="hv20">&mdash;</b></div>
     <div class="kv"><span>HV20 (1-hari)</span>       <b id="hv20d">&mdash;</b></div>
     <div class="kv"><span>Funding 8j (Binance)</span><b id="funding">&mdash;</b></div>
@@ -131,7 +133,7 @@
 <!-- Row 2: barrier curves -->
 <div class="grid" style="margin-bottom:14px">
   <div class="card wide" id="barrierCard">
-    <h2>Kurva Barrier NOCTUA &mdash; probabilitas sentuh selama jendela 19j</h2>
+    <h2>Kurva Barrier NOCTUA &mdash; probabilitas sentuh selama jendela 19j &middot; harga di-mark ke BTCUSDT.P</h2>
     <div class="tbl-wrap">
       <table>
         <thead>
@@ -157,7 +159,7 @@
 <!-- Row 3: safe levels -->
 <div class="grid" style="margin-bottom:14px">
   <div class="card wide" id="safeCard">
-    <h2>Level Aman NOCTUA &mdash; zona no-touch terkalibrasi pada keyakinan &alpha;</h2>
+    <h2>Level Aman NOCTUA &mdash; zona no-touch terkalibrasi pada keyakinan &alpha; &middot; harga di-mark ke BTCUSDT.P</h2>
     <div class="tbl-wrap">
       <table>
         <thead>
@@ -253,6 +255,11 @@
   SL/TP dibaca dari <code>barrier_curves</code> NOCTUA (jendela 19j) pada target probabilitas-sentuh pilihan Anda.
   Pengali ukuran mengecil saat <code>p_vol_amplify</code> tinggi, dan mengecil lagi saat funding ekstrem searah posisi Anda.
   Kembali ke pengali pergerakan harian HV20 jika kurva barrier tidak ada di payload.
+  <br>
+  <b>Basis BTCUSDT.P.</b> NOCTUA menghitung barrier-nya dari spot Bitstamp (BTC-USD), bukan dari perp yang Anda trading.
+  Semua harga di halaman ini &mdash; Entry/SL/TP, tabel kurva barrier, tabel level aman &mdash; sudah di-mark ulang memakai mark price BTCUSDT.P
+  (<code>/api/market/funding</code>, Binance dengan fallback Bybit) sebagai referensi. Hanya <i>persentase jarak</i> yang diwarisi dari NOCTUA,
+  bukan level dolarnya, jadi basis spot/perp tidak ikut terbawa ke level yang Anda lihat.
   <br>
   <b>Horizon:</b> kurva dikalibrasi untuk 19j &mdash; terapkan diskon jika Anda berencana hold jauh lebih singkat/lama.
   <b>Tidak ada pemodelan likuidasi</b> &mdash; cek harga margin exchange Anda secara terpisah.
