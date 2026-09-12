@@ -3,8 +3,12 @@
 # Deploy Cloudflare Worker secara otomatis saat push ke branch main.
 #
 # Secrets yang dibutuhkan:
-#   CLOUDFLARE_API_TOKEN  Ã¢ API token dengan scope Workers:Edit + KV:Edit
-#   CLOUDFLARE_ACCOUNT_ID Ã¢ Account ID dari dashboard Cloudflare
+#   CLOUDFLARE_API_TOKEN  -- API token dengan scope Workers:Edit + KV:Edit
+#   CLOUDFLARE_ACCOUNT_ID -- Account ID dari dashboard Cloudflare
+#
+# Catatan: hanya ada satu environment (production) -- lihat wrangler.toml.
+# `pnpm deploy:production` sekarang memanggil `wrangler deploy` polos (tanpa
+# --env), karena wrangler.toml tidak lagi punya environment bernama.
 
 name: deploy-worker
 
@@ -53,7 +57,7 @@ jobs:
           NOCTUA_PUSH_SECRET: ${{ secrets.NOCTUA_PUSH_SECRET }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
         run: |
-          echo "$NOCTUA_PUSH_SECRET" | pnpm wrangler secret put NOCTUA_PUSH_SECRET --env production
+          echo "$NOCTUA_PUSH_SECRET" | pnpm wrangler secret put NOCTUA_PUSH_SECRET
           if [ -n "$EXA_API_KEY" ]; then
-            echo "$EXA_API_KEY" | pnpm wrangler secret put EXA_API_KEY --env production
+            echo "$EXA_API_KEY" | pnpm wrangler secret put EXA_API_KEY
           fi

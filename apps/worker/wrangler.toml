@@ -1,68 +1,42 @@
-name = "btc-dashboard-worker"
+# wrangler.toml -- satu environment saja (production).
+# Sebelumnya ada 3 "environment" (default/dev, staging, production) tapi
+# ketiganya menunjuk ke KV namespace + D1 database yang SAMA PERSIS, jadi
+# staging tidak pernah benar-benar terisolasi dan tidak pernah dipakai
+# (deploy-worker.yml cuma pernah deploy ke production). Disederhanakan jadi
+# satu config di top-level yang IDENTIK dengan [env.production] yang lama,
+# termasuk `name`, supaya ini tetap Worker yang sama persis yang sudah live
+# di Cloudflare (deploy berikutnya via `wrangler deploy` biasa, tanpa --env,
+# akan meng-update worker yang sama -- bukan membuat worker baru).
+#
+# Konsekuensi: `wrangler dev` lokal sekarang otomatis pakai KV/D1 production
+# (memang sudah begitu sejak awal, preview_id-nya sama dengan id produksi --
+# ini cuma menghapus ilusi bahwa itu terpisah). Hati-hati menulis data test
+# lewat `wrangler dev` karena akan masuk ke cache production yang sama.
+
+name = "btc-dashboard-worker-production"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
-# — Cron Triggers ————————————————————————————————————————————————————————————————————————————————————
-# Setiap jam: fetch news + fear & greed → simpan ke KV
+# -- Cron Triggers ---------------------------------------------------------
+# Setiap jam: fetch news + fear & greed -> simpan ke KV
 [triggers]
 crons = ["0 * * * *"]
 
-# — KV (dev lokal — pakai preview) ——————————————————————————————————————————————————————————————————————————
+# -- KV cache ---------------------------------------------------------------
 [[kv_namespaces]]
 binding = "BTC_CACHE"
 id = "ed38018b3b2e4f6e832ddc996d256cc9"
-preview_id = "ed38018b3b2e4f6e832ddc996d256cc9"
 
 [[d1_databases]]
 binding = "BITBOT_DB"
 database_name = "bitbot"
 database_id = "a7f0c4f1-c1c3-4b8e-994a-2f7dbaf7c51a"
 
-# — Static assets (frontend dashboard) —————————————————————————
+# -- Static assets (frontend dashboard) --------------------------------------
 # Serve apps/frontend sebagai static assets dari worker yang sama.
 # Asset yang cocok (index.html, options.html, src/*.js, data/*.json) di-serve
 # langsung; request yang tidak cocok (mis. /api/*) diteruskan ke fetch handler.
 [assets]
-directory = "../frontend"
-binding = "ASSETS"
-
-# — Staging ————————————————————————————————————————————————————————————————————————————————————
-[env.staging]
-name = "btc-dashboard-worker-staging"
-
-[env.staging.triggers]
-crons = ["0 * * * *"]
-
-[[env.staging.kv_namespaces]]
-binding = "BTC_CACHE"
-id = "ed38018b3b2e4f6e832ddc996d256cc9"
-
-[[env.staging.d1_databases]]
-binding = "BITBOT_DB"
-database_name = "bitbot"
-database_id = "a7f0c4f1-c1c3-4b8e-994a-2f7dbaf7c51a"
-
-[env.staging.assets]
-directory = "../frontend"
-binding = "ASSETS"
-
-# — Production ——————————————————————————————————————————————————————————————————————————————————————
-[env.production]
-name = "btc-dashboard-worker-production"
-
-[env.production.triggers]
-crons = ["0 * * * *"]
-
-[[env.production.kv_namespaces]]
-binding = "BTC_CACHE"
-id = "ed38018b3b2e4f6e832ddc996d256cc9"
-
-[[env.production.d1_databases]]
-binding = "BITBOT_DB"
-database_name = "bitbot"
-database_id = "a7f0c4f1-c1c3-4b8e-994a-2f7dbaf7c51a"
-
-[env.production.assets]
 directory = "../frontend"
 binding = "ASSETS"

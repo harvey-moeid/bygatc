@@ -3,8 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
-    "deploy:staging": "wrangler deploy --env staging",
-    "deploy:production": "wrangler deploy --env production",
+    "deploy:production": "wrangler deploy",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
