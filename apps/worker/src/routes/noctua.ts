@@ -5,7 +5,8 @@
  *
  * GH Actions menjalankan model/serve/predict.py, lalu POST hasilnya ke:
  *   POST /api/noctua/push  (dengan header Authorization: Bearer <secret>)
- * Worker menyimpan ke KV.
+ * Worker menyimpan ke KV, lalu cek perubahan regime vol untuk notif Discord
+ * (lihat lib/futuresSignal.ts -- bukan sinyal arah, cuma p_vol_amplify).
  *
  * Dashboard browser fetch dari:
  *   GET  /api/noctua/latest
@@ -16,6 +17,7 @@
 
 import { Hono } from 'hono';
 import type { Env } from '../index';
+import { checkFuturesVolAlert } from '../lib/futuresSignal';
 
 type NoctuaEnv = Env & { NOCTUA_PUSH_SECRET: string };
 
@@ -137,7 +139,7 @@ noctuaRoutes.post('/push', async (c) => {
 
   const b = body as Record<string, unknown>;
 
-  // Validasi type + range – cegah nilai luar batas masuk KV dan ditampilkan di dashboard
+  // Validasi type + range -- cegah nilai luar batas masuk KV dan ditampilkan di dashboard
   const upside = b['upside'];
   const volAmp = b['volAmp'];
   if (
@@ -159,12 +161,18 @@ noctuaRoutes.post('/push', async (c) => {
     _updatedMs: Date.now(),
   };
 
-  // TTL 26 jam – model jalan sehari sekali, kasih buffer
+  // TTL 26 jam -- model jalan sehari sekali, kasih buffer
   await c.env.BTC_CACHE.put('noctua:latest', JSON.stringify(payload), {
     expirationTtl: 93600,
   });
 
   console.log(`[noctua/push] stored: upside=${upside} volAmp=${volAmp}`);
+
+  // Notif Discord kalau regime vol (p_vol_amplify) berubah tier. Sengaja
+  // TIDAK pakai upside/p_up_raw sebagai sinyal arah -- lihat komentar di
+  // lib/futuresSignal.ts dan docs/TRADE_FLOW.md bagian 3 & 8.
+  await checkFuturesVolAlert(c.env, payload);
+
   return c.json({ ok: true });
 });
 
