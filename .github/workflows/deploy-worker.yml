@@ -41,6 +41,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Typecheck Worker
+        working-directory: apps/worker
+        run: pnpm typecheck
+
       - name: Deploy Worker to production
         working-directory: apps/worker
         env:

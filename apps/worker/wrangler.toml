@@ -28,10 +28,9 @@ crons = ["0 * * * *"]
 binding = "BTC_CACHE"
 id = "ed38018b3b2e4f6e832ddc996d256cc9"
 
-[[d1_databases]]
-binding = "BITBOT_DB"
-database_name = "bitbot"
-database_id = "a7f0c4f1-c1c3-4b8e-994a-2f7dbaf7c51a"
+# NB: sebelumnya ada binding D1 `BITBOT_DB` di sini. Dihapus -- tidak ada
+# referensi Env.BITBOT_DB di apps/worker/src/** (dicek: index.ts, routes/*,
+# cron/*), sisa boilerplate dari project lain. Lihat TODO_btb.md.
 
 # -- Static assets (frontend dashboard) --------------------------------------
 # Serve apps/frontend sebagai static assets dari worker yang sama.

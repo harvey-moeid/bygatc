@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy:production": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
