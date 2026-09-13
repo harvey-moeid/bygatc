@@ -1,0 +1,130 @@
+/* ==========================================================================
+   base.css — Fondasi bersama untuk index.html / futures.html / options.html
+   Fase 1 · checklist-upgrade-pro-btc-desk.md
+
+   Tujuan file ini SENGAJA dibatasi: memindahkan CSS yang sudah identik/
+   hampir identik di 3 halaman ke satu tempat, TANPA mengubah tampilan yang
+   sudah ada (zero visual regression). Penyelarasan nilai warna/padding yang
+   memang berbeda antar halaman (lihat blok "AUDIT" di paling bawah) sengaja
+   ditunda ke Fase 2/3 karena itu perubahan visual yang perlu dicek langsung
+   di browser, bukan sekadar refactor struktur.
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root{
+  /* ---- token kanonik (persis dari index.html) ---- */
+  --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a24;--surface3:#22222e;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --text:#e7e7f0;--muted:#71717a;--dim:#52525b;
+  --accent:#818cf8;--accent2:#a78bfa;
+  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);--green-bd:rgba(74,222,128,0.3);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-bd:rgba(248,113,113,0.3);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);--amber-bd:rgba(251,191,36,0.3);
+  --blue:#60a5fa;--cyan:#22d3ee;--pink:#f472b6;
+  --font-mono:'Space Mono',monospace;--font:'Inter',system-ui,sans-serif;
+
+  /* ---- token "legacy" (persis dari futures.html & options.html) ----
+     Nilai sengaja TIDAK diubah ke token kanonik di atas (lihat AUDIT).
+     futures.html & options.html masih memakai nama variabel ini apa adanya. */
+  --panel:#11151f;--panel2:#161b28;--line:#222a3a;
+  --txt:#dbe2f0;--grn:#2fd57b;--amb:#ffb347;--acc:#5b8cff;
+  --mono:'SF Mono',Consolas,monospace;
+}
+
+/* ---- reset & global (identik di ketiga halaman) ---- */
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+
+/* a11y: skip link + hormati preferensi motion pengguna (dari index.html,
+   aman dipakai global — tidak berefek pada halaman yang belum punya
+   elemen .skip-link atau animasi) */
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--surface,#161b28);color:#fff;padding:8px 14px;border-radius:6px;z-index:999}
+.skip-link:focus{left:10px;top:10px}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
+}
+
+/* ---- .btn (dari index.html) ---- */
+.btn{background:transparent;border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:10px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s;letter-spacing:.04em}
+.btn:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
+
+/* ---- .pill-sm + varian (dari index.html) ---- */
+.pill-sm{font-size:10px;padding:4px 10px;border-radius:6px;font-family:var(--font-mono)}
+.pill-sm.ok{background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green)}
+.pill-sm.warn{background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber)}
+.pill-sm.err{background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red)}
+.pill-sm.muted{background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
+
+/* ---- Modal "Panduan" (dari index.html) ----
+   Dipindah ke sini supaya futures.html/options.html bisa pakai modal yang
+   sama persis kalau nanti butuh (mis. panduan Desk Futures/Opsi sendiri)
+   tanpa duplikasi ~40 baris CSS lagi. */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;width:min(740px,94vw);max-height:85vh;overflow-y:auto;padding:28px 30px;position:relative;scrollbar-width:thin;scrollbar-color:var(--surface3) transparent}
+.modal-box::-webkit-scrollbar{width:4px}.modal-box::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
+.modal-close{position:absolute;top:16px;right:16px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;transition:all .15s}
+.modal-close:hover{border-color:var(--accent);color:var(--accent)}
+.modal-title{font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--accent);margin-bottom:3px}
+.modal-sub{font-size:11px;color:var(--muted);margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.guide-h{font-size:9px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+.guide-h::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.guide-h.valid::before{background:var(--green)}
+.guide-h.invalid::before{background:var(--red)}
+.guide-h.flow::before{background:var(--accent)}
+.guide-h.limits::before{background:var(--amber)}
+.guide-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.guide-row{grid-template-columns:1fr}}
+.gc{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 14px}
+.gc.valid{border-color:rgba(74,222,128,.25)}
+.gc.invalid{border-color:rgba(248,113,113,.25)}
+.gc-title{font-family:var(--font-mono);font-size:11px;font-weight:700;margin-bottom:5px}
+.gc.valid .gc-title{color:var(--green)}.gc.invalid .gc-title{color:var(--red)}
+.gc p{font-size:11px;color:var(--muted);line-height:1.55}
+.gc p b{color:var(--text)}
+.verdict-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.vt{font-size:10px;font-family:var(--font-mono);padding:2px 8px;border-radius:4px;font-weight:700}
+.vt.go{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd)}
+.vt.cau{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)}
+.vt.nt{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
+.guide-note{background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.2);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--text);line-height:1.6;margin-top:12px}
+.guide-note b{color:var(--amber)}
+.gf{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.gf-step{display:flex;gap:12px;align-items:flex-start}
+.gf-num{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--accent);width:22px;flex-shrink:0;padding-top:1px}
+.gf-body{font-size:12px;color:var(--text);line-height:1.5}
+.gf-body .tag{font-family:var(--font-mono);font-size:10px;padding:1px 6px;border-radius:3px;background:var(--surface3);color:var(--muted);border:1px solid var(--border)}
+.gf-body em{color:var(--muted);font-style:normal}
+.regime-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:8px}
+.regime-table th{text-align:left;padding:5px 10px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);font-weight:500}
+.regime-table td{padding:6px 10px;border-bottom:1px solid var(--border)}
+.regime-table tr:last-child td{border-bottom:none}
+.regime-table td:nth-child(3){font-family:var(--font-mono)}
+
+/* ==========================================================================
+   AUDIT — perbedaan nilai yang ditemukan saat konsolidasi (Fase 1, item 4)
+   Belum diubah di sini; ini catatan untuk keputusan sadar di Fase 2/3/6.
+   --------------------------------------------------------------------------
+   1. --bg           index #0a0a0f   vs  futures/options #0b0e14  (mirip, beda tipis)
+   2. --surface/panel index #12121a  vs  futures/options #11151f  (mirip, beda tipis)
+   3. --border/line  index rgba(255,255,255,.06) (overlay putih transparan)
+                     vs futures/options #222a3a (solid biru-abu gelap)
+                     → teknik berbeda, bukan cuma beda angka. Perlu dicek visual
+                       langsung sebelum disatukan (calon kerjaan Fase 2).
+   4. --green/grn    index #4ade80   vs  futures/options #2fd57b
+   5. --red          index #f87171   vs  futures/options #ff5470
+   6. --amber/amb    index #fbbf24   vs  futures/options #ffb347
+   7. --accent/acc   index #818cf8   vs  futures/options #5b8cff
+      → 4-7 dipakai di BANYAK rgba() hardcoded di futures.html & options.html
+        (mis. background verdict, dir-toggle, hero gradient). Mengganti value
+        variabel saja TIDAK cukup — rgba() hardcoded itu juga harus diikutkan,
+        kalau tidak teks & background verdict jadi tidak senada.
+   8. --font-mono    index 'Space Mono' vs futures/options 'SF Mono'/Consolas
+   9. .card padding  index 14px 16px   vs  futures/options 14px 14px
+   10. --dim (index, #52525b, TIDAK dipakai di manapun di index.html) vs
+       --dim (futures/options, #7e8aa3, dipakai luas sebagai warna teks
+       sekunder — perannya sama dengan --muted index, bukan --dim index).
+       futures.html & options.html tetap pakai nilai --dim aslinya sendiri
+       (lihat override kecil di masing-masing file) supaya tidak berubah.
+   ========================================================================== */
