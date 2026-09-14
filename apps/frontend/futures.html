@@ -3,16 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https:; frame-src 'none'; object-src 'none'; base-uri 'self'">
+<!-- Fase 1 (checklist-upgrade-pro-btc-desk.md): base.css ditambahkan; style-src/font-src
+     CSP diperluas untuk font Google yang di-@import oleh base.css (samakan index.html). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https:; frame-src 'none'; object-src 'none'; base-uri 'self'">
 <title>Desk Risiko Futures BTC &middot; BTCUSDT.P</title>
+<link rel="stylesheet" href="styles/base.css">
 <style>
-  :root{
-    --bg:#0b0e14; --panel:#11151f; --panel2:#161b28; --line:#222a3a;
-    --txt:#dbe2f0; --dim:#7e8aa3; --grn:#2fd57b; --red:#ff5470; --amb:#ffb347;
-    --acc:#5b8cff; --mono:'SF Mono',Consolas,monospace;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,'Segoe UI',Roboto,sans-serif;padding:18px}
+/* :root, reset, body base, dan .card (bg/border/radius/padding) sekarang
+   di styles/base.css (Fase 1 checklist). Alias --panel/--panel2/--line/--txt/
+   --grn/--amb/--acc/--mono di base.css menyambungkan nama variabel lama file
+   ini ke token kanonik -- --bg/--dim/--red kebetulan sudah nama yang sama,
+   jadi otomatis ikut token kanonik juga. Sisa di bawah ini khusus komponen
+   futures.html. */
+  body{padding:18px}
 
   header{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:16px}
   h1{font-size:19px;letter-spacing:.4px}
@@ -26,7 +29,7 @@
   .wide{grid-column:1/-1}
 
   /* cards */
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;transition:opacity .2s}
+  .card{transition:opacity .2s}
   .card h2{font-size:11px;text-transform:uppercase;letter-spacing:1.1px;color:var(--dim);margin-bottom:10px}
   .big{font-size:26px;font-weight:700;font-family:var(--mono);margin-bottom:6px}
 
