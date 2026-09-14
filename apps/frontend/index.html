@@ -11,22 +11,12 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https:; frame-src 'none'; object-src 'none'; base-uri 'self'">
 <title>Desk Opsi BTC &middot; BGTC / HV20 / Retail Seller v4</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>&#x20BF;</text></svg>">
+<link rel="stylesheet" href="styles/base.css">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
-:root{
-  --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a24;--surface3:#22222e;
-  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
-  --text:#e7e7f0;--muted:#71717a;--dim:#52525b;
-  --accent:#818cf8;--accent2:#a78bfa;
-  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);--green-bd:rgba(74,222,128,0.3);
-  --red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-bd:rgba(248,113,113,0.3);
-  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);--amber-bd:rgba(251,191,36,0.3);
-  --blue:#60a5fa;--cyan:#22d3ee;--pink:#f472b6;
-  --font-mono:'Space Mono',monospace;--font:'Inter',system-ui,sans-serif;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5;overflow-x:hidden}
+/* :root, reset, body base, .btn, .pill-sm, .card, modal shell
+   sekarang di styles/base.css (Fase 1 checklist). Sisa di bawah ini
+   khusus komponen index.html yang belum/tidak dipakai bersama. */
+body{overflow-x:hidden}
 
 /* Background texture */
 body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;z-index:0;
@@ -47,13 +37,6 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .pulse{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
 @keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
 .topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.pill-sm{font-size:10px;padding:4px 10px;border-radius:6px;font-family:var(--font-mono)}
-.pill-sm.ok{background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green)}
-.pill-sm.warn{background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber)}
-.pill-sm.err{background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red)}
-.pill-sm.muted{background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
-.btn{background:transparent;border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:10px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s;letter-spacing:.04em}
-.btn:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
 
 /* HERO DECISION CARD */
 .hero{position:relative;border-radius:14px;padding:22px 24px;margin-bottom:14px;border:2px solid;overflow:hidden}
@@ -125,12 +108,6 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .session-seg{font-size:8px;font-weight:500;color:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;position:relative}
 .session-now{position:relative;width:2px;background:#fff;border-radius:2px;animation:pulse-now 1.8s infinite;z-index:2}
 @keyframes pulse-now{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}50%{box-shadow:0 0 8px 3px rgba(255,255,255,.3)}}
-/* a11y: skip link + honor user motion preference */
-.skip-link{position:absolute;left:-9999px;top:0;background:var(--surface,#161b28);color:#fff;padding:8px 14px;border-radius:6px;z-index:999}
-.skip-link:focus{left:10px;top:10px}
-@media (prefers-reduced-motion: reduce){
-  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
-}
 
 /* REGIME DIAL */
 .regime-dial-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:14px}
@@ -198,9 +175,6 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .odds-bar{display:inline-block;height:8px;background:var(--accent);border-radius:3px;vertical-align:middle;margin-right:8px}
 
 /* INFO CARDS */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
-.card-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:500;display:flex;align-items:center;gap:6px}
-.card-title .dot{width:5px;height:5px;border-radius:50%}
 .ir{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
 .ir:last-child{border-bottom:none}
 .ir-l{color:var(--muted)}
@@ -255,15 +229,7 @@ footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-
 footer a{color:var(--muted);text-decoration:none}
 footer a:hover{color:var(--accent)}
 
-/* ── PANDUAN MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
-.modal-overlay.open{opacity:1;pointer-events:all}
-.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;width:min(740px,94vw);max-height:85vh;overflow-y:auto;padding:28px 30px;position:relative;scrollbar-width:thin;scrollbar-color:var(--surface3) transparent}
-.modal-box::-webkit-scrollbar{width:4px}.modal-box::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
-.modal-close{position:absolute;top:16px;right:16px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;transition:all .15s}
-.modal-close:hover{border-color:var(--accent);color:var(--accent)}
-.modal-title{font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--accent);margin-bottom:3px}
-.modal-sub{font-size:11px;color:var(--muted);margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+/* —— PANDUAN MODAL —— */
 .guide-h{font-size:9px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);margin:18px 0 10px;display:flex;align-items:center;gap:8px}
 .guide-h::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .guide-h.valid::before{background:var(--green)}
@@ -528,7 +494,7 @@ footer a:hover{color:var(--accent)}
   </div>
 </footer>
 
-<!-- ── PANDUAN MODAL ── -->
+<!-- —— PANDUAN MODAL —— -->
 <div class="modal-overlay" id="panduanModal" onclick="if(event.target===this)this.classList.remove('open')" role="dialog" aria-modal="true" aria-label="Panduan cara baca sinyal">
   <div class="modal-box">
     <button class="modal-close" onclick="document.getElementById('panduanModal').classList.remove('open')">&#10005; TUTUP</button>
@@ -594,7 +560,7 @@ footer a:hover{color:var(--accent)}
 
   </div>
 </div>
-<!-- ── END PANDUAN MODAL ── -->
+<!-- —— END PANDUAN MODAL —— -->
 
 </main>
 
