@@ -62,8 +62,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
    futures.html/options.html sebelumnya punya .card sendiri dengan
    padding:14px (uniform). index.html pakai 14px 16px. Disamakan ke
    14px 16px di sini -- beda 2px horizontal, perubahan kecil yang
-   disengaja sebagai bagian dari audit Fase 1. */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+   disengaja sebagai bagian dari audit Fase 1.
+   Fase 2: box-shadow ditambahkan supaya card punya depth tipis di
+   ketiga halaman -- sebelumnya 0 dipakai sama sekali di manapun. */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .card-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:500;display:flex;align-items:center;gap:6px}
 .card-title .dot{width:5px;height:5px;border-radius:50%}
 
