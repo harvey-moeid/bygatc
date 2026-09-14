@@ -9,8 +9,8 @@
 <title>Desk Risiko Futures BTC &middot; BTCUSDT.P</title>
 <link rel="stylesheet" href="styles/base.css">
 <style>
-/* :root, reset, body base, dan .card (bg/border/radius/padding) sekarang
-   di styles/base.css (Fase 1 checklist). Alias --panel/--panel2/--line/--txt/
+/* :root, reset, body base, dan .card (bg/border/radius/padding/shadow) sekarang
+   di styles/base.css (Fase 1-2 checklist). Alias --panel/--panel2/--line/--txt/
    --grn/--amb/--acc/--mono di base.css menyambungkan nama variabel lama file
    ini ke token kanonik -- --bg/--dim/--red kebetulan sudah nama yang sama,
    jadi otomatis ikut token kanonik juga. Sisa di bawah ini khusus komponen
@@ -48,9 +48,10 @@
   .v-ok     {background:rgba(91,140,255,.10);border:1px solid var(--acc);color:var(--acc)}
   .v-neutral{background:rgba(126,138,163,.10);border:1px solid var(--dim);color:var(--dim)}
 
-  /* direction toggle */
+  /* direction toggle -- Fase 2: transition ditambahkan (dulu toggle Long/Short
+     berubah instan tanpa animasi sama sekali) */
   .dir-toggle{display:flex;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-  .dir-toggle button{border:none;border-radius:0;background:var(--panel2);color:var(--txt);padding:6px 16px;font-size:13px;cursor:pointer}
+  .dir-toggle button{border:none;border-radius:0;background:var(--panel2);color:var(--txt);padding:6px 16px;font-size:13px;cursor:pointer;transition:background .15s,color .15s}
   .dir-toggle button.active.long {background:rgba(47,213,123,.18);color:var(--grn);font-weight:600}
   .dir-toggle button.active.short{background:rgba(255,84,112,.18);color:var(--red);font-weight:600}
 
@@ -58,8 +59,9 @@
   .controls{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:8px 0 10px}
   .controls label{font-size:12px;color:var(--dim);display:flex;flex-direction:column;gap:4px}
   input[type=range]{accent-color:var(--acc);width:120px}
-  input[type=number]{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:110px;font-family:var(--mono)}
-  button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer}
+  input[type=number]{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:110px;font-family:var(--mono);transition:border-color .15s}
+  input[type=number]:focus{border-color:var(--acc);outline:none}
+  button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
   button:hover{border-color:var(--acc)}
 
   /* tables */
