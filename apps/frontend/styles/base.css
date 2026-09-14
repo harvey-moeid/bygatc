@@ -1,5 +1,5 @@
 /* ============================================================
-   base.css — BTC Desk shared foundation
+   base.css -- BTC Desk shared foundation
    Fase 1 (checklist-upgrade-pro-btc-desk.md): konsolidasi tokens
    & komponen bersama dari index.html, futures.html, options.html.
 
@@ -61,7 +61,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 /* ---------- CARD BASE (.card) ----------
    futures.html/options.html sebelumnya punya .card sendiri dengan
    padding:14px (uniform). index.html pakai 14px 16px. Disamakan ke
-   14px 16px di sini — beda 2px horizontal, perubahan kecil yang
+   14px 16px di sini -- beda 2px horizontal, perubahan kecil yang
    disengaja sebagai bagian dari audit Fase 1. */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
 .card-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:500;display:flex;align-items:center;gap:6px}
@@ -70,7 +70,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 /* ---------- MODAL SHELL ----------
    Dipindah dari index.html. Konten spesifik panduan (guide-h, .gc,
    .gf, dll) TETAP di index.html karena itu konten, bukan komponen
-   struktural — tapi shell modal ini reusable untuk futures/options
+   struktural -- tapi shell modal ini reusable untuk futures/options
    kalau nanti butuh modal juga. */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
 .modal-overlay.open{opacity:1;pointer-events:all}
