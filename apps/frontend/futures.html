@@ -42,25 +42,34 @@
 
   /* verdict */
   .verdict{font-size:15px;font-weight:700;padding:9px 12px;border-radius:8px;text-align:center}
-  .v-sell   {background:rgba(47,213,123,.12);border:1px solid var(--grn);color:var(--grn)}
-  .v-caution{background:rgba(255,179,71,.12);border:1px solid var(--amb);color:var(--amb)}
-  .v-stand  {background:rgba(255,84,112,.12);border:1px solid var(--red);color:var(--red)}
-  .v-ok     {background:rgba(91,140,255,.10);border:1px solid var(--acc);color:var(--acc)}
-  .v-neutral{background:rgba(126,138,163,.10);border:1px solid var(--dim);color:var(--dim)}
+  /* Fase 3: border verdict diganti jadi gradient tipis (two-layer background:
+     layer 1 = padding-box fill lama, layer 2 = border-box gradient) supaya
+     "card keputusan" (SELL/CAUTION/STAND ASIDE/OK/netral) tidak cuma garis
+     solid satu warna -- border-width diperkecil dari implisit 1px flat ke
+     tetap 1px tapi meluruh (transparent) di ujungnya. */
+  .v-sell   {background:linear-gradient(rgba(47,213,123,.12),rgba(47,213,123,.12)) padding-box,linear-gradient(135deg,var(--grn),transparent 75%) border-box;border:1px solid transparent;color:var(--grn)}
+  .v-caution{background:linear-gradient(rgba(255,179,71,.12),rgba(255,179,71,.12)) padding-box,linear-gradient(135deg,var(--amb),transparent 75%) border-box;border:1px solid transparent;color:var(--amb)}
+  .v-stand  {background:linear-gradient(rgba(255,84,112,.12),rgba(255,84,112,.12)) padding-box,linear-gradient(135deg,var(--red),transparent 75%) border-box;border:1px solid transparent;color:var(--red)}
+  .v-ok     {background:linear-gradient(rgba(91,140,255,.10),rgba(91,140,255,.10)) padding-box,linear-gradient(135deg,var(--acc),transparent 75%) border-box;border:1px solid transparent;color:var(--acc)}
+  .v-neutral{background:linear-gradient(rgba(126,138,163,.10),rgba(126,138,163,.10)) padding-box,linear-gradient(135deg,var(--dim),transparent 75%) border-box;border:1px solid transparent;color:var(--dim)}
 
   /* direction toggle -- Fase 2: transition ditambahkan (dulu toggle Long/Short
      berubah instan tanpa animasi sama sekali) */
   .dir-toggle{display:flex;gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden}
   .dir-toggle button{border:none;border-radius:0;background:var(--panel2);color:var(--txt);padding:6px 16px;font-size:13px;cursor:pointer;transition:background .15s,color .15s}
-  .dir-toggle button.active.long {background:rgba(47,213,123,.18);color:var(--grn);font-weight:600}
-  .dir-toggle button.active.short{background:rgba(255,84,112,.18);color:var(--red);font-weight:600}
+  /* Fase 3: tombol arah aktif (LONG/SHORT) juga dapat border gradient tipis,
+     dengan teknik dua-layer background yang sama seperti .v-sell dkk di atas. */
+  .dir-toggle button.active.long {background:linear-gradient(rgba(47,213,123,.18),rgba(47,213,123,.18)) padding-box,linear-gradient(180deg,var(--grn),transparent 90%) border-box;border:1px solid transparent;color:var(--grn);font-weight:600}
+  .dir-toggle button.active.short{background:linear-gradient(rgba(255,84,112,.18),rgba(255,84,112,.18)) padding-box,linear-gradient(180deg,var(--red),transparent 90%) border-box;border:1px solid transparent;color:var(--red);font-weight:600}
 
   /* controls */
   .controls{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:8px 0 10px}
   .controls label{font-size:12px;color:var(--dim);display:flex;flex-direction:column;gap:4px}
   input[type=range]{accent-color:var(--acc);width:120px}
   input[type=number]{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 8px;width:110px;font-family:var(--mono);transition:border-color .15s}
-  input[type=number]:focus{border-color:var(--acc);outline:none}
+  /* Fase 3: aturan :focus lama (border-color saja) dipindah ke base.css
+     sebagai :focus-visible dengan ring lembut (box-shadow), berlaku
+     otomatis ke semua input/select/button/range di ketiga halaman. */
   button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
   button:hover{border-color:var(--acc)}
 
@@ -95,10 +104,13 @@
      Verdict di sini menilai KESIAPAN trading (timing + ukuran posisi), bukan
      arah -- arah LONG/SHORT tetap keputusan pengguna di kartu "Arah & Ukuran
      Posisi" di bawah. Lihat DataLayer.buildFuturesDecision() di data.js. */
-  .hero{position:relative;border-radius:12px;padding:20px 22px;margin-bottom:16px;border:2px solid;overflow:hidden}
-  .hero.go{border-color:var(--grn);background:linear-gradient(135deg,rgba(47,213,123,.08),rgba(47,213,123,.02))}
-  .hero.cau{border-color:var(--amb);background:linear-gradient(135deg,rgba(255,179,71,.08),rgba(255,179,71,.02))}
-  .hero.nt{border-color:var(--red);background:linear-gradient(135deg,rgba(255,84,112,.08),rgba(255,84,112,.02))}
+  /* Fase 3: border hero diganti dari solid 2px jadi gradient tipis 1px
+     (teknik dua-layer background, sama seperti .v-sell/.dir-toggle di atas)
+     -- "tipis" secara harfiah karena width diperkecil 2px->1px sekaligus. */
+  .hero{position:relative;border-radius:12px;padding:20px 22px;margin-bottom:16px;border:1px solid transparent;overflow:hidden}
+  .hero.go{background:linear-gradient(135deg,rgba(47,213,123,.08),rgba(47,213,123,.02)) padding-box,linear-gradient(135deg,var(--grn),transparent 65%) border-box}
+  .hero.cau{background:linear-gradient(135deg,rgba(255,179,71,.08),rgba(255,179,71,.02)) padding-box,linear-gradient(135deg,var(--amb),transparent 65%) border-box}
+  .hero.nt{background:linear-gradient(135deg,rgba(255,84,112,.08),rgba(255,84,112,.02)) padding-box,linear-gradient(135deg,var(--red),transparent 65%) border-box}
   .hero-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:14px}
   .hero-verdict{display:flex;align-items:center;gap:16px}
   .verdict-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
@@ -148,7 +160,7 @@
       <div class="verdict-icon" id="heroIcon">&hellip;</div>
       <div class="verdict-text">
         <div class="verdict-label">Rekomendasi Kesiapan Trading</div>
-        <div class="verdict-main" id="heroVerdict" aria-live="polite" role="status">MEMUAT&hellip;</div>
+        <div class="verdict-main glow-num" id="heroVerdict" aria-live="polite" role="status">MEMUAT&hellip;</div>
         <div class="verdict-sub" id="heroSub">Mengambil data pasar, NOCTUA, funding&hellip;</div>
       </div>
     </div>
@@ -180,7 +192,7 @@
 
   <div class="card">
     <h2>Pasar &middot; mark BTCUSDT.P</h2>
-    <div class="big" id="spot">&mdash;</div>
+    <div class="big glow-num glow-accent" id="spot">&mdash;</div>
     <div class="kv"><span>Spot ref. (Binance BTCUSDT)</span> <b id="spotRef">&mdash;</b></div>
     <div class="kv"><span>Basis (perp &minus; spot)</span>   <b id="basis">&mdash;</b></div>
     <div class="kv"><span>HV20 (tahunan)</span>  <b id="hv20">&mdash;</b></div>
