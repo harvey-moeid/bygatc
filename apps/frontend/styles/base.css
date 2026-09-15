@@ -33,6 +33,17 @@
   --line:var(--border);--txt:var(--text);
   --grn:var(--green);--amb:var(--amber);--acc:var(--accent);
   --mono:var(--font-mono);
+
+  /* --- elevasi (Fase 3): 3 tingkat shadow lembut, dipakai bareng
+     dengan tingkatan warna surface/surface2/surface3 supaya "naik
+     level" terlihat dari shadow, bukan cuma dari warna latar.
+     sm = level dasar (.card, --surface), md = kotak bersarang
+     (--surface2, mis. .leg/.rcm/.rd-size-card di index.html),
+     lg = disediakan untuk elemen --surface3 (badge/tag kecil
+     sengaja tidak dipakaikan shadow -- lihat catatan di index.html). --*/
+  --shadow-sm:0 2px 6px rgba(0,0,0,.3);
+  --shadow-md:0 3px 10px rgba(0,0,0,.35);
+  --shadow-lg:0 6px 18px rgba(0,0,0,.42);
 }
 
 /* ---------- RESET ---------- */
@@ -46,6 +57,41 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
 }
+
+/* ---------- FOCUS STATES (Fase 3) ----------
+   Semua halaman berbagi base.css, jadi cukup didefinisikan sekali di
+   sini: ring lembut (box-shadow warna accent, bukan outline kotak
+   default browser) untuk keyboard focus di button/input/select/link,
+   plus versi khusus untuk thumb slider (input[type=range]) yang
+   butuh pseudo-element vendor sendiri. Dipicu hanya lewat
+   :focus-visible supaya klik mouse biasa tidak memunculkan ring. */
+button:focus-visible,.btn:focus-visible,a:focus-visible,
+input:not([type=range]):focus-visible,select:focus-visible,
+textarea:focus-visible{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(129,140,248,.35);
+}
+input[type=range]:focus-visible{outline:none}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(129,140,248,.4)}
+input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px rgba(129,140,248,.4)}
+input[type=range]:focus-visible::-ms-thumb{box-shadow:0 0 0 4px rgba(129,140,248,.4)}
+
+/* ---------- AMBIENT GLOW (Fase 3) ----------
+   Utility untuk "angka hero" (harga BTC, verdict utama) supaya ada
+   blur radial lembut di baliknya -- kesan lebih premium daripada teks
+   polos di atas background flat. Pasang class .glow-num di elemen
+   yang teksnya sudah berwarna (mis. .verdict-main, yang warnanya
+   berubah ikut state .hero.go/.cau/.nt) -- glow otomatis ikut warna
+   teks lewat currentColor, jadi tidak perlu CSS per-state terpisah.
+   Tambahkan .glow-accent kalau elemen teksnya netral (mis. .big harga
+   yang warnanya var(--text)/putih) supaya glow tetap berwarna accent
+   alih-alih putih pucat. isolation:isolate membuat stacking context
+   baru supaya z-index:-1 hanya menyembunyikan glow di belakang teks
+   elemen itu sendiri, bukan di belakang seluruh card. */
+.glow-num{position:relative;isolation:isolate}
+.glow-num::before{content:'';position:absolute;inset:-30% -20%;background:radial-gradient(ellipse at center,currentColor 0%,transparent 70%);opacity:.16;filter:blur(20px);z-index:-1;pointer-events:none}
+.glow-num.glow-accent::before{background:radial-gradient(ellipse at center,var(--accent) 0%,transparent 70%)}
 
 /* ---------- BUTTON (.btn) ---------- */
 .btn{background:transparent;border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:10px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s;letter-spacing:.04em}
@@ -64,8 +110,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
    14px 16px di sini -- beda 2px horizontal, perubahan kecil yang
    disengaja sebagai bagian dari audit Fase 1.
    Fase 2: box-shadow ditambahkan supaya card punya depth tipis di
-   ketiga halaman -- sebelumnya 0 dipakai sama sekali di manapun. */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+   ketiga halaman -- sebelumnya 0 dipakai sama sekali di manapun.
+   Fase 3: nilai shadow dipindah ke var(--shadow-sm) (nilainya sama
+   persis, cuma sekarang satu sumber token elevasi -- lihat :root). */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:var(--shadow-sm)}
 .card-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:500;display:flex;align-items:center;gap:6px}
 .card-title .dot{width:5px;height:5px;border-radius:50%}
 
