@@ -89,6 +89,17 @@ async function doRefreshAll() {
   UI.updateNewsFeed(state.news);
   UI.updateRateLimits(RateLimit.getStats());
 
+  // Fase 4 checklist (checklist-upgrade-pro-btc-desk.md): jaring pengaman
+  // skeleton shimmer. Sebagian besar field sudah berhenti berkedip sendiri-
+  // sendiri lewat set()/setH()/animateValue() di ui.js begitu menerima nilai
+  // pertamanya, tapi field yang datanya tetap null pada load pertama (mis.
+  // API sumbernya gagal) tidak akan pernah memanggil salah satu dari itu --
+  // clearSkeletons() di sini melepas sisa class "skel" apa pun begitu satu
+  // putaran refresh selesai, supaya tidak ada placeholder yang shimmer
+  // selamanya. Aman dipanggil berulang (tidak melakukan apa-apa kalau
+  // sudah tidak ada elemen ".skel" tersisa).
+  if (typeof clearSkeletons === 'function') clearSkeletons();
+
   console.log('[v4] refreshAll done', {
     price: state.price?.price,
     BGTC: state.BGTC ? `${state.BGTC.upside}/${state.BGTC.volAmp} (${state.BGTC.freshness})` : 'null',

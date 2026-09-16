@@ -1,5 +1,17 @@
 /* =========================================================================
-   BTC Futures Risk Desk -- src/futures.js (v2.1)
+   BTC Futures Risk Desk -- src/futures.js (v2.2)
+   v2.2 (Fase 4 checklist -- checklist-upgrade-pro-btc-desk.md):
+     - Angka penting (harga mark/spot, HV20, funding, keyakinan hero)
+       sekarang lewat animateValue() (src/animate.js) supaya count-up
+       dari nilai lama ke nilai baru saat auto-refresh, bukan lompat
+       instan. Funding menampilkan rate + flag dalam satu elemen --
+       ratenya dipecah ke <span> tersendiri di dalamnya supaya cuma
+       angkanya yang di-animate, flag-nya tetap teks biasa.
+     - loadAll() memanggil clearSkeletons() di blok finally sebagai
+       jaring pengaman: field yang di-set lewat textContent biasa
+       (bukan animateValue) -- panel NOCTUA, Risk Plan -- baru lepas
+       class "skel" (shimmer placeholder, lihat base.css) lewat sapuan
+       ini setelah satu putaran render selesai, sukses maupun gagal.
    v2.1: hero decision card
      - renderHero(): TRADE OK / CAUTION / NO-TRADE readiness verdict, same
        visual language as the Options desk hero card (index.html + ui.js),
@@ -100,6 +112,12 @@ async function loadAll() {
     $('status').textContent = 'load failed \u2014 ' + e.message;
   } finally {
     loadInFlight = false;
+    // Fase 4 checklist: jaring pengaman skeleton shimmer -- field yang
+    // di-render lewat textContent biasa (panel NOCTUA, Risk Plan) baru
+    // lepas class "skel" di sini, satu sapuan, terlepas dari sukses/gagal.
+    // Field numerik yang lewat animateValue() di atas (spot/hv20/funding/
+    // heroConf) sudah lepas duluan sendiri-sendiri saat animateValue jalan.
+    if (typeof clearSkeletons === 'function') clearSkeletons();
   }
 }
 
@@ -119,9 +137,9 @@ function renderMarket() {
   const mark = FS.funding?.markPrice ?? null; // BTCUSDT.P mark price
   const ref  = refPrice();
 
-  $('spot').textContent = ref ? '$' + Math.round(ref).toLocaleString() : '\u2014';
+  animateValue($('spot'), ref, { prefix: '$', decimals: 0 });
   if ($('spotRef')) {
-    $('spotRef').textContent = spot ? '$' + Math.round(spot).toLocaleString() : '\u2014';
+    animateValue($('spotRef'), spot, { prefix: '$', decimals: 0 });
   }
   if ($('basis')) {
     if (mark && mark > 0 && spot) {
@@ -130,21 +148,29 @@ function renderMarket() {
       $('basis').textContent =
         `${basis >= 0 ? '+' : ''}$${basis.toFixed(2)} (${basisPct >= 0 ? '+' : ''}${basisPct.toFixed(3)}%)`;
       $('basis').className = Math.abs(basisPct) > 0.15 ? 'warn' : '';
+      $('basis').classList.remove('skel');
     } else {
       $('basis').textContent = '\u2014';
       $('basis').className = '';
     }
   }
 
-  $('hv20').textContent   = FS.hv20 ? FS.hv20.annualised.toFixed(1) + '%' : '\u2014';
-  $('hv20d').textContent  = FS.hv20 ? FS.hv20.oneDay.toFixed(2) + '%' : '\u2014';
+  animateValue($('hv20'),  FS.hv20?.annualised, { suffix: '%', decimals: 1 });
+  animateValue($('hv20d'), FS.hv20?.oneDay,     { suffix: '%', decimals: 2 });
   if (FS.funding) {
     const f = FS.funding;
-    $('funding').textContent = `${f.ratePct.toFixed(4)}% (${f.flag})`;
-    $('funding').className   = f.flag?.includes('extreme') ? 'warn' : '';
+    const fundingEl = $('funding');
+    if (fundingEl) {
+      if (!fundingEl.querySelector('.funding-num')) {
+        fundingEl.innerHTML = '<span class="funding-num"></span><span class="funding-flag"></span>';
+      }
+      animateValue(fundingEl.querySelector('.funding-num'), f.ratePct, { suffix: '%', decimals: 4 });
+      fundingEl.querySelector('.funding-flag').textContent = ` (${f.flag})`;
+      fundingEl.className = f.flag?.includes('extreme') ? 'warn' : '';
+    }
   }
   const pAmp = FS.BGTC?.p_vol_amplify ?? (FS.BGTC?.volAmp != null ? FS.BGTC.volAmp / 100 : null);
-  $('volAmp').textContent  = pAmp != null ? (pAmp * 100).toFixed(1) + '%' : '\u2014';
+  animateValue($('volAmp'), pAmp != null ? pAmp * 100 : null, { suffix: '%', decimals: 1 });
   $('volAmp').className    = pAmp > 0.55 ? 'warn' : pAmp <= 0.45 ? 'pos' : '';
 }
 
@@ -295,12 +321,13 @@ function renderHero(decision) {
              : decision.verdictClass === 'cau' ? ICONS.warning
              :                                    ICONS.dash;
   $('heroIcon').innerHTML = icon;
+  $('heroVerdict').classList.remove('skel');
   $('heroVerdict').textContent = decision.verdict;
   $('heroSub').textContent = decision.canTrade
     ? `Arah dipilih: ${decision.direction.toUpperCase()} \u00b7 ${decision.reasons.length} sinyal selaras, ${decision.blockers.length} pemblokir`
     : (decision.blockers[0] || 'Mengevaluasi semua sinyal\u2026');
 
-  $('heroConf').textContent = Math.round(decision.confidence) + '%';
+  animateValue($('heroConf'), Math.round(decision.confidence), { suffix: '%', decimals: 0 });
   const bar = $('heroConfBar');
   const color = decision.verdictClass === 'go' ? 'var(--grn)'
               : decision.verdictClass === 'cau' ? 'var(--amb)' : 'var(--red)';
