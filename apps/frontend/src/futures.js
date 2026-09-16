@@ -1,5 +1,16 @@
 /* =========================================================================
-   BTC Futures Risk Desk -- src/futures.js (v2.2)
+   BTC Futures Risk Desk -- src/futures.js (v2.3)
+   v2.3 (Fase 5 checklist -- checklist-upgrade-pro-btc-desk.md):
+     - renderBarrierCurves(): "Prob. sentuh" dulu cuma teks berwarna
+       (tpClass()) tanpa bar/gauge apapun -- satu-satunya tempat di ketiga
+       halaman yang benar-benar tidak punya representasi visual untuk
+       sebuah probabilitas. Sekarang tiap sel touch_prob dirender lewat
+       probGaugeHtml() (SVG stroke-dashoffset animated, lihat .prob-gauge-fill
+       di base.css, komponen sama yang dipakai ui.js untuk odds table &
+       retail plan) alih-alih tpClass() inline style pada <td>. Warnanya
+       tetap memakai ambang yang sama (tpStrokeColor(), turunan dari
+       tpClass() lama) supaya caption "Hijau <15% . Kuning 15-30% .
+       Oranye 30-50% . Merah >=50%" di bawah tabel tetap akurat.
    v2.2 (Fase 4 checklist -- checklist-upgrade-pro-btc-desk.md):
      - Angka penting (harga mark/spot, HV20, funding, keyakinan hero)
        sekarang lewat animateValue() (src/animate.js) supaya count-up
@@ -58,6 +69,49 @@ function tpClass(p) {
   if (p >= 0.30) return 'color:var(--amb)';
   if (p >= 0.15) return 'color:#e8d44d';
   return 'color:var(--grn)';
+}
+
+// Sama ambangnya dengan tpClass() di atas, tapi mengembalikan warna stroke
+// polos (tanpa "color:") supaya bisa dipakai langsung sebagai atribut SVG
+// stroke=... di probGaugeHtml() (Fase 5).
+function tpStrokeColor(p) {
+  if (p == null) return 'var(--dim)';
+  if (p >= 0.50) return 'var(--red)';
+  if (p >= 0.30) return 'var(--amb)';
+  if (p >= 0.15) return '#e8d44d';
+  return 'var(--grn)';
+}
+
+// -- PROBABILITY GAUGE (Fase 5) --------------------------------------------
+// Komponen SVG yang sama dengan yang dipakai ui.js untuk odds table & retail
+// plan: garis dengan stroke-dashoffset yang di-transition (lihat
+// .prob-gauge-fill di base.css) alih-alih lebar <div> statis. dashoffset
+// awal SENGAJA penuh (kosong); animateProbGauges() mengisi ke nilai target
+// satu tick kemudian lewat requestAnimationFrame supaya transition-nya
+// benar-benar kelihatan "mengisi", bukan langsung muncul penuh.
+const PROB_GAUGE_LEN = 40;
+
+function probGaugeHtml(prob, color) {
+  if (prob == null) return '<span class="dim">\u2014</span>';
+  const p = Math.max(0, Math.min(1, prob));
+  return `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end;width:100%">
+    <svg class="prob-gauge" width="34" height="10" viewBox="0 0 48 10" aria-hidden="true">
+      <path class="prob-gauge-track" d="M4 5 H44" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path class="prob-gauge-fill" data-target="${p}" d="M4 5 H44" stroke="${color}" stroke-width="4" fill="none" stroke-linecap="round" stroke-dasharray="${PROB_GAUGE_LEN}" stroke-dashoffset="${PROB_GAUGE_LEN}"/>
+    </svg>
+    <b class="mono" style="color:${color}">${(p * 100).toFixed(1)}%</b>
+  </span>`;
+}
+
+function animateProbGauges(root) {
+  const scope = root || document;
+  requestAnimationFrame(() => {
+    scope.querySelectorAll('.prob-gauge-fill[data-target]').forEach(el => {
+      const t = parseFloat(el.dataset.target);
+      if (Number.isNaN(t)) return;
+      el.style.strokeDashoffset = (PROB_GAUGE_LEN * (1 - t)).toFixed(2);
+    });
+  });
 }
 
 function settleCountdown(settleUtc) {
@@ -263,12 +317,16 @@ function renderBarrierCurves() {
     tr.innerHTML = `
       <td class="mono" style="color:var(--dim)">${up.pct.toFixed(1)}%</td>
       <td class="mono pos">${upPrice ? '$' + Math.round(upPrice).toLocaleString() : '\u2014'}</td>
-      <td class="mono" style="${tpClass(up.touch_prob)}">${up.touch_prob != null ? (up.touch_prob * 100).toFixed(1) + '%' : '\u2014'}</td>
+      <td>${probGaugeHtml(up.touch_prob, tpStrokeColor(up.touch_prob))}</td>
       <td class="mono neg">${dnPrice ? '$' + Math.round(dnPrice).toLocaleString() : '\u2014'}</td>
-      <td class="mono" style="${tpClass(dn?.touch_prob)}">${dn?.touch_prob != null ? (dn.touch_prob * 100).toFixed(1) + '%' : '\u2014'}</td>
+      <td>${probGaugeHtml(dn?.touch_prob, tpStrokeColor(dn?.touch_prob))}</td>
     `;
     el.appendChild(tr);
   }
+
+  // Fase 5: isi gauge yang baru saja disisipkan (dashoffset penuh -> target)
+  // satu tick setelah DOM terpasang, supaya transition-nya kelihatan.
+  animateProbGauges(el);
 }
 
 /* ------------------------------ safe levels table ------------------------ */

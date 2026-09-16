@@ -1,5 +1,5 @@
 /**
- * ui.js (v4.1) -- decision-focused UI bindings
+ * ui.js (v4.2 -> v5) -- decision-focused UI bindings
  * =====================================================================
  * Merender hero decision card, pulse strip, regime dial, session ribbon,
  * retail plan, odds table, BGTC card, signal list, dan rate limit grid.
@@ -34,6 +34,15 @@
  *   (src/animate.js) alih-alih textContent langsung, supaya nilainya
  *   "berhitung naik/turun" dari nilai lama ke nilai baru saat refresh,
  *   bukan lompat instan.
+ *
+ * v5 (Fase 5 checklist item 1): probabilitas "peluang pergerakan" (odds
+ *   table) dan probabilitas sentuh di Retail Plan (kandidat & alternatif
+ *   strike) sebelumnya dirender dengan <span class="odds-bar"> lebar
+ *   STATIS dalam px (odds table) atau cuma teks persen polos tanpa bar
+ *   sama sekali (retail plan). Keduanya sekarang pakai probGaugeHtml() --
+ *   SVG kecil dengan stroke-dashoffset yang di-transition (lihat
+ *   .prob-gauge-fill di base.css), diisi dari 0 -> nilai lewat
+ *   animateProbGauges() satu tick setelah innerHTML terpasang.
  */
 const UI = (() => {
   const fmt  = (n, d = 0) => new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
@@ -44,6 +53,64 @@ const UI = (() => {
   const $    = id => document.getElementById(id);
   const set  = (id, t) => { const e = $(id); if (e) { e.textContent = t; e.classList.remove('skel'); } };
   const setH = (id, h) => { const e = $(id); if (e) { e.innerHTML   = h; e.classList.remove('skel'); } };
+
+  // -- PROBABILITY GAUGE (Fase 5) -------------------------------------------
+  // Panjang path (dalam unit viewBox) dari komponen gauge di bawah --
+  // dipakai sebagai stroke-dasharray tetap dan basis perhitungan
+  // stroke-dashoffset (offset = PROB_GAUGE_LEN * (1 - prob)).
+  const PROB_GAUGE_LEN = 40;
+
+  // Merender satu bar probabilitas: SVG garis dengan stroke-dashoffset
+  // (bukan width) supaya animasinya GPU-friendly, plus label persen di
+  // sebelahnya. dashoffset awal SENGAJA = PROB_GAUGE_LEN penuh (kosong) --
+  // caller memanggil animateProbGauges() sesudah elemen ini terpasang di
+  // DOM supaya transition CSS (.prob-gauge-fill di base.css) benar-benar
+  // "mengisi" dari kosong ke nilai target, bukan langsung muncul penuh.
+  function probGaugeHtml(prob, color, opts) {
+    const o = opts || {};
+    if (prob == null) return `<span style="color:var(--muted)">${o.emptyText || '\u2014'}</span>`;
+    const p = Math.max(0, Math.min(1, prob));
+    const labelPct = (p * 100).toFixed(o.decimals ?? 0);
+    return `<span style="display:inline-flex;align-items:center;gap:6px;justify-content:flex-end;width:100%">
+      <svg class="prob-gauge" width="38" height="10" viewBox="0 0 48 10" aria-hidden="true">
+        <path class="prob-gauge-track" d="M4 5 H44" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <path class="prob-gauge-fill" data-target="${p}" d="M4 5 H44" stroke="${color}" stroke-width="4" fill="none" stroke-linecap="round" stroke-dasharray="${PROB_GAUGE_LEN}" stroke-dashoffset="${PROB_GAUGE_LEN}"/>
+      </svg>
+      <b style="font-family:var(--font-mono);color:${color}">${labelPct}%</b>
+    </span>`;
+  }
+
+  // Dipanggil sekali setelah sekumpulan probGaugeHtml() ter-pasang lewat
+  // innerHTML (mis. satu tabel penuh) -- requestAnimationFrame memberi
+  // browser satu tick untuk melukis state "kosong" (dashoffset penuh)
+  // sebelum offset target di-set, supaya transition-nya kelihatan.
+  function animateProbGauges(root) {
+    const scope = root || document;
+    requestAnimationFrame(() => {
+      scope.querySelectorAll('.prob-gauge-fill[data-target]').forEach(p => {
+        const t = parseFloat(p.dataset.target);
+        if (Number.isNaN(t)) return;
+        p.style.strokeDashoffset = (PROB_GAUGE_LEN * (1 - t)).toFixed(2);
+      });
+    });
+  }
+
+  // Warna untuk "probabilitas sentuh" (Retail Plan) -- makin tinggi makin
+  // berisiko (merah), sama arah dengan tpClass() di futures.js.
+  function touchColor(p) {
+    if (p == null) return 'var(--muted)';
+    if (p >= 0.5)  return 'var(--red)';
+    if (p >= 0.25) return 'var(--amber)';
+    return 'var(--green)';
+  }
+
+  // Warna untuk baris odds table -- di sini makin tinggi probabilitasnya
+  // makin BAIK (harga tetap dalam rentang kecil), jadi arahnya kebalik
+  // dari touchColor(). Sama persis dengan logika warna lama yang dipakai
+  // odds-bar sebelum Fase 5.
+  function oddsColor(p) {
+    return p > 0.5 ? 'var(--green)' : p > 0.2 ? 'var(--amber)' : 'var(--red)';
+  }
 
   // Premium inline SVG icon set (replaces emoji glyphs across the UI)
   const ICONS = {
@@ -250,10 +317,11 @@ const UI = (() => {
         html += `<table class="odds-table"><thead><tr><th>Strike</th><th>Jarak</th><th>Premium/lot</th><th>Prob. sentuh</th></tr></thead><tbody>` +
           plan.candidates.map(c => {
             const tp = c.touchProb ?? DataLayer.touchProbability(c.absDist, hv20?.oneDay);
-            return `<tr><td>$${fmt(c.strike)}</td><td>${c.absDist?.toFixed(2)}%</td><td>$${fmt(c.premium, 2)}</td><td>${tp ? (tp*100).toFixed(0)+'%' : '\u2014'}</td></tr>`;
+            return `<tr><td>$${fmt(c.strike)}</td><td>${c.absDist?.toFixed(2)}%</td><td>$${fmt(c.premium, 2)}</td><td>${probGaugeHtml(tp, touchColor(tp))}</td></tr>`;
           }).join('') + `</tbody></table>`;
       }
       body.innerHTML = html;
+      animateProbGauges(body);
       return;
     }
 
@@ -290,11 +358,12 @@ const UI = (() => {
       html += `<table class="odds-table"><thead><tr><th>Strike</th><th>Jarak</th><th>Premium</th><th>Sentuh</th><th>Kredit bersih</th></tr></thead><tbody>` +
         plan.alternatives.map(a => {
           const nc = (a.premium * plan.shortLots) - plan.straddleCost;
-          return `<tr><td>$${fmt(a.strike)}</td><td>${a.absDist.toFixed(2)}%</td><td>$${fmt(a.premium,2)}</td><td>${(a.touchProb*100).toFixed(0)}%</td><td style="color:${nc>=0?'var(--green)':'var(--red)'}">$${fmt(nc, 0)}</td></tr>`;
+          return `<tr><td>$${fmt(a.strike)}</td><td>${a.absDist.toFixed(2)}%</td><td>$${fmt(a.premium,2)}</td><td>${probGaugeHtml(a.touchProb, touchColor(a.touchProb))}</td><td style="color:${nc>=0?'var(--green)':'var(--red)'}">$${fmt(nc, 0)}</td></tr>`;
         }).join('') + `</tbody></table>`;
     }
 
     body.innerHTML = html;
+    animateProbGauges(body);
   }
 
   function updateOddsTable(odds, hv20, price) {
@@ -304,7 +373,6 @@ const UI = (() => {
     if (!odds) { tbody.innerHTML = ''; return; }
 
     tbody.innerHTML = odds.odds.map(row => {
-      const barW = Math.round(row.prob * 100);
       const dollarNote = hv20 && price && odds.regimeType === 'normal' && row.move.includes('\u00d7') ? (() => {
         const m = row.move.match(/([\d.]+)\s*\u00d7/);
         if (!m) return '';
@@ -314,12 +382,10 @@ const UI = (() => {
       })() : '';
       return `<tr>
         <td>${row.move}${dollarNote}</td>
-        <td style="text-align:right">
-          <span class="odds-bar" style="width:${barW * 1.8}px;background:${row.prob > 0.5 ? 'var(--green)' : row.prob > 0.2 ? 'var(--amber)' : 'var(--red)'}"></span>
-          <b style="font-family:var(--font-mono)">${(row.prob*100).toFixed(0)}%</b>
-        </td>
+        <td style="text-align:right">${probGaugeHtml(row.prob, oddsColor(row.prob))}</td>
       </tr>`;
     }).join('');
+    animateProbGauges(tbody);
   }
 
   // -- BGTC DETAIL CARD -------------------------------------------------------
