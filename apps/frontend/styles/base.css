@@ -176,3 +176,23 @@ button:not(:disabled):active,.btn:active{transform:scale(.96)}
    ada di atasnya sebelum diklik). Tambahkan hover halus di sini,
    satu sumber untuk komponen yang dipakai di futures.html. */
 .dir-toggle button:not(.active):hover{background:rgba(255,255,255,.05);color:var(--text)}
+
+/* ---------- PROBABILITY GAUGE (Fase 5 checklist item 1) ----------
+   Dulu ada 2 varian probabilitas di ketiga halaman: (a) odds-table
+   di index.html pakai <span class="odds-bar"> lebar STATIS dalam px
+   (tidak animasi sama sekali, cuma dihitung sekali saat render), dan
+   (b) tabel kurva barrier di futures.html cuma teks persen berwarna,
+   tanpa bar apapun. Keduanya diganti dengan komponen SVG yang sama:
+   sebuah garis (path) dengan stroke-dasharray tetap dan
+   stroke-dashoffset yang di-transition -- BUKAN width, supaya
+   animasinya GPU-friendly dan warnanya (stroke) bisa berubah halus
+   terpisah dari panjang isinya.
+   Markup-nya (lihat ui.js/futures.js probGaugeHtml()) SELALU dibuat
+   dengan stroke-dashoffset = panjang penuh (kosong) dulu; caller lalu
+   memanggil animateProbGauges() satu tick kemudian (requestAnimationFrame)
+   supaya browser sempat melukis state "kosong" itu sebelum transition
+   ke nilai target berjalan -- pola yang sama dengan #heroConfBar yang
+   sudah ada (width:0% dulu, br diisi lewat setTimeout). */
+.prob-gauge{vertical-align:middle;overflow:visible;flex-shrink:0}
+.prob-gauge-track{stroke:rgba(255,255,255,.08)}
+.prob-gauge-fill{transition:stroke-dashoffset .9s cubic-bezier(.4,0,.2,1),stroke .35s ease}
