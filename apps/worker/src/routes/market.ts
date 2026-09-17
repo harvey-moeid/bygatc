@@ -12,16 +12,17 @@
  *   market:options  – 10 menit
  *   market:options_stale – 24 jam (fallback kalau Deribit gagal, lihat v4.4)
  *
- * v4.5: /market/hourly kena blokir dari DUA sisi sekaligus -- Binance balas
- *   451 (restricted location) dan fallback Bybit yang ditambahkan di v4.3
- *   kini ikut diblokir CloudFront (403) dari region Worker ini, jadi
- *   kombinasi Binance+Bybit bisa gagal berbarengan. Ditambahkan fallback
- *   ketiga ke Crypto.com `public/get-candlestick` -- endpoint yang sama
- *   yang sudah dipakai sebagai fallback harga di /price, jadi tidak
- *   menambah dependency baru -- supaya /hourly tidak 503 total saat kedua
- *   exchange itu geo-block bersamaan. Data diurutkan ulang berdasarkan `t`
- *   (bukan diasumsikan sudah ascending) karena urutan array Crypto.com
- *   tidak didokumentasikan secara eksplisit.
+ * v4.5: /market/hourly dan /market/daily kena blokir dari DUA sisi sekaligus
+ *   -- Binance balas 451 (restricted location) dan fallback Bybit yang
+ *   ditambahkan di v4.3 kini ikut diblokir CloudFront (403) dari region
+ *   Worker ini, jadi kombinasi Binance+Bybit bisa gagal berbarengan untuk
+ *   kedua route. Ditambahkan fallback ketiga ke Crypto.com
+ *   `public/get-candlestick` -- endpoint yang sama yang sudah dipakai
+ *   sebagai fallback harga di /price, jadi tidak menambah dependency baru
+ *   -- supaya kedua route tidak 503 total saat kedua exchange itu
+ *   geo-block bersamaan. Data diurutkan ulang berdasarkan `t` (bukan
+ *   diasumsikan sudah ascending) karena urutan array Crypto.com tidak
+ *   didokumentasikan secara eksplisit.
  *
  * v4.4: /market/options adalah satu-satunya route di file ini yang tidak
  *   punya fallback sama sekali -- semua route lain sudah failover ke
@@ -227,7 +228,34 @@ marketRoutes.get('/daily', async (c) => {
     await kvPut(c.env.BTC_CACHE, 'market:daily', data, 3600);
     return c.json(data);
   } catch (e) {
-    console.error('[market/daily] both sources failed:', (e as Error).message);
+    console.warn('[market/daily] bybit failed, trying crypto.com:', (e as Error).message);
+  }
+
+  // Fallback 2: Crypto.com Exchange public candlestick -- tidak diblokir
+  // secara geografis dari Cloudflare Worker (lihat catatan v4.5 di atas).
+  // Endpoint yang sama sudah dipakai sebagai fallback harga di /price dan
+  // sebagai fallback kedua di /hourly.
+  try {
+    const r = await fetch(
+      'https://api.crypto.com/exchange/v1/public/get-candlestick?instrument_name=BTCUSD-PERP&timeframe=1D&count=60',
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (!r.ok) throw new Error(`CryptoCom HTTP ${r.status}`);
+    const j = await r.json() as {
+      result?: { data?: Array<{ t: number; o: string; h: string; l: string; c: string; v: string }> };
+    };
+    const rows = j?.result?.data;
+    if (!rows?.length) throw new Error('No candlestick data');
+    // Urutan array tidak didokumentasikan resmi oleh Crypto.com, jadi sort
+    // eksplisit ascending by `t` -- jangan asumsikan oldest-first seperti
+    // Binance.
+    const data = rows
+      .map((k) => ({ t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, v: +k.v }))
+      .sort((a, b) => a.t - b.t);
+    await kvPut(c.env.BTC_CACHE, 'market:daily', data, 3600);
+    return c.json(data);
+  } catch (e) {
+    console.error('[market/daily] all sources failed:', (e as Error).message);
     return c.json({ error: 'daily unavailable' }, 503);
   }
 });
