@@ -1,5 +1,5 @@
 /* =========================================================================
-   BTC Option-Selling Desk -- src/options.js (v1.1)
+   BTC Option-Selling Desk -- src/options.js (v1.2)
    One Deribit call for the full chain; IV inverted locally via Black-76
    bisection; analytic deltas; delta-targeted short-strangle builder with a
    Delta-Exchange margin heuristic; regime gate from BGTC + F&G + funding.
@@ -8,6 +8,20 @@
      - api.binance.com / fapi.binance.com
      - local ./data/*.json snapshots (committed by GH Actions)
 
+   v1.2 (Fase 5 checklist -- checklist-upgrade-pro-btc-desk.md):
+     - renderClock()'s 24 mini-bar musiman ("Jam Trading") dulu di-rebuild
+       total setiap refresh (bars.innerHTML = ''; lalu appendChild 24 kali),
+       jadi tiap 5 menit seluruh strip bar itu berkedip hilang-muncul
+       walau datanya jarang berubah drastis. Sekarang 24 elemen bar
+       dibuat SEKALI (ensureClockBars()) dan panggilan berikutnya cuma
+       meng-update height/background elemen yang sudah ada -- transisi
+       CSS (.seas-bar di options.html) yang membuat pergerakannya halus,
+       bukan dibangun ulang dari nol.
+     - Tooltip per-jam dulu cuma atribut title="..." bawaan browser (kotak
+       kuning polos, delay lambat, tidak bisa di-style, tidak reachable
+       lewat keyboard). Diganti dengan tooltip kustom kecil (attachSeasTooltip())
+       yang mengikuti palet warna desk, muncul di mouseover DAN focus
+       (keyboard-accessible via tabindex pada tiap bar).
    v1.1 (Fase 4 checklist -- checklist-upgrade-pro-btc-desk.md):
      - renderClock() dulu memakai glyph emoji mentah (jam/lingkaran warna)
        di baris catatan Jam Trading; diganti dengan set ikon SVG lokal
@@ -234,6 +248,57 @@ async function fetchSnapshots() {
 // Studi 2015-2026: RV tahunan terkompresi ~69%->48% pasca-ETF; jam UTC paling
 // sepi 03-05 & 09-11; paling ramai 13-16 (rilis makro AS + buka pasar tunai);
 // weekend berjalan pada ~64% vol hari kerja. Lihat BTC_VOL_RESEARCH.md untuk bukti lengkap.
+
+// Fase 5: dulu 24 bar musiman ini di-rebuild total (innerHTML='' + 24x
+// appendChild) SETIAP renderClock() dipanggil (tiap refresh 5 menit),
+// walau datanya (hourVolBpsPostEtf) jarang berubah drastis antar-refresh --
+// hasilnya strip bar itu "berkedip" hilang lalu muncul lagi tiap kali,
+// alih-alih meleleh halus dari tinggi lama ke tinggi baru. ensureClockBars()
+// membangun 24 elemen SEKALI (dicek lewat bars.dataset.built) dan dipakai
+// ulang selamanya; renderClock() sesudahnya cuma menulis style.height /
+// style.background ke elemen yang sudah ada, dan transition CSS pada
+// .seas-bar (lihat options.html) yang membuat perubahan itu meleleh halus.
+function ensureClockBars(bars) {
+  if (bars.dataset.built === '1') return;
+  bars.innerHTML = '';
+  bars.style.position = 'relative';
+  for (let i = 0; i < 24; i++) {
+    const d = document.createElement('div');
+    d.className = 'seas-bar';
+    d.tabIndex = 0;                 // keyboard-accessible untuk tooltip
+    d.dataset.hour = String(i);
+    bars.appendChild(d);
+  }
+  bars.dataset.built = '1';
+  attachSeasTooltip(bars);
+}
+
+// Fase 5: tooltip kustom kecil yang mengikuti palet desk (menggantikan
+// title="..." bawaan browser -- lambat, tidak bisa di-style, dan tidak
+// reachable lewat keyboard). Dipasang SEKALI per container lewat delegasi
+// event (mouseover/mouseout/focusin/focusout) supaya tidak perlu listener
+// terpisah di tiap salah satu dari 24 bar.
+function attachSeasTooltip(container) {
+  if (container._tipAttached) return;
+  container._tipAttached = true;
+  const tip = document.createElement('div');
+  tip.className = 'seas-tip';
+  container.appendChild(tip);
+
+  const show = (bar) => {
+    if (!bar || !bar.dataset.tip) return;
+    tip.textContent = bar.dataset.tip;
+    tip.style.left = (bar.offsetLeft + bar.offsetWidth / 2) + 'px';
+    tip.classList.add('show');
+  };
+  const hide = () => tip.classList.remove('show');
+
+  container.addEventListener('mouseover', e => { const b = e.target.closest('.seas-bar'); if (b) show(b); });
+  container.addEventListener('mouseout',  e => { const b = e.target.closest('.seas-bar'); if (b) hide(); });
+  container.addEventListener('focusin',   e => { const b = e.target.closest('.seas-bar'); if (b) show(b); });
+  container.addEventListener('focusout',  hide);
+}
+
 function renderClock() {
   const el = document.getElementById('clockNow');
   if (!el) return;
@@ -258,18 +323,21 @@ function renderClock() {
     `<b class="${regime[1]}">${regime[0]}</b> (${cur} bps/jam vs rentang ${min}\u2013${max})` +
     (wknd ? ` &middot; <b class="pos">WEEKEND</b>: vol berjalan pada ~${Math.round((s.weekendVolRatio || 0.64) * 100)}% dari hari kerja \u2014 wilayah panen theta` : '');
 
-  // 24 mini bar
+  // 24 mini bar (Fase 5: dibangun sekali, di-update in-place -- lihat
+  // ensureClockBars()/attachSeasTooltip() di atas).
   const bars = document.getElementById('clockBars');
   if (bars) {
-    bars.innerHTML = '';
+    ensureClockBars(bars);
     for (let i = 0; i < 24; i++) {
       const v = hv[String(i)] ?? min;
       const pct = Math.max(8, Math.round((v - min) / (max - min) * 100));
-      const d = document.createElement('div');
-      d.style.cssText = `flex:1;height:${pct}%;border-radius:2px 2px 0 0;` +
-        `background:${i === h ? '#5b8cff' : (s.loudHoursUtc || []).includes(i) ? 'rgba(248,81,73,.7)' : (s.quietHoursUtc || []).includes(i) ? 'rgba(63,185,80,.7)' : 'rgba(139,148,158,.45)'}`;
-      d.title = `${String(i).padStart(2,'0')}:00 UTC \u2014 ${v} bps/jam`;
-      bars.appendChild(d);
+      const bg = i === h ? '#5b8cff' : (s.loudHoursUtc || []).includes(i) ? 'rgba(248,81,73,.7)' : (s.quietHoursUtc || []).includes(i) ? 'rgba(63,185,80,.7)' : 'rgba(139,148,158,.45)';
+      const bar = bars.children[i];
+      if (!bar) continue;
+      bar.style.height = pct + '%';
+      bar.style.background = bg;
+      bar.dataset.tip = `${String(i).padStart(2,'0')}:00 UTC \u2014 ${v} bps/jam`;
+      bar.setAttribute('aria-label', bar.dataset.tip);
     }
   }
 
