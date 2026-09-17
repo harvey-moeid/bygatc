@@ -64,6 +64,24 @@
     100%{background:transparent}
   }
   .flash-update{animation:flashUpdate .7s ease-out}
+
+  /* ---------- JAM TRADING: 24 mini bar musiman (Fase 5 checklist item 2) ----------
+     Dulu 24 bar ini dibangun ulang dari nol (innerHTML='' + appendChild x24)
+     setiap renderClock() dipanggil (tiap refresh 5 menit), jadi seluruh strip
+     berkedip hilang-muncul walau tingginya cuma berubah sedikit. options.js
+     (ensureClockBars()) sekarang membuat 24 elemen .seas-bar SEKALI dan cuma
+     meng-update style.height/background pada refresh berikutnya -- transition
+     di bawah ini yang membuat perubahan itu meleleh halus alih-alih lompat. */
+  .seas-bar{flex:1;border-radius:2px 2px 0 0;cursor:default;transition:height .55s cubic-bezier(.4,0,.2,1),background-color .4s ease}
+  .seas-bar:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(129,140,248,.5)}
+
+  /* Tooltip kustom untuk tiap bar (menggantikan title="..." bawaan browser --
+     lambat, tak bisa di-style, tak reachable lewat keyboard). Satu elemen
+     dipakai ulang untuk ke-24 bar (lihat attachSeasTooltip() di options.js),
+     diposisikan absolute relatif ke #clockBars (position:relative diset
+     lewat JS saat elemen ini dibuat). */
+  .seas-tip{position:absolute;top:0;transform:translate(-50%,-100%) translateY(-6px);background:var(--panel2);color:var(--txt);font-size:10px;font-family:var(--mono);padding:4px 7px;border-radius:5px;border:1px solid var(--line);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .12s ease;z-index:5}
+  .seas-tip.show{opacity:1}
 </style>
 </head>
 <body>
