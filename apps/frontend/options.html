@@ -10,7 +10,7 @@
 <!-- Fase 6 checklist item 1: favicon ditambahkan (sebelumnya file ini tidak
      punya <link rel="icon"> sama sekali). Mark SVG sama persis dengan
      index.html/futures.html (tiga candlestick mini, warna --accent/--cyan)
-     supaya tab browser konsisten di ketiga halaman. */
+     supaya tab browser konsisten di ketiga halaman. */ -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a0f'/><g fill='none' stroke-linecap='round'><path d='M9 23V16M9 13V9' stroke='%2322d3ee' stroke-width='3'/><rect x='6.7' y='13' width='4.6' height='7' rx='1.4' fill='%2322d3ee'/><path d='M16 25V18M16 12V7' stroke='%23818cf8' stroke-width='3'/><rect x='13.7' y='14' width='4.6' height='6' rx='1.4' fill='%23818cf8'/><path d='M23 21V15M23 12V9' stroke='%2322d3ee' stroke-width='3'/><rect x='20.7' y='13' width='4.6' height='6' rx='1.4' fill='%2322d3ee'/></g></svg>">
 <link rel="stylesheet" href="styles/base.css">
 <style>
@@ -82,6 +82,28 @@
     100%{background:transparent}
   }
   .flash-update{animation:flashUpdate .7s ease-out}
+
+  /* ---------- JAM TRADING: 24 mini bar musiman (Fase 5 checklist item 2) ----------
+     Dulu 24 bar ini dibangun ulang dari nol (innerHTML='' + appendChild x24)
+     setiap renderClock() dipanggil (tiap refresh 5 menit), jadi seluruh strip
+     berkedip hilang-muncul walau tingginya cuma berubah sedikit. options.js
+     (ensureClockBars()) sekarang membuat 24 elemen .seas-bar SEKALI dan cuma
+     meng-update style.height/background pada refresh berikutnya -- transition
+     di bawah ini yang membuat perubahan itu meleleh halus alih-alih lompat.
+     PENTING: elemen .seas-bar dibuat KOSONG (tanpa teks) di dalam container
+     flex (#clockBars) -- flex:1 di sini WAJIB ada, karena tanpa itu setiap
+     bar akan collapse ke lebar 0 (elemen kosong tidak punya intrinsic width)
+     dan seluruh chart jadi tak terlihat. */
+  .seas-bar{flex:1;border-radius:2px 2px 0 0;cursor:default;transition:height .55s cubic-bezier(.4,0,.2,1),background-color .4s ease}
+  .seas-bar:focus-visible{outline:none;box-shadow:0 0 0 2px rgba(129,140,248,.5)}
+
+  /* Tooltip kustom untuk tiap bar (menggantikan title="..." bawaan browser --
+     lambat, tak bisa di-style, tak reachable lewat keyboard). Satu elemen
+     dipakai ulang untuk ke-24 bar (lihat attachSeasTooltip() di options.js),
+     diposisikan absolute relatif ke #clockBars (position:relative diset
+     lewat JS saat elemen ini dibuat). */
+  .seas-tip{position:absolute;top:0;transform:translate(-50%,-100%) translateY(-6px);background:var(--panel2);color:var(--txt);font-size:10px;font-family:var(--mono);padding:4px 7px;border-radius:5px;border:1px solid var(--line);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .12s ease;z-index:5}
+  .seas-tip.show{opacity:1}
 
   /* ---------- MOBILE TAP TARGET & HEADER PADDING (Fase 6 checklist item 3) ----------
      Sama pendekatan dengan futures.html/index.html: tombol Segarkan di
