@@ -10,7 +10,13 @@
    nyaris sama. Alias di bawah menyambungkan nama lama itu ke token
    kanonik supaya kedua file itu tidak perlu ditulis ulang sekaligus,
    tapi sekarang cuma ada SATU sumber kebenaran warna, bukan dua.
-   ============================================================ */
+
+   Update kontras (perbaikan keterbacaan): --muted & --dim sebelumnya
+   (#71717a / #52525b) di atas --bg (#0a0a0f) hanya menghasilkan
+   rasio kontras ~4.1:1 dan ~2.6:1 -- di bawah ambang WCAG AA 4.5:1
+   untuk teks kecil, jadi label kartu/placeholder terasa pudar.
+   Dinaikkan ke #a1a1aa (~7.7:1) dan #86868f (~5.1:1). --text tidak
+   diubah karena sudah kontras tinggi (#e7e7f0 di atas --bg). ------ */
 
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -18,7 +24,7 @@
   /* --- token kanonik (dari index.html) --- */
   --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a24;--surface3:#22222e;
   --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
-  --text:#e7e7f0;--muted:#71717a;--dim:#52525b;
+  --text:#e7e7f0;--muted:#a1a1aa;--dim:#86868f;
   --accent:#818cf8;--accent2:#a78bfa;
   --green:#4ade80;--green-bg:rgba(74,222,128,0.1);--green-bd:rgba(74,222,128,0.3);
   --red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-bd:rgba(248,113,113,0.3);
