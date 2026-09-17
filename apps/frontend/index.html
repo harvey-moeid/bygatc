@@ -182,7 +182,9 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .odds-table th{text-align:left;padding:7px 10px;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid var(--border);font-weight:500}
 .odds-table td{padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border)}
 .odds-table tr:last-child td{border-bottom:none}
-.odds-bar{display:inline-block;height:8px;background:var(--accent);border-radius:3px;vertical-align:middle;margin-right:8px}
+/* .odds-bar (lebar <span> statis dalam px) dihapus di Fase 5 -- odds table
+   sekarang dirender lewat probGaugeHtml() di ui.js (SVG .prob-gauge, style
+   di base.css), bukan lagi elemen ini. */
 
 /* INFO CARDS */
 .ir{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}

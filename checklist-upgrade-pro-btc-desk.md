@@ -1,16 +1,16 @@
-# Checklist Upgrade UI &middot; BTC Desk &rarr; Pro Premium
+# Checklist Upgrade UI · BTC Desk → Pro Premium
 
 Berdasarkan analisis langsung terhadap `bygatc-main.zip` (index.html, futures.html, options.html, src/ui.js, src/charts.js).
 
-## Fase 1 ÃÂ¢ Fondasi (konsolidasi, wajib duluan)
+## Fase 1 — Fondasi (konsolidasi, wajib duluan)
 - [x] Ekstrak `:root{...}` variables (warna, font, spacing) dari index.html ke `apps/frontend/styles/base.css`
 - [x] Pindahkan komponen bersama (`.btn`, `.pill-sm`, `.pill-sm`, card base, modal) ke `base.css`
-- [x] Import `base.css` di index.html, futures.html, dan options.html ÃÂ¢ hapus duplikasi `<style>` yang saat ini terpisah (287 / 120 / ~100 baris sendiri-sendiri)
+- [x] Import `base.css` di index.html, futures.html, dan options.html — hapus duplikasi `<style>` yang saat ini terpisah (287 / 120 / ~100 baris sendiri-sendiri)
 - [x] Audit selisih warna/spacing antar 3 file setelah konsolidasi, samakan yang beda tanpa sengaja
 
-> **Catatan audit (selesai):** index.html sudah lebih dulu memakai `base.css` (token kanonik: `--bg #0a0a0f`, `--dim #52525b`, dll). futures.html & options.html sebelumnya punya `:root` terpisah dengan nama variabel berbeda (`--panel/--txt/--grn/--amb/--acc/--line/--mono`) dan nilai warna sedikit berbeda (mis. `--bg #0b0e14` vs `#0a0a0f`, `--dim #7e8aa3` vs `#52525b`, `--red #ff5470` vs `#f87171`). `base.css` sudah menyediakan alias (`--panelÃÂ¢--surface`, dst) sehingga kedua file itu tidak perlu ditulis ulang nama variabelnya ÃÂ¢ sekarang keduanya sudah di-`<link>` ke `base.css`, `:root`/reset/`.card` duplikat sudah dihapus, dan seluruh 3 halaman memakai satu sumber warna. CSP `style-src`/`font-src` di futures.html & options.html diperluas ke `fonts.googleapis.com`/`fonts.gstatic.com` supaya `@import` font di base.css tidak diblokir. Efek samping yang disengaja: warna latar & teks redup di futures/options kini sedikit lebih gelap (mengikuti token kanonik index.html), dan padding `.card` futures/options ikut ke `14px 16px` (dari `14px` rata).
+> **Catatan audit (selesai):** index.html sudah lebih dulu memakai `base.css` (token kanonik: `--bg #0a0a0f`, `--dim #52525b`, dll). futures.html & options.html sebelumnya punya `:root` terpisah dengan nama variabel berbeda (`--panel/--txt/--grn/--amb/--acc/--line/--mono`) dan nilai warna sedikit berbeda (mis. `--bg #0b0e14` vs `#0a0a0f`, `--dim #7e8aa3` vs `#52525b`, `--red #ff5470` vs `#f87171`). `base.css` sudah menyediakan alias (`--panel→--surface`, dst) sehingga kedua file itu tidak perlu ditulis ulang nama variabelnya — sekarang keduanya sudah di-`<link>` ke `base.css`, `:root`/reset/`.card` duplikat sudah dihapus, dan seluruh 3 halaman memakai satu sumber warna. CSP `style-src`/`font-src` di futures.html & options.html diperluas ke `fonts.googleapis.com`/`fonts.gstatic.com` supaya `@import` font di base.css tidak diblokir. Efek samping yang disengaja: warna latar & teks redup di futures/options kini sedikit lebih gelap (mengikuti token kanonik index.html), dan padding `.card` futures/options ikut ke `14px 16px` (dari `14px` rata).
 
-## Fase 2 ÃÂ¢ Samakan level polish 3 halaman
+## Fase 2 — Samakan level polish 3 halaman
 - [x] futures.html: tambahkan `box-shadow` pada card (saat ini 0 dipakai vs index.html)
 - [x] futures.html & options.html: tambahkan `transition` di semua elemen interaktif (tombol, slider, toggle Long/Short)
 - [x] options.html: tambahkan minimal 1 `@keyframes` untuk update angka live (saat ini 0)
@@ -26,28 +26,36 @@ Berdasarkan analisis langsung terhadap `bygatc-main.zip` (index.html, futures.ht
 
 > **Catatan audit (selesai):** Utility `.glow-num` (+ modifier `.glow-accent`) ditambahkan di `base.css` -- radial-gradient blur 20px, opacity .16, currentColor supaya otomatis ikut warna state (`.hero.go/.cau/.nt`). Dipasang di `#heroVerdict` (index & futures), `#verdict` (options, Risk Gate utama), dan harga besar (`.pc-val#psPrice` di index, `.big#spot` di futures/options, pakai `.glow-accent` karena teksnya netral/putih). Border gradient tipis pakai teknik two-layer background (`padding-box` untuk fill lama, `border-box` untuk gradient warna->transparent, `border:1px solid transparent`) -- diterapkan ke `.hero.go/.cau/.nt` (index+futures, sekaligus mengecilkan border dari 2px ke 1px sesuai kata "tipis"), `.v-sell/.v-caution/.v-stand/.v-ok/.v-neutral` (futures+options), dan `.dir-toggle button.active.long/.short` (futures). Elevasi: token `--shadow-sm/md/lg` baru di `:root` base.css; `--shadow-sm` dipasang ke `.card` (gantikan nilai hardcode Fase 2, sama persis) plus semua kotak `--surface` yang belum punya card class (`.pulse-card`, `.trade-structure-box`, `.session-ribbon`, `.regime-dial-wrap`, `.range-mini`, `.bgtc-card`, `.retail-card`); `--shadow-md` dipasang ke kotak bersarang `--surface2` (`.rd-size-card`, `.leg`, `.rcm`, `.kc-metric`, `.rl-card`, `.gc`) supaya terlihat "lebih terangkat" dari wrapper-nya. `--shadow-lg` disediakan untuk `--surface3` tapi sengaja tidak dipakaikan ke `.gf-body .tag` (badge kecil, shadow di situ akan terlihat berat, bukan premium). Focus state: aturan global di `base.css` (`button/input/select/a/.btn:focus-visible`) pakai `box-shadow:0 0 0 3px rgba(129,140,248,.35)` (ring lembut, bukan outline browser) + varian khusus `input[type=range]::-webkit-slider-thumb`/`::-moz-range-thumb` untuk thumb slider; aturan `:focus` lama yang cuma ubah border-color di futures.html/options.html dihapus dan digantikan komentar penunjuk ke base.css.
 
-## Fase 4 ÃÂ¢ Ikon & micro-interaction
-- [x] Ganti semua ikon emoji (ÃÂ°ÃÂ´ÃÂ°ÃÂ¢ÃÂ°ÃÂ¡ dst di catatan & jam trading) dengan SVG icon set konsisten (mis. Lucide), pakai `currentColor`
+## Fase 4 — Ikon & micro-interaction
+- [x] Ganti semua ikon emoji (🔴🟢🟡 dst di catatan & jam trading) dengan SVG icon set konsisten (mis. Lucide), pakai `currentColor`
 - [x] Tambahkan animasi count-up untuk angka penting (harga, IV, funding, DVOL)
 - [x] Ganti placeholder `&mdash;` saat loading dengan skeleton shimmer
 - [x] Tambahkan state hover/press yang jelas di semua tombol & toggle
 
 > **Catatan audit (selesai):** Set ikon SVG inline `currentColor` (`ICONS` di `ui.js`, `futures.js`, dan `options.js`) menggantikan seluruh glyph emoji, termasuk baris catatan Jam Trading di options.js (flame/moon/dash/cal/trend/chart/repeat/info). Count-up ditangani satu helper bersama `src/animate.js` (`animateValue()`, easing cubic-out, lompat langsung ke nilai final di render pertama alih-alih dari nol) dipakai di ui.js/futures.js/options.js untuk semua angka penting (harga, HV20, IV ATM, funding, DVOL, confidence, dll) -- sengaja TIDAK dipakai di metrik strangle options.js (credit/pop/margin/rom/cem) karena itu re-render tiap slider digeser, animasi di situ akan mengganggu bukan informatif (dicatat di komentar options.js). Skeleton shimmer: class `.skel` (background gradient animasi + `prefers-reduced-motion` guard) di `base.css`, dilepas otomatis oleh `animateValue()`/`set()`/`setH()` per elemen begitu menerima nilai pertama, plus `clearSkeletons()` dipanggil di blok `finally` tiap `loadAll()`/`refresh()` sebagai jaring pengaman untuk field yang di-set lewat `textContent` biasa. Hover/press: `button:not(:disabled):active,.btn:active{transform:scale(.96)}` global di base.css untuk semua tombol/toggle di ketiga halaman, plus hover khusus untuk sisi `.dir-toggle` yang tidak aktif (futures.html) yang sebelumnya tidak punya umpan balik apa pun saat di-hover. Diverifikasi langsung dari kode (ui.js, futures.js, options.js, animate.js, base.css) pada 2026-09-16 -- checklist sebelumnya belum di-update setelah implementasi selesai.
 
-## Fase 5 ÃÂ¢ Data visualization
-- [ ] Gauge/probability bar (kurva barrier, prob sentuh) pakai SVG animated (`stroke-dashoffset` transition), bukan bar statis
-- [ ] Chart candle/vol seasonality: tambahkan smooth transition saat data refresh, bukan render ulang mendadak
-- [ ] Tambahkan tooltip on-hover untuk titik data di chart (saat ini kemungkinan belum ada)
+## Fase 5 -- Data visualization
+- [x] Gauge/probability bar (kurva barrier, prob sentuh) pakai SVG animated (`stroke-dashoffset` transition), bukan bar statis
+- [x] Chart candle/vol seasonality: tambahkan smooth transition saat data refresh, bukan render ulang mendadak
+- [x] Tambahkan tooltip on-hover untuk titik data di chart (saat ini kemungkinan belum ada)
 
-## Fase 6 ÃÂ¢ Branding & sentuhan akhir
-- [ ] Ganti favicon dari emoji ÃÂ¢ÃÂ¿ ke logo mark custom (SVG)
+> **Catatan audit (selesai, 2026-09-17):** Komponen gauge probabilitas baru (`probGaugeHtml()` + `animateProbGauges()`, diduplikasi di `ui.js` dan `futures.js` mengikuti pola `ICONS` yang sudah ada) merender sebuah `<svg>` garis dengan `stroke-dasharray` tetap dan `stroke-dashoffset` yang di-transition (`.prob-gauge-fill` di `base.css`) -- dashoffset dimulai penuh (kosong) dan diisi ke nilai target lewat `requestAnimationFrame` satu tick setelah `innerHTML` terpasang, pola yang sama dengan `#heroConfBar` yang sudah ada. Dipasang di tiga tempat yang sebelumnya tidak punya bar animasi sama sekali: **odds table** index.html (menggantikan `<span class="odds-bar">` lebar statis dalam px -- kelas CSS-nya dihapus dari index.html), **Retail Plan** index.html (kolom prob. sentuh di tabel kandidat & alternatif strike, sebelumnya cuma teks persen polos), dan **tabel kurva barrier** futures.html (kolom Prob. sentuh up & down, sebelumnya cuma teks berwarna `tpClass()` tanpa bar apa pun -- ambang warnanya dipertahankan lewat `tpStrokeColor()` supaya caption tabel di futures.html tetap akurat).
+>
+> Chart 48 jam (`charts.js`, `renderPriceChart()`) sebelumnya `destroy()` lalu membuat instance Chart.js baru pada setiap refresh 5 menit, sehingga chart lenyap-dan-muncul instan tanpa transisi. Sekarang instance dibuat sekali; refresh berikutnya menimpa `chart.data.labels`/`chart.data.datasets[0].data` lalu memanggil `.update()`, sehingga animasi bawaan Chart.js (easeOutQuart) yang men-tween posisi tiap titik dari nilai lama ke nilai baru. Sekalian ditambahkan `interaction:{mode:'index',intersect:false}` dan `pointHoverRadius`/`pointHitRadius` yang lebih besar (titik data sendiri tetap radius 0) supaya tooltip yang sebelumnya sudah ada (`options.plugins.tooltip`) lebih mudah dipicu di mana pun sepanjang chart, bukan cuma tepat di garis.
+>
+> 24 mini-bar musiman "Jam Trading" (`options.js`, `renderClock()`) sebelumnya di-`innerHTML=''` lalu dibangun ulang 24 elemen setiap refresh (5 menit) -- seluruh strip berkedip walau datanya jarang berubah drastis, dan tooltip-nya cuma atribut `title="..."` bawaan browser. `ensureClockBars()` sekarang membangun 24 elemen `.seas-bar` sekali saja (ditandai `bars.dataset.built`) dan dipakai ulang; `renderClock()` berikutnya hanya menulis `style.height`/`style.background` ke elemen yang sudah ada, dan `transition` CSS pada `.seas-bar` (options.html) yang membuat perubahan itu meleleh halus. Tooltip diganti `attachSeasTooltip()`: satu elemen `.seas-tip` custom (mengikuti palet desk) dipasang lewat delegasi event (`mouseover`/`mouseout`/`focusin`/`focusout`) di container, jadi juga reachable lewat keyboard (`tabindex` pada tiap bar) -- sesuatu yang tidak dimiliki `title` bawaan.
+>
+> File yang disentuh: `styles/base.css` (§ PROBABILITY GAUGE), `src/ui.js` (v5), `src/futures.js` (v2.3), `src/charts.js` (v5), `src/options.js` (v1.2), `options.html` (CSS `.seas-bar`/`.seas-tip`), `index.html` (hapus `.odds-bar` mati).
+
+## Fase 6 — Branding & sentuhan akhir
+- [ ] Ganti favicon dari emoji ⊙️ ke logo mark custom (SVG)
 - [ ] Tambahkan gradient tipis di tombol CTA utama (Segarkan, Long/Short, submit)
-- [ ] Cek tap target size & padding header di breakpoint mobile (375ÃÂ¢414px) ÃÂ¢ sesuai screenshot, ini dilihat langsung dari browser HP
+- [ ] Cek tap target size & padding header di breakpoint mobile (375–414px) — sesuai screenshot, ini dilihat langsung dari browser HP
 - [ ] Review konsistensi letter-spacing & font-weight scale lintas 3 halaman
 
 ## Urutan pengerjaan yang disarankan
-1. Fase 1 (fondasi) ÃÂ¢ tanpa ini, semua perubahan visual berikutnya akan double-maintenance
-2. Fase 2 (samakan polish) ÃÂ¢ dampak paling terlihat untuk usaha paling kecil
-3. Fase 3 & 4 (depth + ikon) ÃÂ¢ ini yang paling mengubah kesan "hobby" jadi "produk"
-4. Fase 5 (data viz) ÃÂ¢ butuh waktu lebih karena menyentuh charts.js
-5. Fase 6 (branding) ÃÂ¢ polish terakhir sebelum rilis
+1. Fase 1 (fondasi) — tanpa ini, semua perubahan visual berikutnya akan double-maintenance
+2. Fase 2 (samakan polish) — dampak paling terlihat untuk usaha paling kecil
+3. Fase 3 & 4 (depth + ikon) — ini yang paling mengubah kesan "hobby" jadi "produk"
+4. Fase 5 (data viz) -- selesai; menyentuh charts.js, ui.js, futures.js, options.js
+5. Fase 6 (branding) — polish terakhir sebelum rilis
