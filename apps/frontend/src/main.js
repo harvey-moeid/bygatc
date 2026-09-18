@@ -87,7 +87,6 @@ async function doRefreshAll() {
 
   UI.updateSignals(state);
   UI.updateNewsFeed(state.news);
-  UI.updateRateLimits(RateLimit.getStats());
 
   // Fase 4 checklist (checklist-upgrade-pro-btc-desk.md): jaring pengaman
   // skeleton shimmer. Sebagian besar field sudah berhenti berkedip sendiri-
@@ -115,7 +114,6 @@ async function refreshPrice() {
   state.price = price;
   UI.updatePulseStrip(state);
   UI.updateClock();
-  UI.updateRateLimits(RateLimit.getStats());
   if (state.ranger) {
     const { callStrike, putStrike } = UI.computeStrikes(price.price, state.ranger, state.BGTC?.upside || 50);
     UI.renderRangeVisual(price.price, putStrike, callStrike);
