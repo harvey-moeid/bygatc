@@ -1,5 +1,20 @@
 /* =========================================================================
-   BTC Futures Risk Desk -- src/futures.js (v2.3)
+   BTC Futures Risk Desk -- src/futures.js (v2.4)
+   v2.4 (readability pass on the hero decision card):
+     - renderHero(): empty reasons/blockers now render through the new
+       .hero-empty class (dashed box, see futures.html) instead of an
+       inline-styled 11px line -- the old version read like an unfilled
+       placeholder rather than a confirmed "nothing to report" state.
+       Blocker empty-state copy is now explicit ("Tidak ada. Tidak ada
+       kondisi yang menghalangi entry saat ini.") instead of the terser
+       "Semua aman."
+     - Added highlightNumbers(): bolds the percentage/number tokens and a
+       short allowlist of regime keywords (CALM, NOCTUA, NORMAL, CAUTION,
+       REDUCED, NO-TRADE) inside each reason/blocker line, so the value
+       that actually drove the verdict is scannable instead of buried in
+       a full sentence. Runs after escape(), and only matches literal
+       digit/percent runs, so it can't reach into the HTML entities
+       escape() may have produced.
    v2.3 (Fase 5 checklist -- checklist-upgrade-pro-btc-desk.md):
      - renderBarrierCurves(): "Prob. sentuh" dulu cuma teks berwarna
        (tpClass()) tanpa bar/gauge apapun -- satu-satunya tempat di ketiga
@@ -369,6 +384,18 @@ function renderSafeLevels() {
 
 /* ------------------------------ hero decision card ------------------------ */
 
+// Readability pass: bolds the numeric/percentage tokens and a short
+// allowlist of regime keywords inside each reason/blocker line, so the
+// value that actually drove the verdict is scannable (e.g. "40%", "CALM",
+// "NOCTUA") instead of requiring a re-read of the whole sentence. Escapes
+// first, then only matches literal digit/percent runs and whole-word
+// keywords -- safe against the HTML entities escape() may have produced.
+function highlightNumbers(s) {
+  return escape(s)
+    .replace(/(-?\d+(?:[.,]\d+)?%)/g, '<b>$1</b>')
+    .replace(/\b(CALM|NOCTUA|NORMAL|CAUTION|REDUCED|NO-TRADE)\b/g, '<b>$1</b>');
+}
+
 function renderHero(decision) {
   const hero = $('heroCard');
   if (!hero || !decision) return;
@@ -393,12 +420,12 @@ function renderHero(decision) {
   bar.style.width = decision.confidence + '%';
 
   $('heroReasons').innerHTML = decision.reasons.length
-    ? decision.reasons.map(r => `<div class="hero-reason pos"><span class="hero-reason-dot"></span><span>${escape(r)}</span></div>`).join('')
-    : '<div style="font-size:11px;color:var(--dim);padding:4px 0">Belum ada.</div>';
+    ? decision.reasons.map(r => `<div class="hero-reason pos"><span class="hero-reason-dot"></span><span>${highlightNumbers(r)}</span></div>`).join('')
+    : '<div class="hero-empty">Belum ada sinyal pendukung saat ini.</div>';
 
   $('heroBlockers').innerHTML = decision.blockers.length
-    ? decision.blockers.map(b => `<div class="hero-reason neg"><span class="hero-reason-dot"></span><span>${escape(b)}</span></div>`).join('')
-    : '<div style="font-size:11px;color:var(--dim);padding:4px 0">Semua aman.</div>';
+    ? decision.blockers.map(b => `<div class="hero-reason neg"><span class="hero-reason-dot"></span><span>${highlightNumbers(b)}</span></div>`).join('')
+    : '<div class="hero-empty"><b>Tidak ada.</b> Tidak ada kondisi yang menghalangi entry saat ini.</div>';
 }
 
 /* ------------------------------ recompute (risk plan) -------------------- */

@@ -160,15 +160,25 @@
   .conf-bar-fill{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1)}
   .hero-reasons{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
   @media(max-width:640px){.hero-reasons{grid-template-columns:1fr}}
-  .hero-col-title{font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .hero-col-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--dim);margin-bottom:9px;display:flex;align-items:center;gap:6px}
   .hero-col-title::before{content:'';width:5px;height:5px;border-radius:50%}
   .hero-col-title.pos::before{background:var(--grn)}
   .hero-col-title.neg::before{background:var(--red)}
-  .hero-reason{display:flex;align-items:flex-start;gap:8px;font-size:12px;padding:4px 0;line-height:1.4}
-  .hero-reason-dot{width:4px;height:4px;border-radius:50%;margin-top:7px;flex-shrink:0}
+  .hero-reason{display:flex;align-items:flex-start;gap:8px;font-size:12px;padding:7px 0;line-height:1.55}
+  .hero-reason-dot{width:4px;height:4px;border-radius:50%;margin-top:8px;flex-shrink:0}
   .hero-reason.pos .hero-reason-dot{background:var(--grn)}
   .hero-reason.neg .hero-reason-dot{background:var(--red)}
-  .hero-note{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:var(--dim);line-height:1.5}
+  /* Readability pass: .hero-reason b menonjolkan angka/keyword kunci yang
+     dibungkus highlightNumbers() di futures.js (mis. "40%", "CALM") supaya
+     mata langsung menangkap nilai yang menentukan verdict, bukan cuma
+     membaca ulang seluruh kalimat. .hero-empty menggantikan style inline
+     lama untuk state "tidak ada sinyal/pemblokir" -- dulu cuma teks kecil
+     var(--dim) mengambang tanpa bingkai, gampang terbaca seperti placeholder
+     yang lupa diisi alih-alih status yang sudah pasti. */
+  .hero-reason b{color:var(--txt);font-weight:700}
+  .hero-empty{font-size:12px;color:var(--dim);padding:9px 11px;border:1px dashed var(--line);border-radius:8px;line-height:1.5}
+  .hero-empty b{color:var(--txt)}
+  .hero-note{margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);line-height:1.65}
   .hero-note b{color:var(--txt)}
 
   /* ---------- MOBILE TAP TARGET & HEADER PADDING (Fase 6 checklist item 3) ----------
