@@ -103,8 +103,8 @@ alertsRoutes.get('/test', async (c) => {
   const ok = await sendDiscordAlert(c.env.DISCORD_WEBHOOK_URL, {
     embeds: [
       {
-        title: 'Test notifikasi -- bygatc',
-        description: 'Kalau pesan ini muncul di Discord, DISCORD_WEBHOOK_URL sudah aktif dan benar.',
+        title: 'Test notification: bygatc',
+        description: 'If you can see this message in Discord, DISCORD_WEBHOOK_URL is set up correctly.',
         color: 0x5865f2, // warna brand Discord (blurple), sekadar biar kelihatan beda dari alert asli
         timestamp: new Date().toISOString(),
       },

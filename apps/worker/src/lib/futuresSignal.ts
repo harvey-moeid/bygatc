@@ -13,7 +13,7 @@
  *
  * p_up_raw TETAP disertakan di notif (sebagai field terpisah, bukan
  * dihilangkan) supaya datanya tetap terlihat -- tapi berlabel jelas
- * "info saja, TIDAK tervalidasi", bukan dibingkai sebagai rekomendasi
+ * "info only, NOT validated", bukan dibingkai sebagai rekomendasi
  * beli/jual yang bisa diandalkan. Jangan hapus label ini kalau field-nya
  * diubah nanti -- itu satu-satunya hal yang mencegah angka lempar-koin ini
  * kelihatan seperti sinyal trading asli.
@@ -25,6 +25,9 @@
  *   >= 0.70 -> "high"     (blocker: ukuran wajib dikecilkan)
  *   >= 0.55 -> "elevated" (waspada, ukuran dikurangi otomatis)
  *   else    -> "calm"     (tenang, ukuran penuh)
+ *
+ * Teks notif memakai istilah trading standar (Volatility Regime, Position
+ * Size, Entry) -- label tampilan tiap tier ada di TIER_META.label.
  *
  * Notif dikirim tiap kali tier BERUBAH (naik atau turun) dibanding push
  * sebelumnya -- bukan tiap push (yang jalan tiap jam dari GH Actions, akan
@@ -49,21 +52,24 @@ function classifyVolTier(pVolAmplify: number): VolTier {
   return 'calm';
 }
 
-const TIER_META: Record<VolTier, { title: string; color: number; note: string }> = {
+const TIER_META: Record<VolTier, { title: string; label: string; color: number; note: string }> = {
   high: {
-    title: 'NOCTUA: Regime Vol Tinggi',
+    title: 'NOCTUA: High Volatility Regime',
+    label: 'HIGH',
     color: 0xef4444,
-    note: 'p(amplifikasi vol) tinggi -- ukuran posisi futures wajib dikecilkan, hindari entry baru kalau bisa.',
+    note: 'Volatility expansion risk is high. Position size must be reduced; avoid new entries if possible.',
   },
   elevated: {
-    title: 'NOCTUA: Regime Vol Meningkat',
+    title: 'NOCTUA: Elevated Volatility Regime',
+    label: 'ELEVATED',
     color: 0xf59e0b,
-    note: 'p(amplifikasi vol) meningkat -- waspada, kecilkan ukuran posisi secara otomatis.',
+    note: 'Volatility expansion risk is rising. Stay cautious; position size is reduced automatically.',
   },
   calm: {
-    title: 'NOCTUA: Regime Vol Tenang',
+    title: 'NOCTUA: Low Volatility Regime',
+    label: 'LOW',
     color: 0x22c55e,
-    note: 'p(amplifikasi vol) rendah -- kondisi tenang, ukuran posisi penuh.',
+    note: 'Volatility expansion risk is low. Normal conditions; full position size.',
   },
 };
 
@@ -103,11 +109,13 @@ export async function checkFuturesVolAlert(
   const fields: DiscordEmbedField[] = [];
   if (typeof pUpRaw === 'number') {
     fields.push({
-      name: 'Arah (p_up_raw) -- info saja, TIDAK tervalidasi',
-      value: `${(pUpRaw * 100).toFixed(0)}% ke arah naik. Akurasi historis walk-forward nyaris sama dengan lempar koin -- jangan dipakai sebagai sinyal tunggal (lihat docs/TRADE_FLOW.md #3).`,
+      name: 'Directional Bias (p_up_raw): info only, NOT validated',
+      value: `${(pUpRaw * 100).toFixed(0)}% upside probability. Historical walk-forward accuracy is close to a coin flip, so do not use it as a standalone signal (see docs/TRADE_FLOW.md #3).`,
       inline: false,
     });
   }
+
+  const prevLabel = prevTier ? TIER_META[prevTier].label : null;
 
   const ok = await sendDiscordAlert(env.DISCORD_WEBHOOK_URL, {
     content: tier === 'high' ? '@here' : undefined,
@@ -115,7 +123,7 @@ export async function checkFuturesVolAlert(
       {
         title: meta.title,
         url: dashboardUrl(env, '/futures.html'),
-        description: `p(amplifikasi vol) = **${pctStr}%**${prevTier ? ` (sebelumnya: ${prevTier})` : ''}\n\n${meta.note}`,
+        description: `Probability of volatility expansion: **${pctStr}%**${prevLabel ? ` (previous regime: ${prevLabel})` : ''}\n\n${meta.note}`,
         color: meta.color,
         fields,
         timestamp: new Date().toISOString(),

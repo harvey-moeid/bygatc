@@ -13,6 +13,9 @@
  * Tiap notif breakout sekarang deep-link ke dashboard (klik judul embed di
  * Discord langsung buka halaman utama) -- lihat lib/discord.ts::dashboardUrl().
  *
+ * Teks notif memakai istilah trading standar (Breakout / Breakdown, Current
+ * Price, Trigger Level) supaya langsung familiar buat trader.
+ *
  * KV keys:
  *   alert:price_config -- { upper?: number, lower?: number }
  *     Diset lewat PUT /api/alerts/config (lihat routes/alerts.ts).
@@ -127,11 +130,14 @@ export async function runPriceAlertCron(env: Env): Promise<void> {
       const ok = await sendDiscordAlert(env.DISCORD_WEBHOOK_URL, {
         embeds: [
           {
-            title: 'BTC Breakout - Upper',
+            title: 'BTC Breakout: Above Upper Level',
             url: dashboardUrl(env),
-            description: `Harga BTC menembus threshold atas **$${fmtUsd(upper)}**`,
+            description: `BTC broke above your upper alert level of **$${fmtUsd(upper)}**. Upside breakout.`,
             color: 0x22c55e, // hijau
-            fields: [{ name: 'Harga saat ini', value: `$${fmtUsd(price)}`, inline: true }],
+            fields: [
+              { name: 'Current Price', value: `$${fmtUsd(price)}`, inline: true },
+              { name: 'Trigger Level', value: `$${fmtUsd(upper)}`, inline: true },
+            ],
             timestamp: new Date().toISOString(),
           },
         ],
@@ -151,11 +157,14 @@ export async function runPriceAlertCron(env: Env): Promise<void> {
       const ok = await sendDiscordAlert(env.DISCORD_WEBHOOK_URL, {
         embeds: [
           {
-            title: 'BTC Breakdown - Lower',
+            title: 'BTC Breakdown: Below Lower Level',
             url: dashboardUrl(env),
-            description: `Harga BTC menembus ke bawah threshold **$${fmtUsd(lower)}**`,
+            description: `BTC broke below your lower alert level of **$${fmtUsd(lower)}**. Downside breakdown.`,
             color: 0xef4444, // merah
-            fields: [{ name: 'Harga saat ini', value: `$${fmtUsd(price)}`, inline: true }],
+            fields: [
+              { name: 'Current Price', value: `$${fmtUsd(price)}`, inline: true },
+              { name: 'Trigger Level', value: `$${fmtUsd(lower)}`, inline: true },
+            ],
             timestamp: new Date().toISOString(),
           },
         ],
