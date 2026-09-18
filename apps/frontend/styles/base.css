@@ -16,20 +16,33 @@
    rasio kontras ~4.1:1 dan ~2.6:1 -- di bawah ambang WCAG AA 4.5:1
    untuk teks kecil, jadi label kartu/placeholder terasa pudar.
    Dinaikkan ke #a1a1aa (~7.7:1) dan #86868f (~5.1:1). --text tidak
-   diubah karena sudah kontras tinggi (#e7e7f0 di atas --bg). ------ */
+   diubah karena sudah kontras tinggi (#e7e7f0 di atas --bg). ------
+
+   Palet "Brass & Verdigris" (recolor total, checklist tersendiri):
+   indigo/ungu generik SaaS diganti kuningan (brass, --accent) +
+   teal verdigris (--cyan/--accent2) -- pasangan warna yang mengacu
+   ke instrumen kuningan tua & patina tembaga meja trading fisik,
+   bukan default gradient indigo-ungu. Hijau/merah/amber tetap
+   secara semantik hijau/merah/amber (bullish/bearish/caution) tapi
+   dengan rona yang lebih jenuh & berbeda dari default Tailwind.
+   Neutral (bg/surface/text/muted/dim) digeser sedikit hangat
+   (warm-neutral, bukan biru-dingin) sambil MEMPERTAHANKAN rasio
+   kontras yang sama persis dengan perbaikan di atas -- --muted &
+   --dim baru dicocokkan ke luminansi persepsi yang sama dengan
+   nilai lama supaya tidak ada regresi aksesibilitas. ------------ */
 
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root{
   /* --- token kanonik (dari index.html) --- */
-  --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a24;--surface3:#22222e;
+  --bg:#0c0d10;--surface:#15171b;--surface2:#1c1f24;--surface3:#262a31;
   --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
-  --text:#e7e7f0;--muted:#a1a1aa;--dim:#86868f;
-  --accent:#818cf8;--accent2:#a78bfa;
-  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);--green-bd:rgba(74,222,128,0.3);
-  --red:#f87171;--red-bg:rgba(248,113,113,0.1);--red-bd:rgba(248,113,113,0.3);
-  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);--amber-bd:rgba(251,191,36,0.3);
-  --blue:#60a5fa;--cyan:#22d3ee;--pink:#f472b6;
+  --text:#efece4;--muted:#a5a190;--dim:#837f70;
+  --accent:#d1a350;--accent2:#b97a4a;
+  --green:#35c46a;--green-bg:rgba(53,196,106,0.1);--green-bd:rgba(53,196,106,0.3);
+  --red:#e6483f;--red-bg:rgba(230,72,63,0.1);--red-bd:rgba(230,72,63,0.3);
+  --amber:#e8973a;--amber-bg:rgba(232,151,58,0.1);--amber-bd:rgba(232,151,58,0.3);
+  --blue:#5a9bd4;--cyan:#4fb8ac;--pink:#d98a6a;
   --font-mono:'Space Mono',monospace;--font:'Inter',system-ui,sans-serif;
 
   /* --- alias kompatibilitas untuk futures.html & options.html ---
@@ -76,12 +89,12 @@ input:not([type=range]):focus-visible,select:focus-visible,
 textarea:focus-visible{
   outline:none;
   border-color:var(--accent);
-  box-shadow:0 0 0 3px rgba(129,140,248,.35);
+  box-shadow:0 0 0 3px rgba(209,163,80,.35);
 }
 input[type=range]:focus-visible{outline:none}
-input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(129,140,248,.4)}
-input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px rgba(129,140,248,.4)}
-input[type=range]:focus-visible::-ms-thumb{box-shadow:0 0 0 4px rgba(129,140,248,.4)}
+input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(209,163,80,.4)}
+input[type=range]:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px rgba(209,163,80,.4)}
+input[type=range]:focus-visible::-ms-thumb{box-shadow:0 0 0 4px rgba(209,163,80,.4)}
 
 /* ---------- AMBIENT GLOW (Fase 3) ----------
    Utility untuk "angka hero" (harga BTC, verdict utama) supaya ada
@@ -223,12 +236,12 @@ button:not(:disabled):active,.btn:active{transform:scale(.96)}
    tombol filled solid ala CTA marketing yang akan terasa asing di
    desk minimal begini. */
 .btn-cta{
-  background:linear-gradient(135deg,rgba(129,140,248,.16),rgba(34,211,238,.10));
-  border-color:rgba(129,140,248,.4);
+  background:linear-gradient(135deg,rgba(209,163,80,.16),rgba(79,184,172,.10));
+  border-color:rgba(209,163,80,.4);
   color:var(--text);
 }
 .btn-cta:hover{
-  background:linear-gradient(135deg,rgba(129,140,248,.26),rgba(34,211,238,.18));
+  background:linear-gradient(135deg,rgba(209,163,80,.26),rgba(79,184,172,.18));
   border-color:var(--accent);
   color:var(--accent);
 }

@@ -18,7 +18,7 @@
      tab browser konsisten saat orang buka ketiganya sekaligus. Warna hex
      di-percent-encode (# -> %23) karena '#' berarti fragment di dalam URL,
      termasuk di dalam data: URI. -->
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a0f'/><g fill='none' stroke-linecap='round'><path d='M9 23V16M9 13V9' stroke='%2322d3ee' stroke-width='3'/><rect x='6.7' y='13' width='4.6' height='7' rx='1.4' fill='%2322d3ee'/><path d='M16 25V18M16 12V7' stroke='%23818cf8' stroke-width='3'/><rect x='13.7' y='14' width='4.6' height='6' rx='1.4' fill='%23818cf8'/><path d='M23 21V15M23 12V9' stroke='%2322d3ee' stroke-width='3'/><rect x='20.7' y='13' width='4.6' height='6' rx='1.4' fill='%2322d3ee'/></g></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230c0d10'/><g fill='none' stroke-linecap='round'><path d='M9 23V16M9 13V9' stroke='%234fb8ac' stroke-width='3'/><rect x='6.7' y='13' width='4.6' height='7' rx='1.4' fill='%234fb8ac'/><path d='M16 25V18M16 12V7' stroke='%23d1a350' stroke-width='3'/><rect x='13.7' y='14' width='4.6' height='6' rx='1.4' fill='%23d1a350'/><path d='M23 21V15M23 12V9' stroke='%234fb8ac' stroke-width='3'/><rect x='20.7' y='13' width='4.6' height='6' rx='1.4' fill='%234fb8ac'/></g></svg>">
 <link rel="stylesheet" href="styles/base.css">
 <style>
 /* :root, reset, body base, .btn, .pill-sm, .card, modal shell
@@ -30,8 +30,8 @@ body{overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;z-index:0;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 .grid-bg{position:fixed;inset:0;pointer-events:none;z-index:0;opacity:0.3;
-  background-image:linear-gradient(rgba(129,140,248,0.03) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(129,140,248,0.03) 1px,transparent 1px);background-size:64px 64px}
+  background-image:linear-gradient(rgba(209,163,80,0.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(209,163,80,0.03) 1px,transparent 1px);background-size:64px 64px}
 
 .wrap{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:18px 16px}
 
@@ -41,7 +41,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .brand-logo{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent);letter-spacing:-.3px}
 .brand-logo b{color:var(--cyan)}
 .brand-sub{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
-.live-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2);border-radius:12px;padding:2px 9px;font-size:10px;font-family:var(--font-mono);color:var(--green)}
+.live-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(53,196,106,0.08);border:1px solid rgba(53,196,106,0.2);border-radius:12px;padding:2px 9px;font-size:10px;font-family:var(--font-mono);color:var(--green)}
 .pulse{width:5px;height:5px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
 @keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
 .topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -54,9 +54,9 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
    radial lembut di belakang angka verdict, warnanya ikut currentColor jadi
    otomatis nyambung ke .hero.go/.cau/.nt di bawah tanpa CSS tambahan. */
 .hero{position:relative;border-radius:14px;padding:22px 24px;margin-bottom:14px;border:1px solid transparent;overflow:hidden}
-.hero.go{background:linear-gradient(135deg,rgba(74,222,128,0.06),rgba(74,222,128,0.02)) padding-box,linear-gradient(135deg,var(--green),transparent 65%) border-box}
-.hero.cau{background:linear-gradient(135deg,rgba(251,191,36,0.06),rgba(251,191,36,0.02)) padding-box,linear-gradient(135deg,var(--amber),transparent 65%) border-box}
-.hero.nt{background:linear-gradient(135deg,rgba(248,113,113,0.06),rgba(248,113,113,0.02)) padding-box,linear-gradient(135deg,var(--red),transparent 65%) border-box}
+.hero.go{background:linear-gradient(135deg,rgba(53,196,106,0.06),rgba(53,196,106,0.02)) padding-box,linear-gradient(135deg,var(--green),transparent 65%) border-box}
+.hero.cau{background:linear-gradient(135deg,rgba(232,151,58,0.06),rgba(232,151,58,0.02)) padding-box,linear-gradient(135deg,var(--amber),transparent 65%) border-box}
+.hero.nt{background:linear-gradient(135deg,rgba(230,72,63,0.06),rgba(230,72,63,0.02)) padding-box,linear-gradient(135deg,var(--red),transparent 65%) border-box}
 .hero::before{content:'';position:absolute;top:0;right:0;width:300px;height:300px;opacity:.04;pointer-events:none;
   background:radial-gradient(circle,var(--fg,var(--accent)) 0%,transparent 70%)}
 .hero.go::before{--fg:var(--green)}.hero.cau::before{--fg:var(--amber)}.hero.nt::before{--fg:var(--red)}
@@ -151,7 +151,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .col-stack{display:flex;flex-direction:column;gap:14px}
 
 /* RETAIL PLAN CARD */
-.retail-card{background:var(--surface);border:1px solid rgba(129,140,248,0.2);border-radius:12px;padding:0;overflow:hidden;box-shadow:var(--shadow-sm)}
+.retail-card{background:var(--surface);border:1px solid rgba(209,163,80,0.2);border-radius:12px;padding:0;overflow:hidden;box-shadow:var(--shadow-sm)}
 .rc-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px}
 .rc-title{font-size:14px;font-weight:700;color:var(--accent);font-family:var(--font-mono)}
 .rc-sub{font-size:11px;color:var(--muted);margin-top:2px}
@@ -159,7 +159,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .rc-legs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
 @media(max-width:620px){.rc-legs{grid-template-columns:1fr}}
 .leg{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;box-shadow:var(--shadow-md)}
-.leg.go{border-color:var(--green-bd);background:rgba(74,222,128,0.03)}
+.leg.go{border-color:var(--green-bd);background:rgba(53,196,106,0.03)}
 .leg-type{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px}
 .leg-action{font-size:14px;font-weight:700;margin:3px 0;font-family:var(--font-mono)}
 .leg-detail{font-size:11px;color:var(--muted);line-height:1.5}
@@ -178,12 +178,12 @@ body::before{content:'';position:fixed;inset:0;opacity:0.02;pointer-events:none;
 .rcc-label b{color:var(--accent);font-family:var(--font-mono);font-size:12px}
 input[type=range]{accent-color:var(--accent);width:100%}
 
-.rc-warn{padding:16px;border-radius:9px;background:rgba(248,113,113,0.05);border:1px solid rgba(248,113,113,0.2);margin-bottom:12px}
-.rc-warn.red{background:rgba(248,113,113,0.08);border-color:rgba(248,113,113,0.3)}
+.rc-warn{padding:16px;border-radius:9px;background:rgba(230,72,63,0.05);border:1px solid rgba(230,72,63,0.2);margin-bottom:12px}
+.rc-warn.red{background:rgba(230,72,63,0.08);border-color:rgba(230,72,63,0.3)}
 .rc-warn-title{font-size:13px;font-weight:700;color:var(--red);margin-bottom:5px}
 .rc-warn-body{font-size:12px;color:var(--text);line-height:1.5}
 
-.rc-risk-note{padding:11px 14px;background:rgba(251,191,36,0.05);border:1px solid rgba(251,191,36,0.2);border-radius:8px;font-size:11px;color:var(--text);line-height:1.5;margin-top:10px}
+.rc-risk-note{padding:11px 14px;background:rgba(232,151,58,0.05);border:1px solid rgba(232,151,58,0.2);border-radius:8px;font-size:11px;color:var(--text);line-height:1.5;margin-top:10px}
 
 /* ODDS TABLE */
 .odds-table{width:100%;border-collapse:collapse}
@@ -210,7 +210,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .kc-title{font-size:13px;font-weight:700;color:var(--text)}
 .kc-fresh{font-family:var(--font-mono);font-size:10px;padding:3px 8px;border-radius:4px}
 .kc-fresh.fresh{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd)}
-.kc-fresh.recent{background:rgba(96,165,250,0.1);color:var(--blue);border:1px solid rgba(96,165,250,0.3)}
+.kc-fresh.recent{background:rgba(90,155,212,0.1);color:var(--blue);border:1px solid rgba(90,155,212,0.3)}
 .kc-fresh.stale{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)}
 .kc-fresh.very-stale,.kc-fresh.unknown{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
 .kc-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
@@ -259,8 +259,8 @@ footer a:hover{color:var(--accent)}
 .guide-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 @media(max-width:520px){.guide-row{grid-template-columns:1fr}}
 .gc{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 14px;box-shadow:var(--shadow-md)}
-.gc.valid{border-color:rgba(74,222,128,.25)}
-.gc.invalid{border-color:rgba(248,113,113,.25)}
+.gc.valid{border-color:rgba(53,196,106,.25)}
+.gc.invalid{border-color:rgba(230,72,63,.25)}
 .gc-title{font-family:var(--font-mono);font-size:11px;font-weight:700;margin-bottom:5px}
 .gc.valid .gc-title{color:var(--green)}.gc.invalid .gc-title{color:var(--red)}
 .gc p{font-size:11px;color:var(--muted);line-height:1.55}
@@ -270,7 +270,7 @@ footer a:hover{color:var(--accent)}
 .vt.go{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd)}
 .vt.cau{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)}
 .vt.nt{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
-.guide-note{background:rgba(251,191,36,.05);border:1px solid rgba(251,191,36,.2);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--text);line-height:1.6;margin-top:12px}
+.guide-note{background:rgba(232,151,58,.05);border:1px solid rgba(232,151,58,.2);border-radius:8px;padding:10px 14px;font-size:11px;color:var(--text);line-height:1.6;margin-top:12px}
 .guide-note b{color:var(--amber)}
 .gf{display:flex;flex-direction:column;gap:10px;margin-top:4px}
 .gf-step{display:flex;gap:12px;align-items:flex-start}
@@ -320,8 +320,8 @@ footer a:hover{color:var(--accent)}
     <div class="live-pill"><div class="pulse"></div>LIVE</div>
   </div>
   <div class="topbar-right">
-    <a href="options.html" class="pill-sm" style="text-decoration:none;color:#5b8cff;border:1px solid rgba(91,140,255,.35);border-radius:6px;padding:2px 8px" aria-label="Buka Desk Penjualan Opsi">&rarr; DESK OPSI</a>
-    <a href="futures.html" class="pill-sm" style="text-decoration:none;color:#2fd57b;border:1px solid rgba(47,213,123,.35);border-radius:6px;padding:2px 8px" aria-label="Buka Desk Risiko Futures">&rarr; DESK FUTURES</a>
+    <a href="options.html" class="pill-sm" style="text-decoration:none;color:#d1a350;border:1px solid rgba(209,163,80,.35);border-radius:6px;padding:2px 8px" aria-label="Buka Desk Penjualan Opsi">&rarr; DESK OPSI</a>
+    <a href="futures.html" class="pill-sm" style="text-decoration:none;color:#35c46a;border:1px solid rgba(53,196,106,.35);border-radius:6px;padding:2px 8px" aria-label="Buka Desk Risiko Futures">&rarr; DESK FUTURES</a>
     <span id="BGTCBadge" class="pill-sm muted">BGTC: &hellip;</span>
     <span id="clockIST" class="pill-sm muted">&mdash;</span>
     <button class="btn" onclick="document.getElementById('panduanModal').classList.add('open')" aria-label="Buka panduan cara baca sinyal">? PANDUAN</button>
