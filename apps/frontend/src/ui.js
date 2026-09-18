@@ -43,6 +43,11 @@
  *   SVG kecil dengan stroke-dashoffset yang di-transition (lihat
  *   .prob-gauge-fill di base.css), diisi dari 0 -> nilai lewat
  *   animateProbGauges() satu tick setelah innerHTML terpasang.
+ *
+ * v5.1: Anggaran API / rate-limit grid (updateRateLimits(), #rlGrid) dihapus
+ *   dari index.html -- fungsi rendernya juga dihapus dari sini. Budget
+ *   enforcement itu sendiri (RateLimit.canCall/beginCall di rateLimit.js)
+ *   tidak berubah dan masih aktif; yang hilang cuma panel visualnya.
  */
 const UI = (() => {
   const fmt  = (n, d = 0) => new Intl.NumberFormat('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
@@ -544,24 +549,6 @@ const UI = (() => {
     }).join('');
   }
 
-  function updateRateLimits(stats) {
-    const grid = $('rlGrid');
-    if (!grid) return;
-    const order = ['binance', 'deribit', 'BGTC', 'fearGreed', 'exa'];
-    grid.innerHTML = order.map(key => {
-      const s = stats[key]; if (!s) return '';
-      const dayPct = s.dayLimit ? (s.daily / s.dayLimit * 100) : 0;
-      const color = dayPct > 80 ? 'var(--red)' : dayPct > 50 ? 'var(--amber)' : 'var(--green)';
-      const dayStr = s.dayLimit ? `${s.daily}/${s.dayLimit}/hari` : `${s.daily}`;
-      const hrStr  = s.hourLimit ? `${s.hourly}/${s.hourLimit}/jam` : '\u2014';
-      return `<div class="rl-card">
-        <div class="rl-name">${s.label}</div>
-        <div class="rl-bar-bg"><div class="rl-bar-fill" style="width:${Math.min(100,dayPct)}%;background:${color}"></div></div>
-        <div class="rl-nums"><span>${dayStr}</span><span>${hrStr}</span></div>
-      </div>`;
-    }).join('');
-  }
-
   function escape(s) {
     if (s == null) return '';
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -572,6 +559,6 @@ const UI = (() => {
     updateSessionRibbon, updateRegimeDial, updateRetailPlan,
     updateOddsTable, updateBGTCCard, updateRanger,
     renderRangeVisual, computeStrikes, updateSignals,
-    updateNewsFeed, updateRateLimits,
+    updateNewsFeed,
   };
 })();
