@@ -21,12 +21,12 @@ window opened 17:00 UTC, one non-overlapping episode per day, 2021-2026).
 | 256 | 165,194 | −2.79 % | 0.0174 | 3.133 pp |
 | 512 | 592,458 | −3.38 % | 0.0032 | 2.938 pp |
 
-Shrinking the network **8×** nearly doubled the volatility edge (−2.79 % →
+Shrinking the network **8Ã** nearly doubled the volatility edge (−2.79 % →
 −4.65 %) and moved it from marginal to decisive (p = 0.043 → p < 0.0001).
 
 The cause is sample size, and it is arithmetic rather than opinion. A 19-hour
 window anchored hourly overlaps its neighbour by 18/19, so the 189,831 training
-episodes carry only **2,498 independent observations** — a 76× inflation. At
+episodes carry only **2,498 independent observations** — a 76Ã inflation. At
 width 128 the model already holds 20 parameters per effective observation; at
 1 M it would hold ~400. Capacity buys variance here, not signal.
 
@@ -83,15 +83,15 @@ the one that scores best.
 
 The committee first came out at 3.199 pp — clearly *losing*. The cause was a
 genuine modelling error, not tuning: NOCTUA's `safe_level` integrates over its
-uncertainty about σ (32 quadrature atoms), while the three analytic specialists
+uncertainty about Ï (32 quadrature atoms), while the three analytic specialists
 conditioned on a single point estimate. **A predictive distribution built on a
 point estimate of a parameter is under-dispersed relative to one that
 integrates over it.** Pooling one hierarchical forecast with three
 under-dispersed ones pulled every level too close to spot (α = 5 % was touched
 7.1 % / 10.2 % of the time).
 
-Mixing all specialists over the same σ atoms fixed it: 3.199 → **2.455**. The
-correction widens the deep tail (1.16× at α = 0.5 %) and barely moves the body,
+Mixing all specialists over the same Ï atoms fixed it: 3.199 → **2.455**. The
+correction widens the deep tail (1.16Ã at α = 0.5 %) and barely moves the body,
 exactly as integrating over parameter uncertainty should.
 
 ## 3. "Make NOCTUA a parent that spawns specialist children"
@@ -102,7 +102,7 @@ The disciplined form of this is a hierarchical mixture of experts (Jacobs,
 Jordan, Nowlan & Hinton 1991): a gating network reads market state — vol level,
 vol-of-vol, position within the year, weekend fraction, jump share — and emits
 per-episode weights over the children. It was initialised at exactly equal
-weights (W = 0 ⇒ uniform softmax) so it starts at the flat committee and can
+weights (W = 0 â uniform softmax) so it starts at the flat committee and can
 only be credited with what it adds.
 
 It added nothing:
@@ -135,9 +135,9 @@ about how to weight them.
 
 ## What v2 ships
 
-- width **32** instead of 128 (6,378 params, 8× smaller)
+- width **32** instead of 128 (6,378 params, 8Ã smaller)
 - **3-seed** average — free variance reduction
-- flat **equal-weight** committee of the four specialists, σ-mixed
+- flat **equal-weight** committee of the four specialists, Ï-mixed
 - gating network **built, measured, and rejected**; code retained so the
   negative result stays reproducible
 
@@ -145,14 +145,14 @@ about how to weight them.
 |---|---|---|
 | volatility QLIKE vs Log-HAR | −2.79 % (p = 0.043) | **−4.04 % (p = 0.0002)** |
 | barrier err, α ≤ 10 % | 2.118 pp | **1.629 pp** |
-| network params | 49,866 | **6,378 × 3 seeds** |
+| network params | 49,866 | **6,378 Ã 3 seeds** |
 
 ## Post-merge correction: the barrier curve was clamped outside the grid
 
 Found in review after v2 merged, and fixed in a follow-up. It is the most
 consequential defect in this project so far, so it is recorded here in full.
 
-`ALPHA_GRID` spans α ∈ [0.005, 0.5], so the pooled quantile curve only speaks
+`ALPHA_GRID` spans α â [0.005, 0.5], so the pooled quantile curve only speaks
 about barriers between the median excursion and the 99.5th percentile.
 `touch_prob` read it with `np.interp(..., left=0.5, right=0.0)` — a flat clamp.
 Every barrier nearer than the median excursion was reported as **exactly
@@ -169,13 +169,13 @@ touched:
 Both ends now extrapolate, each with the closed form its endpoint already
 implies:
 
-- **near** — the reflection-principle survival `P(M ≥ u) = 2Φ(−u/s)`, with `s`
+- **near** — the reflection-principle survival `P(M ≥ u) = 2Î¦(−u/s)`, with `s`
   set so the curve passes exactly through the pooled median level. Tends to 1
   as `u → 0`, as a touch probability must.
-- **far** — a power law `α(u) = α₀·(u/u₀)^−k`, with `k` fitted from the two
+- **far** — a power law `α(u) = αâ·(u/uâ)^−k`, with `k` fitted from the two
   deepest pooled quantiles. Fitted from the *pooled* curve rather than from the
-  EVT member's ξ, because both fitted ξ are **negative** (bounded support)
-  while the pooled tail is a scale mixture over 32 σ atoms and so is fatter
+  EVT member's Î¾, because both fitted Î¾ are **negative** (bounded support)
+  while the pooled tail is a scale mixture over 32 Ï atoms and so is fatter
   than any single standardized GPD.
 
 Both are continuous at the seam to machine precision, so `safe_level` still

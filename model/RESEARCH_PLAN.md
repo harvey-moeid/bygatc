@@ -45,7 +45,7 @@ off the samples.
 > **11th of 24**. The reason is arithmetic and should have been obvious: a 19-hour window
 > covers 79 % of the day, so every anchor averages over nearly the same hours. The clock
 > effect is real but only at short horizons — the max/min anchor ratio for median RV is
-> **1.41× at H = 6 h, 1.23× at H = 12 h, 1.10× at H = 19 h, 1.01× at H = 24 h.**
+> **1.41Ã at H = 6 h, 1.23Ã at H = 12 h, 1.10Ã at H = 19 h, 1.01Ã at H = 24 h.**
 >
 > Clock position is retained as a feature (it is free and non-negative in value), but it is
 > demoted from thesis to footnote. See §2.4 for what the measurement actually found.
@@ -56,20 +56,20 @@ off the samples.
 
 ## 1. Problem formalization
 
-Let `S_t` be the BTC price process. Fix the decision epoch `τ = 17:00 UTC` on day `d` and
-the settlement epoch `T = 12:00 UTC` on day `d+1`, so `H = T − τ = 19 h`.
+Let `S_t` be the BTC price process. Fix the decision epoch `Ï = 17:00 UTC` on day `d` and
+the settlement epoch `T = 12:00 UTC` on day `d+1`, so `H = T − Ï = 19 h`.
 
-Using only the filtration `F_τ` (information available at `τ`), forecast the **joint law**
-of the path `{S_t : t ∈ [τ, T]}` through the five functionals that determine a daily option
+Using only the filtration `F_Ï` (information available at `Ï`), forecast the **joint law**
+of the path `{S_t : t â [Ï, T]}` through the five functionals that determine a daily option
 seller's P&L:
 
 | Symbol | Definition | What the seller uses it for |
 |---|---|---|
-| `R` | `log(S_T / S_τ)` | Settlement. Direction, and whether a short strike finishes ITM |
-| `RV` | `√( Σ r_i² )` over the window, `r_i` = 1-min log returns | Is implied vol rich or cheap? Position sizing |
-| `M⁺` | `max_{t∈[τ,T]} log(S_t / S_τ)` | Maximum favourable/adverse excursion **up** |
-| `M⁻` | `min_{t∈[τ,T]} log(S_t / S_τ)` | Maximum excursion **down** |
-| `N(u)` | `1{M⁺ ≥ u}` or `1{M⁻ ≤ u}` | **Barrier touch** — did the strike get breached intraday? |
+| `R` | `log(S_T / S_Ï)` | Settlement. Direction, and whether a short strike finishes ITM |
+| `RV` | `â( Î£ r_iÂ² )` over the window, `r_i` = 1-min log returns | Is implied vol rich or cheap? Position sizing |
+| `Mâº` | `max_{tâ[Ï,T]} log(S_t / S_Ï)` | Maximum favourable/adverse excursion **up** |
+| `Mâ»` | `min_{tâ[Ï,T]} log(S_t / S_Ï)` | Maximum excursion **down** |
+| `N(u)` | `1{Mâº ≥ u}` or `1{Mâ» ≤ u}` | **Barrier touch** — did the strike get breached intraday? |
 
 ### 1.1 The deliverable is the barrier survival curve
 
@@ -77,28 +77,28 @@ An option seller does not want a point forecast. They want to choose a strike an
 probability it breaks. So the model's primary output is the pair of **survival curves**
 
 ```
-    S⁺(u) = P( M⁺ ≥ u | F_τ )     for u > 0
-    S⁻(l) = P( M⁻ ≤ l | F_τ )     for l < 0
+    Sâº(u) = P( Mâº ≥ u | F_Ï )     for u > 0
+    Sâ»(l) = P( Mâ» ≤ l | F_Ï )     for l < 0
 ```
 
 from which the user's actual question — *"which level is strong enough to sell against and
 sit comfortably?"* — is answered by inversion:
 
 ```
-    K⁺(α) = inf { u : S⁺(u) ≤ α }        the α-safe call strike
-    K⁻(α) = sup { l : S⁻(l) ≤ α }        the α-safe put strike
+    Kâº(α) = inf { u : Sâº(u) ≤ α }        the α-safe call strike
+    Kâ»(α) = sup { l : Sâ»(l) ≤ α }        the α-safe put strike
 ```
 
-At `α = 0.05`, `K⁺(0.05)` is the level that historically breaks on 1 day in 20. **This is
+At `α = 0.05`, `Kâº(0.05)` is the level that historically breaks on 1 day in 20. **This is
 the model's headline number**, and it is a strictly richer object than Kronos's scalar
 "Upside Probability".
 
-A second-order but important distinction: `S⁺` is a **touch** (first-passage) probability,
-not a terminal probability. `P(M⁺ ≥ u) > P(R ≥ u)` always, and for a 19-hour window at
+A second-order but important distinction: `Sâº` is a **touch** (first-passage) probability,
+not a terminal probability. `P(Mâº ≥ u) > P(R ≥ u)` always, and for a 19-hour window at
 realistic volatility the gap is large — roughly a factor of ~1.7–2.0 near the money under a
 driftless diffusion (reflection principle). A seller who prices a strike off terminal
 probability and then gets stopped out on an intraday wick has mispriced their own risk by
-almost 2×. **Modelling the running extremum directly, rather than the terminal return, is
+almost 2Ã. **Modelling the running extremum directly, rather than the terminal return, is
 one of the concrete places this model earns its keep.**
 
 ### 1.2 Losses
@@ -141,7 +141,7 @@ Four specific, checkable weaknesses — not hand-waving:
 
 **(a) Monte-Carlo estimation variance in the tail.** Kronos produces probabilities only by
 sampling rollouts. The dashboard's own `kronos_local/app.py` uses `N_SAMPLES = 24`. The
-standard error of a probability estimate from `n` Bernoulli rollouts is `√(p(1−p)/n)`. At
+standard error of a probability estimate from `n` Bernoulli rollouts is `â(p(1−p)/n)`. At
 the 5 % barrier a seller cares about, with `n = 24`, that is **±4.4 percentage points** —
 the estimate is `5 % ± 4.4 %`, which is not a usable number for strike selection. To pin a
 5 % tail to ±0.5 pp you need `n ≈ 1 900` rollouts. At the repo's own measured 20–60 s per
@@ -151,7 +151,7 @@ magnitude. A model that outputs the tail probability *directly* has zero samplin
 
 **(b) Objective mismatch.** Kronos optimizes token-level negative log-likelihood over the
 full candle sequence. That is a proper scoring rule for *the candle sequence*, not for the
-scalar functionals `RV`, `M⁺`, `M⁻`. Plug-in estimation — sample paths from a generative
+scalar functionals `RV`, `Mâº`, `Mâ»`. Plug-in estimation — sample paths from a generative
 model, then compute a functional — is consistent but **statistically inefficient** relative
 to direct regression on that functional, and it inherits the generative model's calibration
 error in whichever region of path-space the functional depends on. Error also compounds over
@@ -210,33 +210,33 @@ the design, including where they contradicted it.
 |---|---|---|---|---|---|---|
 | autocorr of log RV | 0.744 | 0.643 | 0.615 | 0.570 | 0.479 | 0.438 |
 
-A crude log-HAR on the (1, 5, 22)-day cascade already reaches **R² = 0.605** in-sample. The
+A crude log-HAR on the (1, 5, 22)-day cascade already reaches **RÂ² = 0.605** in-sample. The
 slow decay is the classic long-memory signature that makes HAR work. This is where the
 predictability lives, and it is why Stage A is built around an explicit Log-HAR base.
 
 **(ii) The scale-invariance prior is real — Stage B is justified.** Splitting episodes by
-realized-vol quintile, raw `M⁺` varies **~4.4×** across quintiles while the standardized
-`m⁺ = M⁺/RV` is nearly flat:
+realized-vol quintile, raw `Mâº` varies **~4.4Ã** across quintiles while the standardized
+`mâº = Mâº/RV` is nearly flat:
 
 | RV quintile | Q1 low | Q2 | Q3 | Q4 | Q5 high | spread |
 |---|---|---|---|---|---|---|
-| median `M⁺` (%) | 0.67 | 1.18 | 1.60 | 2.08 | 2.97 | **4.4×** |
-| median `m⁺ = M⁺/RV` | 0.639 | 0.672 | 0.693 | 0.666 | 0.564 | **1.23×** |
+| median `Mâº` (%) | 0.67 | 1.18 | 1.60 | 2.08 | 2.97 | **4.4Ã** |
+| median `mâº = Mâº/RV` | 0.639 | 0.672 | 0.693 | 0.666 | 0.564 | **1.23Ã** |
 
 Dividing by the volatility scale removes ~80 % of the variation in the barrier functional.
 That is exactly the seam the Stage-A/Stage-B factorization cuts along, and it is what lets a
 sub-1 M-parameter model work on ~3,300 native episodes.
 
 Better still, the level is close to theory: for a driftless diffusion the running maximum
-over a window of total vol `σ` satisfies `median(M⁺) = 0.6745 σ` (reflection principle,
-`max ~ |N(0,1)|·σ`). We measure **0.64–0.69**. So the Brownian barrier baseline is nearly
+over a window of total vol `Ï` satisfies `median(Mâº) = 0.6745 Ï` (reflection principle,
+`max ~ |N(0,1)|·Ï`). We measure **0.64–0.69**. So the Brownian barrier baseline is nearly
 *right at the median* — the model's job is to learn the **deviations**, which is precisely
-where a seller's money is: the empirical 95th percentile of `m⁺` runs 1.61–2.01 against the
+where a seller's money is: the empirical 95th percentile of `mâº` runs 1.61–2.01 against the
 Gaussian 1.96, and the quintile pattern is non-monotone (a hump at Q3, a marked drop at Q5).
 Fat tails in quiet regimes, compressed tails in already-violent ones.
 
 **(iii) The dominant calendar signal is the weekend, not the clock.** Day-of-week explains
-**5.35 %** of log-RV variance — **24× more than anchor hour (0.22 %)**:
+**5.35 %** of log-RV variance — **24Ã more than anchor hour (0.22 %)**:
 
 | day | Mon | Tue | Wed | Thu | Fri | **Sat** | Sun |
 |---|---|---|---|---|---|---|---|
@@ -290,7 +290,7 @@ quantity. The estimator is sound.
 - Real BTC/**USD** spot on a regulated venue — not a USDT perp, so no stablecoin-depeg
   artifacts in the price series
 
-Why 1-minute and not hourly: the labels `RV`, `M⁺`, `M⁻` are **path functionals**. Realized
+Why 1-minute and not hourly: the labels `RV`, `Mâº`, `Mâ»` are **path functionals**. Realized
 variance measured from 1-minute returns has far lower measurement error than from hourly
 returns (the RV literature is unanimous that better realized measures translate directly
 into better forecasts), and running extrema measured at 1-minute resolution are the ground
@@ -323,7 +323,7 @@ problem at every anchor hour; only the clock position differs. Train on windows 
 **every hour of the day**, with anchor-hour supplied as an explicit cyclical feature:
 
 ```
-    3,290 days × 24 anchors  ≈  79,000 episodes        (24× more data)
+    3,290 days Ã 24 anchors  ≈  79,000 episodes        (24Ã more data)
 ```
 
 The model learns the *shared* mapping from market state to path distribution, and learns the
@@ -363,33 +363,33 @@ hallucination test the user asked for.
 ## 4. Model architecture
 
 Design principle: **spend parameters where the predictability is, and use a near-universal
-shape everywhere else.** Volatility *level* is highly predictable (R² ≈ 0.5–0.7 in log
+shape everywhere else.** Volatility *level* is highly predictable (RÂ² ≈ 0.5–0.7 in log
 space). Standardized path *shape* is close to distribution-free. Factorizing along that seam
 is what makes < 1 M parameters sufficient.
 
 ```
                  features (≈ 60, all from OHLCV)
-                              │
-        ┌─────────────────────┴──────────────────────┐
-        │                                            │
+                              â
+        âââââââââââââââââââââââ´âââââââââââââââââââââââ
+        â                                            â
    STAGE A: volatility scale               STAGE B: standardized shape
-   ────────────────────────                ─────────────────────────────
+   ââââââââââââââââââââââââ                âââââââââââââââââââââââââââââ
    Log-HAR linear base                     monotone quantile heads for
-        + gated residual MLP                  r  = R  / σ̂
-        ↓                                     m⁺ = M⁺ / σ̂
-   predictive distribution                    m⁻ = M⁻ / σ̂
+        + gated residual MLP                  r  = R  / ÏÌ
+        ↓                                     mâº = Mâº / ÏÌ
+   predictive distribution                    mâ» = Mâ» / ÏÌ
    over log RV  (quantiles)                ↓
-        │                                  conditioned on a few shape
-        │                                  features + clock + σ̂ level
-        └──────────────┬───────────────────────────┘
-                       │
+        â                                  conditioned on a few shape
+        â                                  features + clock + ÏÌ level
+        ââââââââââââââââ¬ââââââââââââââââââââââââââââ
+                       â
               STAGE C: mixing + calibration
-              ─────────────────────────────
-              P(M⁺ ≥ u) = E_σ̂ [ 1 − F_{m⁺}(u / σ̂) ]
+              âââââââââââââââââââââââââââââ
+              P(Mâº ≥ u) = E_ÏÌ [ 1 − F_{mâº}(u / ÏÌ) ]
               then isotonic recalibration + conformal coverage
-                       │
-                       ▼
-        S⁺(u), S⁻(l), K⁺(α), K⁻(α), P(R>0), quantiles of R, RV forecast
+                       â
+                       â¼
+        Sâº(u), Sâ»(l), Kâº(α), Kâ»(α), P(R>0), quantiles of R, RV forecast
 ```
 
 ### 4.1 Stage A — volatility scale head
@@ -398,8 +398,8 @@ Predicts the conditional distribution of `log RV` over the window. Structured as
 **Log-HAR base plus a learned residual**:
 
 ```
-    log RV_pred  =  β' x_HAR  +  g_θ(z)
-                    ─────────    ──────
+    log RV_pred  =  β' x_HAR  +  g_Î¸(z)
+                    âââââââââ    ââââââ
                     Log-HAR      small gated MLP residual
                     (linear)     (the only learned nonlinearity)
 ```
@@ -432,13 +432,13 @@ trained with pinball loss.
 
 ### 4.2 Stage B — standardized shape head
 
-Under a driftless diffusion with volatility `σ`, the law of `(R, M⁺, M⁻)/σ` is
-*exactly* free of `σ`. Real BTC is not that — there is drift, leverage, jumps, and
+Under a driftless diffusion with volatility `Ï`, the law of `(R, Mâº, Mâ»)/Ï` is
+*exactly* free of `Ï`. Real BTC is not that — there is drift, leverage, jumps, and
 vol-of-vol — but the invariance is a strong and correct inductive bias: it removes the
 dominant source of variation before the network sees the data, so a small network can learn
 the residual shape from limited episodes.
 
-Stage B therefore models the law of `(r, m⁺, m⁻) = (R, M⁺, M⁻)/σ̂` conditioned on a compact
+Stage B therefore models the law of `(r, mâº, mâ») = (R, Mâº, Mâ»)/ÏÌ` conditioned on a compact
 set of *shape* features — momentum/trend, recent return skew and kurtosis, vol-of-vol, jump
 indicator, clock position, weekend flag, and the predicted vol level itself (so the model can
 learn that the shape is not perfectly scale-invariant).
@@ -449,7 +449,7 @@ with pinball loss on a dense level grid, plus a **coupling loss** enforcing the 
 constraints that must hold on every real path:
 
 ```
-    m⁻  ≤  min(0, r)        and        m⁺  ≥  max(0, r)
+    mâ»  ≤  min(0, r)        and        mâº  ≥  max(0, r)
 ```
 
 Any model that can violate these is not modelling a path. Enforcing them is free accuracy and
@@ -460,7 +460,7 @@ a strong regularizer.
 The seller's barrier probability integrates Stage B over Stage A's uncertainty about scale:
 
 ```
-    P(M⁺ ≥ u | F_τ)  =  E_{σ̂ ~ StageA} [ 1 − F_{m⁺}( u / σ̂ ) ]
+    P(Mâº ≥ u | F_Ï)  =  E_{ÏÌ ~ StageA} [ 1 − F_{mâº}( u / ÏÌ ) ]
 ```
 
 evaluated by quadrature over Stage A's predictive quantiles — tens of microseconds, fully
@@ -469,7 +469,7 @@ rollouts, and it is both faster and exact.
 
 Then, because calibration is the product:
 
-- **Isotonic recalibration** of `S⁺`, `S⁻` and `P(R>0)`, fit on a rolling out-of-sample
+- **Isotonic recalibration** of `Sâº`, `Sâ»` and `P(R>0)`, fit on a rolling out-of-sample
   window (never on training data).
 - **Conformal adjustment** of the quantiles for distribution-free coverage under
   exchangeability, with the standard caveat that exchangeability is only approximately true
@@ -512,7 +512,7 @@ What we do instead, which is more valuable:
    with the identical proper scoring rules. This directly answers *"is NOCTUA superior to
    Kronos?"* — which is the actual goal — instead of assuming it.
 2. **Optional distillation hook** retained as `train/distill.py`: an auxiliary loss matching
-   Kronos's implied barrier curves, weighted `λ`, default `λ = 0`. Available to switch on if
+   Kronos's implied barrier curves, weighted `Î»`, default `Î» = 0`. Available to switch on if
    the benchmark shows Kronos adds information in some regime.
 
 ---
@@ -524,7 +524,7 @@ Everything below is out-of-sample, walk-forward, with an embargo gap.
 ### 6.1 Splits
 
 Expanding-window walk-forward. Train on `[start, t)`, calibrate on a held-out slice, test on
-`[t + purge, t + purge + Δ)`, roll forward. Purge ≥ 19 h so no test window shares a minute
+`[t + purge, t + purge + Î)`, roll forward. Purge ≥ 19 h so no test window shares a minute
 with training. Headline numbers restricted to **non-overlapping 17:00 UTC anchors**.
 
 ### 6.2 Baselines — the real bar
@@ -541,13 +541,13 @@ barrier is the result.**
 
 ### 6.3 Metrics
 
-- `RV`: QLIKE (primary — robust to proxy noise), MSE, `R²` in logs.
+- `RV`: QLIKE (primary — robust to proxy noise), MSE, `RÂ²` in logs.
 - `R`: CRPS, pinball loss across the quantile grid.
 - Direction: log-loss, Brier, AUC.
 - **Barriers: calibration first.** Reliability diagrams; predicted vs realized touch
-  frequency at α ∈ {1, 2, 5, 10, 20} %; Brier per barrier level. A model claiming 5 % that
+  frequency at α â {1, 2, 5, 10, 20} %; Brier per barrier level. A model claiming 5 % that
   delivers 12 % is worse than useless to a seller regardless of its discrimination.
-- **Economic:** simulated P&L of selling `K⁺(α)` / `K⁻(α)` strikes, net of Delta Exchange
+- **Economic:** simulated P&L of selling `Kâº(α)` / `Kâ»(α)` strikes, net of Delta Exchange
   fees (`min(0.03 % notional, 10 % of premium)` per leg, per `DAILY_EXPIRY_ALPHA.md`),
   against fixed-width and RANGER-chosen strikes. Reported with CVaR and worst-case, not just
   mean.
@@ -561,7 +561,7 @@ barrier is the result.**
    1b. Remove day-of-week/weekend features → quantifies the dominant calendar signal.
 3. Remove the Log-HAR base (pure MLP) → shows the residual structure earns its place.
 4. Remove semivariance/jump features → tests the Patton–Sheppard channel.
-5. Remove Stage-A/Stage-B factorization (predict `M⁺` directly) → tests the invariance prior.
+5. Remove Stage-A/Stage-B factorization (predict `Mâº` directly) → tests the invariance prior.
 6. Remove calibration layer → quantifies how much Stage C matters economically.
 
 ### 6.5 Failure conditions we commit to reporting
@@ -636,7 +636,7 @@ Stated up front because they shape what can be verified here:
 
 ## 10. Scientific commitments
 
-1. **No lookahead.** Every feature at `τ` uses only data strictly before `τ`. A leakage audit
+1. **No lookahead.** Every feature at `Ï` uses only data strictly before `Ï`. A leakage audit
    is a deliverable, not an afterthought.
 2. **Proper scoring rules only.**
 3. **Calibration before discrimination.** A sharp but miscalibrated tail probability is a

@@ -40,7 +40,7 @@ episodes (2021–2026), against a well-specified **Log-HAR** benchmark:
 - **Deep-tail barriers — validated and the main result.** Mean calibration
   error at α = 1 %: **0.94 pp vs 3.33 pp** for the textbook Gaussian
   first-passage baseline; at α = 2 %, 1.38 pp vs 3.53 pp. The Gaussian
-  *understates* deep-tail touch risk by 2–4×.
+  *understates* deep-tail touch risk by 2–4Ã.
 - **Body barriers (α = 10–20 %) — the Gaussian is better.** 2.0–2.7 pp vs our
   4.0–4.6 pp. Use NOCTUA where a seller actually operates (α ≤ 5 %).
 - **Direction — NOT validated, and reported as such.** Log-loss 0.6941 against

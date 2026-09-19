@@ -20,7 +20,7 @@ cheatable, and here is the proof, from the benchmark's own table:
 
 | model | mean coverage error, pp |
 |---|---|
-| **scaled_clim** (unconditional shape × trailing vol) | **1.360** ← *wins* |
+| **scaled_clim** (unconditional shape Ã trailing vol) | **1.360** ← *wins* |
 | noctua_v2 | 1.629 |
 | climatology (constant, input-blind) | 2.493 |
 | noctua_shuffled (features scrambled) | 2.969 |
@@ -116,28 +116,28 @@ coverage at p = 0.72 and independence rejects at p = 0.0000.)
 
 All checks in `eval/falsify.py` pass.
 
-- **Monotone response.** σ is *strictly* increasing in trailing volatility
-  across a 13-point sweep, elasticity **d log σ / d log vol = 0.889** — near
+- **Monotone response.** Ï is *strictly* increasing in trailing volatility
+  across a 13-point sweep, elasticity **d log Ï / d log vol = 0.889** — near
   proportional with mild shrinkage toward the mean, which is the economically
   correct behaviour. A model that had learned a correlation rather than the
   mechanism would not be forced to get this right.
-- **Sharpness.** The α = 5 % level has CV **0.197** and a **2.24×** spread
-  across episodes. A lookup table sits at 0 and 1.00×.
+- **Sharpness.** The α = 5 % level has CV **0.197** and a **2.24Ã** spread
+  across episodes. A lookup table sits at 0 and 1.00Ã.
 - **Feature use.** 37 of 39 features move the forecast; only `reg_post_etf`
-  and `cal_H` are inert. `har_1d` dominates (22.1 % σ shift), with
+  and `cal_H` are inert. `har_1d` dominates (22.1 % Ï shift), with
   `cal_weekend_frac` (4.3 %) and `cal_dow_sin` (3.7 %) next — calendar
   structure outranks the longer HAR components.
-- **Off-distribution.** At 20×, 400× and 1/400× training volatility the output
+- **Off-distribution.** At 20Ã, 400Ã and 1/400Ã training volatility the output
   stays finite, monotone, positive and in range. It does not produce confident
   nonsense where it has no data.
 
 ## 5. Instruments with a known right answer
 
 `eval/synthetic.py` feeds processes whose true barrier law is exact (driftless
-GBM: `P(max ≥ u) = 2Φ(−u/σ)`) or Monte-Carlo-precise (GARCH(1,1), Merton jump
+GBM: `P(max ≥ u) = 2Î¦(−u/Ï)`) or Monte-Carlo-precise (GARCH(1,1), Merton jump
 diffusion). NOCTUA has only ever seen Bitcoin.
 
-| instrument | true σ | model σ | ratio |
+| instrument | true Ï | model Ï | ratio |
 |---|---|---|---|
 | GBM 1 % | 1.000 % | 1.049 % | 1.049 |
 | GBM 3 % | 3.000 % | 2.867 % | 0.956 |
@@ -145,11 +145,11 @@ diffusion). NOCTUA has only ever seen Bitcoin.
 | GARCH(1,1) | 3.000 % | 2.837 % | 0.946 |
 | jump diffusion | 2.317 % | 2.171 % | 0.937 |
 
-**Across a 9× volatility range it has never seen, σ is recovered to a 1.16×
+**Across a 9Ã volatility range it has never seen, Ï is recovered to a 1.16Ã
 spread.** It is measuring volatility from the series, not recalling Bitcoin's.
 
 Touch probabilities run *conservative* — model/true ratios 1.00–1.24 at
-σ ≥ 3 % — which is the safe direction. The exception is genuine: at σ = 1 %
+Ï ≥ 3 % — which is the safe direction. The exception is genuine: at Ï = 1 %
 (below anything in Bitcoin's history) it puts 12.8 % on a 2 % barrier where
 Gaussian truth is 4.6 %. It imposes a crypto-like fat tail on a thin-tailed
 instrument. Correct for its actual deployment, wrong in general, and worth
@@ -161,13 +161,13 @@ knowing before pointing it at anything but BTC.
 
 Marginal calibration was concealing a real defect. Out of sample from
 2024-07, realized vol lands **below** the forecast **66.4 %** of the time,
-median ratio **0.874**. Every barrier scales with σ, so strikes were quoted too
+median ratio **0.874**. Every barrier scales with Ï, so strikes were quoted too
 far out — safe, but forfeiting premium every night, with breach rates near half
 of nominal.
 
 It is **not a fixed constant**:
 
-| split | median RV/σ | fraction below |
+| split | median RV/Ï | fraction below |
 |---|---|---|
 | train | 0.970 | 55.0 % |
 | calib | 1.009 | 48.6 % ← essentially unbiased |
@@ -185,7 +185,7 @@ cannot masquerade as a regime shift.
 
 | | before | after |
 |---|---|---|
-| median RV/σ (test era) | 0.874 | **0.990** |
+| median RV/Ï (test era) | 0.874 | **0.990** |
 | fraction below | 66.4 % | **51.5 %** |
 | barrier calibration | 2.073 pp | **1.373 pp** |
 
@@ -258,16 +258,16 @@ episodes sit on a complete regular grid — every hour, every horizon — so
 concurrency is a constant of the grid (61), average uniqueness is exactly 1/61
 on the training split, and the normalised multiplier is 1.0000 to machine
 precision. Measured, it moves DSC/UNC by ~1e-5 against the ~4e-3 that
-`serve_consistent` moves — about 100× smaller and not in a consistent direction
+`serve_consistent` moves — about 100Ã smaller and not in a consistent direction
 (3 folds up, 3 down), i.e. effectively equivalent rather than exactly equal.
 López de Prado's uniqueness weighting is built for *event-driven* labels with
 data-dependent holding periods; on a regular grid there is nothing for it to
-grip. The 60.9× redundancy (8,380 effective observations from 510,496 episodes)
+grip. The 60.9Ã redundancy (8,380 effective observations from 510,496 episodes)
 is real and must be attacked by removing samples or shrinking capacity, not by
 reweighting.
 
 *nonoverlap* — training only on the 4,965 non-overlapping episodes — is worse
-in **0/6 folds won**, −9.8 % DSC/UNC, and worse on pinball and CRPS. The 100×
+in **0/6 folds won**, −9.8 % DSC/UNC, and worse on pinball and CRPS. The 100Ã
 overlapping augmentation is genuinely buying barrier discrimination and
 distribution shape. It does slightly improve QLIKE (0.2953), so the redundancy
 does cost something on the volatility level, but not enough to justify the
@@ -373,7 +373,7 @@ strongly correlated across assets, so 845,000 extra episodes sharpen the
 volatility cascade. Excursion *shape* — how far a path travels per unit of
 realized vol — reflects each asset's own microstructure, liquidity and tick
 size, so pooling it adds variance without adding signal. That is the same
-boundary `eval/cross_asset.py` found from the other direction: σ transfers
+boundary `eval/cross_asset.py` found from the other direction: Ï transfers
 zero-shot to unseen altcoins, and the excursion shape is where transfer gets
 shakier.
 
@@ -383,7 +383,7 @@ Scored through `run_fold` with `prod_override`, one horizon at a time, so every
 figure comes from the same committee, both barriers and the same grid as the
 aggregate above. One train/test split, not six folds.
 
-| H | n | QLIKE BTC | QLIKE pooled | Δ | DSC/UNC BTC | DSC/UNC pooled | Δ |
+| H | n | QLIKE BTC | QLIKE pooled | Î | DSC/UNC BTC | DSC/UNC pooled | Î |
 |---|---|---|---|---|---|---|---|
 | 6 | 770 | 0.3673 | 0.3553 | **−3.3 %** | 0.08341 | 0.08146 | −2.3 % |
 | 12 | 769 | 0.2884 | 0.2858 | −0.9 % | 0.04565 | 0.04535 | −0.6 % |
@@ -423,11 +423,11 @@ the wrong expiry.
 
 ## 7. Where this leaves the model
 
-**Established.** It carries genuine conditional information (DSC ≫ 0, and
+**Established.** It carries genuine conditional information (DSC â« 0, and
 shuffling the features destroys it). It beats every baseline on the full
 predictive distribution and on volatility. It responds correctly and
 monotonically to its causal driver. It does not break off-distribution. It
-recovers σ on processes it has never seen. Breaches do not cluster.
+recovers Ï on processes it has never seen. Breaches do not cluster.
 
 **Not established.** That it beats a competent classical baseline on *binary
 barrier discrimination* — there it is tied with Log-HAR + Gaussian, and by DSC
@@ -456,7 +456,7 @@ computing one number.
 sampled paths each, same anchors, same barriers, graded by one implementation
 of one set of rules.
 
-| model | Brier | log score | DSC ↑ | MCB ↓ |
+| model | Brier | log score | DSC â | MCB ↓ |
 |---|---|---|---|---|
 | **noctua_v2** | **0.145176** | **0.440193** | **0.018148** | **0.023733** |
 | kronos-small | 0.211059 | 0.651811 | 0.005683 | 0.077150 |
@@ -466,7 +466,7 @@ of one set of rules.
 this branch, one on `main` — 119 of their 120 anchors shared, neither aware of
 the other. Agreement across two separate Monte-Carlo samplings:
 
-| | σ/RV | noctua Brier | kronos Brier | noctua DSC | kronos DSC |
+| | Ï/RV | noctua Brier | kronos Brier | noctua DSC | kronos DSC |
 |---|---|---|---|---|---|
 | run A | 1.172 | 0.146371 | 0.214208 | 0.018334 | 0.006580 |
 | run B | 1.184 | 0.145176 | 0.211059 | 0.018148 | 0.005683 |
@@ -481,7 +481,7 @@ dependence between barriers and sides):
     Brier advantage to NOCTUA   +0.0504 .. +0.0868    P(better) = 1.000
     DSC   advantage to NOCTUA   +0.0055 .. +0.0202    P(better) = 1.000
 
-Both intervals exclude zero. Against a model **1,291× larger** (24.7 M
+Both intervals exclude zero. Against a model **1,291Ã larger** (24.7 M
 parameters against 19,134), on the task this repo was built for.
 
 Four things must be said alongside that, because none of them flatters us.
@@ -520,7 +520,7 @@ statement is that 120 episodes cannot resolve it either way — not that it is
 absent. NOCTUA's DSC clears the same floor by a wide margin.
 
 Kronos's miscalibration is separately large and is measurable: MCB 0.077150,
-3.3× NOCTUA's, which is what you would expect from sampled paths never fitted
+3.3Ã NOCTUA's, which is what you would expect from sampled paths never fitted
 to this question.
 
 **Three earlier runs were invalid, and two of those were our fault.** Run 1
@@ -529,7 +529,7 @@ moves live. Runs 1 and 2 both then hit a worse defect:
 `KronosPredictor.predict(sample_count=32)` **averages** its draws
 (`kronos.py:467`) and returns one smoothed path, so `n_paths` was 1, every
 "probability" was exactly 0.0 or 1.0, and the sampled volatility ratio read
-0.259 and 0.373. That reads as "Kronos is 2.7× too calm" and it is not — with
+0.259 and 0.373. That reads as "Kronos is 2.7Ã too calm" and it is not — with
 genuine sampling the ratio is **1.172**. Publishing the earlier number would
 have been a false claim about someone else's model, produced by our harness and
 flattering to ours. `eval/kronos_ci.py` now draws via `predict_batch` and
@@ -549,7 +549,7 @@ other horizons, or about other instruments.
 Getting Kronos to run at all took moving it into CI: `huggingface.co` weight
 downloads are blocked from the development environment (HTTP 403 via the proxy);
 only metadata is reachable, which confirms Kronos-small at 24.7 M parameters and
-Kronos-base at 102.3 M against NOCTUA's 19,134 — roughly 1,300× and 5,300×
+Kronos-base at 102.3 M against NOCTUA's 19,134 — roughly 1,300Ã and 5,300Ã
 larger — but says nothing about accuracy.
 
 Run 1 was invalid for an honest reason: `top_p=0.9` truncates the token
@@ -563,11 +563,11 @@ internally") and returns one smoothed path. So:
 
 | | run 1 | run 2 | what it actually was |
 |---|---|---|---|
-| sampled σ / realized RV | 0.259 | 0.373 | the average of 32 paths, not Kronos's σ |
+| sampled Ï / realized RV | 0.259 | 0.373 | the average of 32 paths, not Kronos's Ï |
 | paths per episode | 1 | 1 | asked for 32 |
 | touch probabilities | {0, 1} | {0, 1} | an indicator on the mean path |
 
-The tempting read of run 2 — *"Kronos under-states volatility by 2.7×"* — is
+The tempting read of run 2 — *"Kronos under-states volatility by 2.7Ã"* — is
 false, and it is the kind of claim that is easy to publish because it flatters
 the model doing the measuring. Scoring those 0/1 indicators against NOCTUA's
 calibrated curve would have compared a probability forecast to a point forecast

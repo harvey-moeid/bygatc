@@ -50,7 +50,7 @@ the model's characteristic failure mode and it is discussed in §5.
 
 **Fixed-split baseline scoreboard** (test 2024-07 → 2026-08, 769 episodes):
 
-| model | QLIKE | R² (log) | vs ref | p |
+| model | QLIKE | RÂ² (log) | vs ref | p |
 |---|---|---|---|---|
 | **NOCTUA** | **0.2492** | **0.4250** | **−5.74 %** | **0.0000** |
 | log_har_cal | 0.2644 | 0.3816 | — | — |
@@ -82,9 +82,9 @@ pooled over walk-forward folds:
 
 | α | **NOCTUA** | Gaussian reflection | ratio |
 |---|---|---|---|
-| **1 %** | **0.94** | 3.33 | **3.5× better** |
-| **2 %** | **1.38** | 3.53 | **2.6× better** |
-| **5 %** | **2.48** | 3.77 | **1.5× better** |
+| **1 %** | **0.94** | 3.33 | **3.5Ã better** |
+| **2 %** | **1.38** | 3.53 | **2.6Ã better** |
+| **5 %** | **2.48** | 3.77 | **1.5Ã better** |
 | 10 % | 3.69 | **2.71** | worse |
 | 20 % | 4.09 | **2.01** | worse |
 | 30 % | 4.11 | 3.69 | worse |
@@ -92,7 +92,7 @@ pooled over walk-forward folds:
 
 **This is the result the project rests on.** In the deep tail — the only region
 an option seller actually operates in — the textbook Gaussian first-passage
-model **understates touch risk by 2–4×**: told to name a level that breaks 1 %
+model **understates touch risk by 2–4Ã**: told to name a level that breaks 1 %
 of the time, it names one that breaks 2.2–4.4 % of the time. NOCTUA names one
 that breaks 0.8–1.2 %.
 
@@ -206,7 +206,7 @@ The user's question, made precise: when the input carries no signal, does the
 model fall back to the unconditional distribution, or keep emitting confident
 varying forecasts?
 
-| input | n | forecast sd | R² | median predicted RV | median true RV |
+| input | n | forecast sd | RÂ² | median predicted RV | median true RV |
 |---|---|---|---|---|---|
 | real BTC (test) | 769 | 0.320 | 0.425 | 1.84 % | 1.66 % |
 | real BTC 2012–2016 (out-of-distribution era) | 1458 | 0.561 | **0.664** | 3.35 % | 3.44 % |
@@ -221,7 +221,7 @@ It passes:
   predict, which is the opposite of hallucinating.
 - **It generalises to a genuinely unseen regime.** On BTC 2012–2016 — never
   trained on, roughly double the volatility level, radically different
-  microstructure — it scores **R² = 0.664**, higher than on the test split, and
+  microstructure — it scores **RÂ² = 0.664**, higher than on the test split, and
   is nearly unbiased in level (3.35 % predicted vs 3.44 % realized). This is the
   scale-invariance factorization doing its job.
 - **It still reads the level correctly on surrogates** (within ~10 %) while

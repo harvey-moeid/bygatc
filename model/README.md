@@ -23,7 +23,7 @@ Out-of-sample walk-forward, 2,046 non-overlapping production episodes:
   5/6 folds.
 - **Deep-tail barriers:** calibration error **0.94 pp vs 3.33 pp** for the
   Gaussian first-passage baseline at α = 1 %. The textbook model understates
-  deep-tail touch risk by 2–4×.
+  deep-tail touch risk by 2–4Ã.
 - **Body barriers (α ≥ 10 %):** the Gaussian is better. Reported, not hidden.
 - **Direction:** no skill (log-loss 0.6941 vs 0.6931 for a coin flip). The
   served `upside` field is pinned to 50.
