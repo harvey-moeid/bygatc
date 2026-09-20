@@ -245,3 +245,46 @@ button:not(:disabled):active,.btn:active{transform:scale(.96)}
   border-color:var(--accent);
   color:var(--accent);
 }
+/* PREMIUM POLISH v1 */
+/* Shared premium trading-desk layer: restrained depth, hierarchy and motion. */
+:root{
+  --radius-card:14px;
+  --shadow-premium:0 10px 30px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.22);
+  --shadow-hover:0 16px 38px rgba(0,0,0,.34),0 3px 12px rgba(0,0,0,.22);
+}
+body{
+  background:
+    radial-gradient(900px 500px at 8% -10%,rgba(209,163,80,.055),transparent 62%),
+    radial-gradient(800px 480px at 92% 4%,rgba(79,184,172,.045),transparent 60%),
+    var(--bg);
+}
+.card{
+  border-radius:var(--radius-card);
+  box-shadow:var(--shadow-premium);
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
+}
+.card:hover{
+  transform:translateY(-1px);
+  border-color:rgba(255,255,255,.10);
+  box-shadow:var(--shadow-hover);
+}
+.card-title{color:#b8b3a5;letter-spacing:.12em}
+.btn{
+  min-height:34px;
+  border-radius:8px;
+  padding:7px 13px;
+  transition:transform .15s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,color .18s ease;
+}
+.btn:hover{box-shadow:0 0 0 1px rgba(209,163,80,.08),0 6px 16px rgba(0,0,0,.18)}
+.btn-cta{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 5px 16px rgba(0,0,0,.22);
+}
+.pill-sm{border-radius:999px}
+.modal-box{box-shadow:0 24px 70px rgba(0,0,0,.55)}
+input[type=range]{height:18px}
+@media(max-width:720px){
+  .card{border-radius:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  .card:hover{transform:none}
+}
