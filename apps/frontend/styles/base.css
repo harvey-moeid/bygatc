@@ -63,12 +63,14 @@
   --shadow-sm:0 2px 6px rgba(0,0,0,.3);
   --shadow-md:0 3px 10px rgba(0,0,0,.35);
   --shadow-lg:0 6px 18px rgba(0,0,0,.42);
+  --shadow-card:0 10px 30px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.22);
+  --shadow-card-hover:0 14px 34px rgba(0,0,0,.32),0 3px 10px rgba(0,0,0,.20);
 }
 
 /* ---------- RESET ---------- */
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5}
+body{background:radial-gradient(900px 500px at 8% -10%,rgba(209,163,80,.055),transparent 62%),radial-gradient(800px 480px at 92% 4%,rgba(79,184,172,.045),transparent 60%),var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5}
 
 /* ---------- ACCESSIBILITY ---------- */
 .skip-link{position:absolute;left:-9999px;top:0;background:var(--surface);color:#fff;padding:8px 14px;border-radius:6px;z-index:999}
@@ -113,11 +115,11 @@ input[type=range]:focus-visible::-ms-thumb{box-shadow:0 0 0 4px rgba(209,163,80,
 .glow-num.glow-accent::before{background:radial-gradient(ellipse at center,var(--accent) 0%,transparent 70%)}
 
 /* ---------- BUTTON (.btn) ---------- */
-.btn{background:transparent;border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:10px;padding:5px 12px;border-radius:6px;cursor:pointer;transition:all .15s;letter-spacing:.04em}
-.btn:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent)}
+.btn{background:transparent;border:1px solid var(--border2);color:var(--text);font-family:var(--font-mono);font-size:10px;padding:7px 13px;min-height:34px;border-radius:8px;cursor:pointer;transition:transform .15s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,color .18s ease;letter-spacing:.04em}
+.btn:hover{background:var(--surface2);border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 1px rgba(209,163,80,.08),0 6px 16px rgba(0,0,0,.18)}
 
 /* ---------- PILL (.pill-sm) ---------- */
-.pill-sm{font-size:10px;padding:4px 10px;border-radius:6px;font-family:var(--font-mono)}
+.pill-sm{font-size:10px;padding:4px 10px;border-radius:999px;font-family:var(--font-mono)}
 .pill-sm.ok{background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green)}
 .pill-sm.warn{background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber)}
 .pill-sm.err{background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red)}
@@ -132,8 +134,8 @@ input[type=range]:focus-visible::-ms-thumb{box-shadow:0 0 0 4px rgba(209,163,80,
    ketiga halaman -- sebelumnya 0 dipakai sama sekali di manapun.
    Fase 3: nilai shadow dipindah ke var(--shadow-sm) (nilainya sama
    persis, cuma sekarang satu sumber token elevasi -- lihat :root). */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:var(--shadow-sm)}
-.card-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;font-weight:500;display:flex;align-items:center;gap:6px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-card);transition:border-color .18s ease,box-shadow .18s ease,background .18s ease}
+.card-title{font-size:11px;color:#b8b3a5;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;font-weight:500;display:flex;align-items:center;gap:6px}
 .card-title .dot{width:5px;height:5px;border-radius:50%}
 
 /* ---------- MODAL SHELL ----------
@@ -143,7 +145,7 @@ input[type=range]:focus-visible::-ms-thumb{box-shadow:0 0 0 4px rgba(209,163,80,
    kalau nanti butuh modal juga. */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(5px);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
 .modal-overlay.open{opacity:1;pointer-events:all}
-.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;width:min(740px,94vw);max-height:85vh;overflow-y:auto;padding:28px 30px;position:relative;scrollbar-width:thin;scrollbar-color:var(--surface3) transparent}
+.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:16px;width:min(740px,94vw);box-shadow:0 24px 70px rgba(0,0,0,.55);max-height:85vh;overflow-y:auto;padding:28px 30px;position:relative;scrollbar-width:thin;scrollbar-color:var(--surface3) transparent}
 .modal-box::-webkit-scrollbar{width:4px}.modal-box::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px}
 .modal-close{position:absolute;top:16px;right:16px;background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-mono);font-size:10px;padding:4px 10px;border-radius:5px;cursor:pointer;transition:all .15s}
 .modal-close:hover{border-color:var(--accent);color:var(--accent)}
@@ -245,46 +247,9 @@ button:not(:disabled):active,.btn:active{transform:scale(.96)}
   border-color:var(--accent);
   color:var(--accent);
 }
-/* PREMIUM POLISH v1 */
-/* Shared premium trading-desk layer: restrained depth, hierarchy and motion. */
-:root{
-  --radius-card:14px;
-  --shadow-premium:0 10px 30px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.22);
-  --shadow-hover:0 16px 38px rgba(0,0,0,.34),0 3px 12px rgba(0,0,0,.22);
-}
-body{
-  background:
-    radial-gradient(900px 500px at 8% -10%,rgba(209,163,80,.055),transparent 62%),
-    radial-gradient(800px 480px at 92% 4%,rgba(79,184,172,.045),transparent 60%),
-    var(--bg);
-}
-.card{
-  border-radius:var(--radius-card);
-  box-shadow:var(--shadow-premium);
-  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease;
-}
-.card:hover{
-  transform:translateY(-1px);
-  border-color:rgba(255,255,255,.10);
-  box-shadow:var(--shadow-hover);
-}
-.card-title{color:#b8b3a5;letter-spacing:.12em}
-.btn{
-  min-height:34px;
-  border-radius:8px;
-  padding:7px 13px;
-  transition:transform .15s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease,color .18s ease;
-}
-.btn:hover{box-shadow:0 0 0 1px rgba(209,163,80,.08),0 6px 16px rgba(0,0,0,.18)}
-.btn-cta{
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 5px 16px rgba(0,0,0,.22);
-}
-.pill-sm{border-radius:999px}
-.modal-box{box-shadow:0 24px 70px rgba(0,0,0,.55)}
+
+/* Premium interaction layer: depth without layout movement. */
+.card:hover{border-color:rgba(255,255,255,.10);box-shadow:var(--shadow-card-hover)}
+.btn-cta{box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 5px 16px rgba(0,0,0,.22)}
 input[type=range]{height:18px}
-@media(max-width:720px){
-  .card{border-radius:12px}
-}
-@media(prefers-reduced-motion:reduce){
-  .card:hover{transform:none}
-}
+@media(max-width:720px){.card{border-radius:12px}}
