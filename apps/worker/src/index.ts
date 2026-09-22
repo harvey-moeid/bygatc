@@ -19,7 +19,7 @@ export type Env = {
 
 const app = new Hono<{ Bindings: Env }>();
 
-// CORS Ã¢ izinkan hostname yang benar-benar diketahui, bukan sekadar
+// CORS - izinkan hostname yang benar-benar diketahui, bukan sekadar
 // "mengandung" string tertentu.
 //
 // Sebelumnya: origin.includes('btc-dashboard') / .includes('pages.dev') /
