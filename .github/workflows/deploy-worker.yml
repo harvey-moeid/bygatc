@@ -41,6 +41,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Encoding regression guard
+        run: node scripts/check-encoding.js
+
       - name: Typecheck Worker
         working-directory: apps/worker
         run: pnpm typecheck
