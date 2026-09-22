@@ -524,7 +524,7 @@ const DataLayer = (() => {
    * Mirrors buildDecision() (options desk) in shape -- verdict/verdictClass/
    * confidence/reasons/blockers -- but judges *trade readiness* (timing +
    * position sizing), NOT direction. Direction on this desk always comes
-   * from the user's own TA (see docs/TRADE_FLOW.md Â§3 -- BGTC has no
+   * from the user's own TA (see docs/TRADE_FLOW.md Ã§3 -- BGTC has no
    * validated directional skill at this horizon), so unlike the options
    * desk's buildDecision(), this never blocks on "BGTC 50/50, no edge".
    *
