@@ -45,16 +45,16 @@ Alur singkat:
 
 ```
 .
-âââ .github/workflows/     # CI: deploy-worker.yml, noctua-predict.yml
-âââ apps/
-â   âââ frontend/          # Static site (HTML/JS), deploy ke Cloudflare Pages
-â   âââ worker/            # Cloudflare Worker (API + cron)
-âââ data/                  # Data pendukung
-âââ model/                 # Model Python NOCTUA (serve/predict.py, dll)
-âââ scripts/                # Script bantu
-âââ package.json           # Root workspace (Turborepo + pnpm)
-âââ pnpm-workspace.yaml
-âââ pnpm-lock.yaml
+├── .github/workflows/     # CI: deploy-worker.yml, noctua-predict.yml
+├── apps/
+│   ├── frontend/          # Static site (HTML/JS), deploy ke Cloudflare Pages
+│   └── worker/            # Cloudflare Worker (API + cron)
+├── data/                  # Data pendukung
+├── model/                 # Model Python NOCTUA (serve/predict.py, dll)
+├── scripts/                # Script bantu
+├── package.json           # Root workspace (Turborepo + pnpm)
+├── pnpm-workspace.yaml
+└── pnpm-lock.yaml
 ```
 
 Ini pnpm monorepo yang dikelola dengan **Turborepo**.
