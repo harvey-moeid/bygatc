@@ -31,10 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      # GitHub mengembalikan string kosong jika secret belum dibuat. Secret
-      # tidak boleh dipakai langsung di `if:`; expose lewat job env lalu cek
-      # `env.NOCTUA_PUSH_SECRET` di step condition.
+      # Secrets tidak boleh dipakai langsung di `if:`. Expose lewat job env
+      # lalu gunakan env context untuk mengecek apakah nilainya tersedia.
       NOCTUA_PUSH_SECRET: ${{ secrets.NOCTUA_PUSH_SECRET }}
+      EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -80,16 +80,20 @@ jobs:
           printf '%s' "$NOCTUA_PUSH_SECRET" | pnpm wrangler secret put NOCTUA_PUSH_SECRET
 
       - name: Sync optional EXA_API_KEY to Worker
-        if: ${{ github.event_name == 'workflow_dispatch' && env.NOCTUA_PUSH_SECRET != '' && secrets.EXA_API_KEY != '' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && env.EXA_API_KEY != '' }}
         working-directory: apps/worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
         run: |
           printf '%s' "$EXA_API_KEY" | pnpm wrangler secret put EXA_API_KEY
 
-      - name: Report missing optional deploy secret
-        if: ${{ github.event_name == 'workflow_dispatch' && env.NOCTUA_PUSH_SECRET == '' }}
+      - name: Report missing optional deploy secrets
+        if: ${{ github.event_name == 'workflow_dispatch' && (env.NOCTUA_PUSH_SECRET == '' || env.EXA_API_KEY == '') }}
         run: |
-          echo "::warning::NOCTUA_PUSH_SECRET is not configured in GitHub Secrets; Worker deployment succeeded, but the existing Cloudflare NOCTUA_PUSH_SECRET was left unchanged."
+          if [ -z "$NOCTUA_PUSH_SECRET" ]; then
+            echo "::warning::NOCTUA_PUSH_SECRET is not configured in GitHub Secrets; existing Cloudflare secret was left unchanged."
+          fi
+          if [ -z "$EXA_API_KEY" ]; then
+            echo "::notice::EXA_API_KEY is not configured in GitHub Secrets; existing Cloudflare secret was left unchanged."
+          fi
