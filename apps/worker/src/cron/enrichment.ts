@@ -6,10 +6,10 @@
  * Bedanya: tidak ada fs.writeFileSync, output disimpan ke KV.
  *
  * KV keys yang ditulis:
- *   enrichment:news   — merged CryptoPanic + GDELT + Exa (optional)
- *   enrichment:fg     — Fear & Greed index
+ *   enrichment:news    -  merged CryptoPanic + GDELT + Exa (optional)
+ *   enrichment:fg      -  Fear & Greed index
  *
- * TTL KV = 2 jam (7200 s) — cukup untuk 1-jam cron cycle + buffer.
+ * TTL KV = 2 jam (7200 s)  -  cukup untuk 1-jam cron cycle + buffer.
  */
 
 import type { Env } from '../index';
@@ -186,7 +186,7 @@ export async function runEnrichmentCron(env: Env): Promise<void> {
     });
     console.log(`[cron:enrichment] wrote news (${news.items.length} items from ${news.source})`);
   } else {
-    console.warn('[cron:enrichment] all news sources failed — keeping existing KV entry');
+    console.warn('[cron:enrichment] all news sources failed  -  keeping existing KV entry');
   }
 
   // ---- Fear & Greed ----
@@ -195,7 +195,7 @@ export async function runEnrichmentCron(env: Env): Promise<void> {
     await env.BTC_CACHE.put('enrichment:fg', JSON.stringify(fg), {
       expirationTtl: 7200,
     });
-    console.log(`[cron:enrichment] wrote fg (${fg.value} · ${fg.label})`);
+    console.log(`[cron:enrichment] wrote fg (${fg.value}  ·  ${fg.label})`);
   } catch (e) {
     console.error('[cron:enrichment] fear/greed failed:', (e as Error).message);
   }

@@ -22,8 +22,8 @@ enrichmentRoutes.get('/news', async (c) => {
 
   // KV miss sebelum cron pertama jalan.
   // Gunakan waitUntil agar fetch jalan di background tanpa block request.
-  // Jangan await langsung — bisa timeout (CF Worker limit 30s CPU).
-  console.warn('[enrichment/news] KV miss — triggering background enrichment');
+  // Jangan await langsung  -  bisa timeout (CF Worker limit 30s CPU).
+  console.warn('[enrichment/news] KV miss  -  triggering background enrichment');
   c.executionCtx.waitUntil(runEnrichmentCron(c.env));
   return c.json({ error: 'data warming up, retry in 30s' }, 503);
 });
@@ -32,7 +32,7 @@ enrichmentRoutes.get('/fg', async (c) => {
   const raw = await c.env.BTC_CACHE.get('enrichment:fg');
   if (raw) return c.json(JSON.parse(raw));
 
-  console.warn('[enrichment/fg] KV miss — triggering background enrichment');
+  console.warn('[enrichment/fg] KV miss  -  triggering background enrichment');
   c.executionCtx.waitUntil(runEnrichmentCron(c.env));
   return c.json({ error: 'data warming up, retry in 30s' }, 503);
 });

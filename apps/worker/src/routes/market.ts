@@ -5,12 +5,12 @@
  * Worker fetch langsung ke sumber, browser fetch ke /api/market/*.
  *
  * Cache KV keys (TTL sesuai kebutuhan):
- *   market:price    – 60 s
- *   market:hourly   – 5 menit
- *   market:daily    – 1 jam
- *   market:funding  – 10 menit
- *   market:options  – 10 menit
- *   market:options_stale – 24 jam (fallback kalau Deribit gagal, lihat v4.4)
+ *   market:price     -  60 s
+ *   market:hourly    -  5 menit
+ *   market:daily     -  1 jam
+ *   market:funding   -  10 menit
+ *   market:options   -  10 menit
+ *   market:options_stale  -  24 jam (fallback kalau Deribit gagal, lihat v4.4)
  *
  * v4.5: /market/hourly dan /market/daily kena blokir dari DUA sisi sekaligus
  *   -- Binance balas 451 (restricted location) dan fallback Bybit yang
