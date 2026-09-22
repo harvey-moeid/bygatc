@@ -67,7 +67,7 @@ Dokumen ini menjelaskan pipeline end-to-end sistem BTC Dashboard: dari data ment
 
 ## 7. Keputusan Akhir (Opsi)
 
-- `buildDecision()`: gabungkan semua blocker (regime, session, funding ekstrem, Kronos stale, arah tidak jelas) jadi satu verdict: **TRADE OK / CAUTION / WAIT / NO-TRADE**, plus skor confidence dan struktur trade yang direkomendasikan (misal: "1ÃÂÃÂÃÂÃÂ long straddle $X + 60ÃÂÃÂÃÂÃÂ short $Y puts").
+- `buildDecision()`: gabungkan semua blocker (regime, session, funding ekstrem, Kronos stale, arah tidak jelas) jadi satu verdict: **TRADE OK / CAUTION / WAIT / NO-TRADE**, plus skor confidence dan struktur trade yang direkomendasikan (misal: "1 long straddle $X + 60 short $Y puts").
 - Ini yang dirender di hero card (`ui.js`  ->  `updateHero`, `updateRetailPlan`).
 
 ---
@@ -86,7 +86,7 @@ Untuk futures, bagian pipeline yang **relevan** adalah komponen NOCTUA yang terv
 
 | Input | Sumber | Dipakai untuk |
 |---|---|---|
-| `barrier_curves.up` / `.dn` | NOCTUA (tervalidasi secara tidak langsung  -  turunan dari sigma forecast) | Pilih level SL (touch probability ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ 35%) dan TP (touch probability ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ 20%) berdasarkan sisi yang sesuai arah |
+| `barrier_curves.up` / `.dn` | NOCTUA (tervalidasi secara tidak langsung  -  turunan dari sigma forecast) | Pilih level SL (touch probability  35%) dan TP (touch probability  20%) berdasarkan sisi yang sesuai arah |
 | `p_vol_amplify` | NOCTUA (tervalidasi langsung, section3) | Kecilkan ukuran posisi saat probabilitas ekspansi volatilitas tinggi  -  makin besar `p_vol_amplify`, makin besar risiko kena stop-out dari lonjakan harga |
 | `funding.flag` | Worker `/market/funding` | Kecilkan ukuran posisi lagi kalau funding ekstrem **searah** posisi (mis. funding sangat positif + long = crowded, mahal ditahan, rawan squeeze) |
 | `hv20.oneDay` | `computeHV20()` (fallback) | Kalau `barrier_curves` tidak tersedia di payload, SL/TP didekati dari kelipatan pergerakan harian HV20 |
@@ -124,9 +124,9 @@ DataLayer.buildFuturesPlan({
 ```
 NOCTUA (vol forecast: p_vol_amplify, barrier_curves)
          v 
-        ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Opsi (jual premi):  + IV/HV20 regime + touch prob   ->  buildRetailPlan() + buildDecision()
-        ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ
-        ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Futures (BTCUSDT.P): + funding + arah dari luar   ->  buildFuturesPlan()
+         Opsi (jual premi):  + IV/HV20 regime + touch prob   ->  buildRetailPlan() + buildDecision()
+        
+         Futures (BTCUSDT.P): + funding + arah dari luar   ->  buildFuturesPlan()
 ```
 
 Model Python (NOCTUA) **hanya** menyuplai estimasi volatilitas dan probabilitas barrier yang sudah divalidasi lewat walk-forward testing  -  sinyal arah (`upside`) sengaja dinetralkan karena tidak terbukti punya skill prediktif, di kedua jalur (opsi maupun futures) di atas.
