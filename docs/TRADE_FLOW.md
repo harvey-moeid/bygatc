@@ -35,7 +35,7 @@ Dokumen ini menjelaskan pipeline end-to-end sistem BTC Dashboard: dari data ment
   3. Dari sigma yang sudah dikoreksi, dihitung:
      - `p_up`  ->  probabilitas arah naik. **Ditandai eksplisit tidak reliable**: walk-forward log-loss-nya (0.6941) nyaris sama dengan lempar koin (0.6931).
      - `p_vol_amplify`  ->  probabilitas realized vol > vol historis (trailing RV). **Ini tervalidasi**: beda 2.79% QLIKE vs baseline Log-HAR (p = 0.043, 5/6 walk-forward folds).
-     - `barrier_curves`  ->  probabilitas harga menyentuh level tertentu (grid ÃÂ+/-0.5% s/d ÃÂ+/-10%), dipecah sisi naik (`up`) dan turun (`dn`), masing-masing berisi `{ pct, price, touch_prob }` per level.
+     - `barrier_curves`  ->  probabilitas harga menyentuh level tertentu (grid +/-0.5% s/d +/-10%), dipecah sisi naik (`up`) dan turun (`dn`), masing-masing berisi `{ pct, price, touch_prob }` per level.
      - `safe_levels`  ->  strike call/put "aman" secara statistik untuk beberapa alpha (1%, 2%, 5%, 10%, 20%).
 
 ## 4. Publish Hasil
@@ -63,31 +63,31 @@ Dokumen ini menjelaskan pipeline end-to-end sistem BTC Dashboard: dari data ment
 ## 6. Bangun Rencana Trade (Opsi)
 
 - `buildRetailPlan()`: kalau regime mengizinkan & arah dari Kronos cukup jelas (bukan 50/50), cari strike OTM yang preminya cukup untuk membiayai struktur (long straddle ATM + short OTM options), dan touch probability-nya di bawah threshold.
-- **Catatan:** fungsi ini murni untuk strategi jual premi opsi di Deribit. Tidak dipakai, dan tidak dimaksudkan dipakai, untuk futures  -  lihat ÃÂsection8.
+- **Catatan:** fungsi ini murni untuk strategi jual premi opsi di Deribit. Tidak dipakai, dan tidak dimaksudkan dipakai, untuk futures  -  lihat section8.
 
 ## 7. Keputusan Akhir (Opsi)
 
-- `buildDecision()`: gabungkan semua blocker (regime, session, funding ekstrem, Kronos stale, arah tidak jelas) jadi satu verdict: **TRADE OK / CAUTION / WAIT / NO-TRADE**, plus skor confidence dan struktur trade yang direkomendasikan (misal: "1ÃÂÃÂ long straddle $X + 60ÃÂÃÂ short $Y puts").
+- `buildDecision()`: gabungkan semua blocker (regime, session, funding ekstrem, Kronos stale, arah tidak jelas) jadi satu verdict: **TRADE OK / CAUTION / WAIT / NO-TRADE**, plus skor confidence dan struktur trade yang direkomendasikan (misal: "1ÃÂÃÂÃÂÃÂ long straddle $X + 60ÃÂÃÂÃÂÃÂ short $Y puts").
 - Ini yang dirender di hero card (`ui.js`  ->  `updateHero`, `updateRetailPlan`).
 
 ---
 
 ## 8. Relevansi untuk Futures BTCUSDT.P
 
-ÃÂsection6 dan ÃÂsection7 di atas (`buildRetailPlan`, `buildDecision`, regime IV/HV20) dirancang khusus untuk **strategi jual premi opsi** dan tidak berlaku langsung untuk futures perpetual, yang inherently directional (harus pilih long atau short) dan tidak melibatkan premi opsi sama sekali.
+section6 dan section7 di atas (`buildRetailPlan`, `buildDecision`, regime IV/HV20) dirancang khusus untuk **strategi jual premi opsi** dan tidak berlaku langsung untuk futures perpetual, yang inherently directional (harus pilih long atau short) dan tidak melibatkan premi opsi sama sekali.
 
 Untuk futures, bagian pipeline yang **relevan** adalah komponen NOCTUA yang tervalidasi (`p_vol_amplify`, `barrier_curves`) plus funding  -  dipakai untuk **manajemen risiko**, bukan untuk memilih arah. Ini diimplementasikan di `apps/frontend/src/data.js`  ->  **`buildFuturesPlan()`**.
 
 ### Kenapa arah tetap harus dari luar model
 
-`p_up`/`upside` tidak punya validated directional skill di horizon ini (log-loss 0.6941 vs 0.6931 coin flip  -  ÃÂsection3). `buildFuturesPlan()` karena itu **mewajibkan parameter `direction` (`'long'`/`'short'`) dari pemanggil**  -  dari thesis/TA sendiri, bukan dari Kronos. Kalau tidak diisi, fungsi menolak dengan `ok: false` dan alasan eksplisit.
+`p_up`/`upside` tidak punya validated directional skill di horizon ini (log-loss 0.6941 vs 0.6931 coin flip  -  section3). `buildFuturesPlan()` karena itu **mewajibkan parameter `direction` (`'long'`/`'short'`) dari pemanggil**  -  dari thesis/TA sendiri, bukan dari Kronos. Kalau tidak diisi, fungsi menolak dengan `ok: false` dan alasan eksplisit.
 
 ### Apa yang dihitungkan fungsi ini
 
 | Input | Sumber | Dipakai untuk |
 |---|---|---|
-| `barrier_curves.up` / `.dn` | NOCTUA (tervalidasi secara tidak langsung  -  turunan dari sigma forecast) | Pilih level SL (touch probability ÃÂ¢ÃÂÃÂ 35%) dan TP (touch probability ÃÂ¢ÃÂÃÂ 20%) berdasarkan sisi yang sesuai arah |
-| `p_vol_amplify` | NOCTUA (tervalidasi langsung, ÃÂsection3) | Kecilkan ukuran posisi saat probabilitas ekspansi volatilitas tinggi  -  makin besar `p_vol_amplify`, makin besar risiko kena stop-out dari lonjakan harga |
+| `barrier_curves.up` / `.dn` | NOCTUA (tervalidasi secara tidak langsung  -  turunan dari sigma forecast) | Pilih level SL (touch probability ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ 35%) dan TP (touch probability ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ 20%) berdasarkan sisi yang sesuai arah |
+| `p_vol_amplify` | NOCTUA (tervalidasi langsung, section3) | Kecilkan ukuran posisi saat probabilitas ekspansi volatilitas tinggi  -  makin besar `p_vol_amplify`, makin besar risiko kena stop-out dari lonjakan harga |
 | `funding.flag` | Worker `/market/funding` | Kecilkan ukuran posisi lagi kalau funding ekstrem **searah** posisi (mis. funding sangat positif + long = crowded, mahal ditahan, rawan squeeze) |
 | `hv20.oneDay` | `computeHV20()` (fallback) | Kalau `barrier_curves` tidak tersedia di payload, SL/TP didekati dari kelipatan pergerakan harian HV20 |
 
@@ -124,9 +124,9 @@ DataLayer.buildFuturesPlan({
 ```
 NOCTUA (vol forecast: p_vol_amplify, barrier_curves)
          v 
-        ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Opsi (jual premi):  + IV/HV20 regime + touch prob   ->  buildRetailPlan() + buildDecision()
-        ÃÂ¢ÃÂÃÂ
-        ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Futures (BTCUSDT.P): + funding + arah dari luar   ->  buildFuturesPlan()
+        ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Opsi (jual premi):  + IV/HV20 regime + touch prob   ->  buildRetailPlan() + buildDecision()
+        ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ
+        ÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂ Futures (BTCUSDT.P): + funding + arah dari luar   ->  buildFuturesPlan()
 ```
 
 Model Python (NOCTUA) **hanya** menyuplai estimasi volatilitas dan probabilitas barrier yang sudah divalidasi lewat walk-forward testing  -  sinyal arah (`upside`) sengaja dinetralkan karena tidak terbukti punya skill prediktif, di kedua jalur (opsi maupun futures) di atas.
