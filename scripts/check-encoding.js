@@ -9,7 +9,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const roots = ['README.md', 'docs', 'apps/frontend', 'apps/worker', 'scripts'];
 const exts = new Set(['.md','.html','.css','.js','.ts','.json','.yml','.yaml','.toml','.py','.txt']);
-const bad = /(?:â|Ã|Â|�)/;
+const bad = /[\u00e2\u00c3\u00c2\uFFFD]/;
 
 function walk(rel) {
   const abs = path.join(ROOT, rel);
