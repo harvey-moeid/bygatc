@@ -195,7 +195,7 @@ export async function runEnrichmentCron(env: Env): Promise<void> {
     await env.BTC_CACHE.put('enrichment:fg', JSON.stringify(fg), {
       expirationTtl: 7200,
     });
-    console.log(`[cron:enrichment] wrote fg (${fg.value}  ·  ${fg.label})`);
+    console.log(`[cron:enrichment] wrote fg (${fg.value}   -   ${fg.label})`);
   } catch (e) {
     console.error('[cron:enrichment] fear/greed failed:', (e as Error).message);
   }
