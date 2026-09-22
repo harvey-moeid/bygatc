@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-scripts/fetch-sentiment.py — FinBERT headline sentiment via HF Inference API.
+scripts/fetch-sentiment.py  -  FinBERT headline sentiment via HF Inference API.
 
 Reads data/news.json (written by fetch-enrichment.js), scores each headline
 with ProsusAI/finbert (finance-tuned BERT), and writes data/sentiment.json:
@@ -13,7 +13,7 @@ Free tier: needs HF_TOKEN env var (a free hf.co account token). Without a
 token (or on any failure) the script exits 0 so the workflow stays green and
 the dashboard simply falls back to its keyword-based scorer.
 
-Stdlib only — no pip installs on the runner.
+Stdlib only  -  no pip installs on the runner.
 """
 import json, os, sys, time, urllib.request
 
@@ -23,7 +23,7 @@ OUT  = os.path.join(ROOT, "data", "sentiment.json")
 API  = "https://api-inference.huggingface.co/models/ProsusAI/finbert"
 
 def soft_exit(msg):
-    print(f"[fetch-sentiment] {msg} — skipping (soft exit)")
+    print(f"[fetch-sentiment] {msg}  -  skipping (soft exit)")
     sys.exit(0)
 
 token = os.environ.get("HF_TOKEN", "").strip()
@@ -76,4 +76,4 @@ with open(OUT, "w", encoding="utf-8") as f:
                "model": "ProsusAI/finbert", "perItem": per_item,
                "ts": now, "_updatedMs": now}, f, indent=1)
 
-print(f"[fetch-sentiment] OK — {len(per_item)} headlines, mean {mean:+.3f} ({label})")
+print(f"[fetch-sentiment] OK  -  {len(per_item)} headlines, mean {mean:+.3f} ({label})")
