@@ -21,10 +21,20 @@ on:
       - '.github/workflows/deploy-worker.yml'
   workflow_dispatch: {}
 
+# Jangan biarkan beberapa manual deploy menimpa satu sama lain.
+concurrency:
+  group: deploy-worker-production
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      # GitHub mengembalikan string kosong jika secret belum dibuat. Secret
+      # tidak boleh dipakai langsung di `if:`; expose lewat job env lalu cek
+      # `env.NOCTUA_PUSH_SECRET` di step condition.
+      NOCTUA_PUSH_SECRET: ${{ secrets.NOCTUA_PUSH_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
@@ -55,16 +65,31 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm deploy:production
 
-      - name: Set NOCTUA_PUSH_SECRET (first deploy only)
-        if: github.event_name == 'workflow_dispatch'
+      # Manual dispatch dipakai untuk deploy/recovery. Sebelumnya step ini
+      # selalu mencoba `wrangler secret put` walaupun NOCTUA_PUSH_SECRET belum
+      # dibuat di GitHub Secrets. `echo "" | wrangler secret put ...` dapat
+      # membuat step gagal setelah Worker sebenarnya sudah berhasil deploy.
+      # Sekarang secret hanya disinkronkan jika nilainya memang tersedia.
+      - name: Sync NOCTUA_PUSH_SECRET to Worker
+        if: ${{ github.event_name == 'workflow_dispatch' && env.NOCTUA_PUSH_SECRET != '' }}
         working-directory: apps/worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          NOCTUA_PUSH_SECRET: ${{ secrets.NOCTUA_PUSH_SECRET }}
+        run: |
+          printf '%s' "$NOCTUA_PUSH_SECRET" | pnpm wrangler secret put NOCTUA_PUSH_SECRET
+
+      - name: Sync optional EXA_API_KEY to Worker
+        if: ${{ github.event_name == 'workflow_dispatch' && env.NOCTUA_PUSH_SECRET != '' && secrets.EXA_API_KEY != '' }}
+        working-directory: apps/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
         run: |
-          echo "$NOCTUA_PUSH_SECRET" | pnpm wrangler secret put NOCTUA_PUSH_SECRET
-          if [ -n "$EXA_API_KEY" ]; then
-            echo "$EXA_API_KEY" | pnpm wrangler secret put EXA_API_KEY
-          fi
+          printf '%s' "$EXA_API_KEY" | pnpm wrangler secret put EXA_API_KEY
+
+      - name: Report missing optional deploy secret
+        if: ${{ github.event_name == 'workflow_dispatch' && env.NOCTUA_PUSH_SECRET == '' }}
+        run: |
+          echo "::warning::NOCTUA_PUSH_SECRET is not configured in GitHub Secrets; Worker deployment succeeded, but the existing Cloudflare NOCTUA_PUSH_SECRET was left unchanged."
