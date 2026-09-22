@@ -20,11 +20,11 @@ function check(name, fn) {
   try {
     const j = JSON.parse(fs.readFileSync(file, 'utf8'));
     const errs = fn(j) || [];
-    if (errs.length) { failures++; console.error(`[smoke] ${name}: FAIL — ${errs.join('; ')}`); }
+    if (errs.length) { failures++; console.error(`[smoke] ${name}: FAIL  -  ${errs.join('; ')}`); }
     else console.log(`[smoke] ${name}: ok`);
   } catch (e) {
     failures++;
-    console.error(`[smoke] ${name}: FAIL — unparseable JSON (${e.message})`);
+    console.error(`[smoke] ${name}: FAIL  -  unparseable JSON (${e.message})`);
   }
 }
 
