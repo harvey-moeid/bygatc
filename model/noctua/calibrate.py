@@ -157,6 +157,50 @@ class NoctuaCalibration:
         return c
 
 
+def calibration_error(calib: NoctuaCalibration, pred: dict,
+                      M_up: np.ndarray, M_dn: np.ndarray,
+                      alphas: tuple[float, ...] = (0.01, 0.02, 0.05, 0.10, 0.20, 0.30)) -> float:
+    """Mean absolute barrier coverage error on a validation slice.
+
+    Used only to choose calibration shrinkage on a held-out calibration-
+    validation subset. It must never be evaluated on the final test slice
+    for parameter selection.
+    """
+    M_up = np.asarray(M_up, dtype=np.float64)
+    M_dn = np.asarray(M_dn, dtype=np.float64)
+    errs = []
+    for alpha in alphas:
+        u = calib.safe_level(pred, alpha, up=True)
+        d = calib.safe_level(pred, alpha, up=False)
+        errs.append(0.5 * (
+            abs(float((M_up >= u).mean()) - alpha)
+            + abs(float((M_dn >= d).mean()) - alpha)
+        ))
+    return float(np.mean(errs))
+
+
+def select_shrinkage(
+    fit_pred: dict, fit_up: np.ndarray, fit_dn: np.ndarray, fit_r: np.ndarray,
+    select_pred: dict, select_up: np.ndarray, select_dn: np.ndarray,
+    candidates: tuple[float, ...] = (0.0, 0.25, 0.5, 1.0),
+) -> tuple[float, dict]:
+    """Select shrinkage without touching the eventual test set.
+
+    PIT maps are fitted on the earlier fit slice. Candidate shrinkage is
+    scored on the temporally later select slice. The winning shrink is then
+    frozen; callers may refit PIT maps on all calibration data while keeping
+    this value fixed before evaluating the test set.
+    """
+    probe = NoctuaCalibration(shrink=0.0).fit(fit_pred, fit_up, fit_dn, fit_r)
+    scores = {}
+    for sh in candidates:
+        probe.shrink = float(sh)
+        scores[str(sh)] = calibration_error(probe, select_pred, select_up, select_dn)
+    best = min(candidates, key=lambda sh: (scores[str(sh)], float(sh)))
+    return float(best), scores
+
+
+# --------------------------------------------------------------------------
 def pit_uniformity(pit: np.ndarray, n_bins: int = 10) -> dict:
     """Kolmogorov-Smirnov style summary of how far the PIT is from uniform."""
     p = np.sort(np.clip(pit[np.isfinite(pit)], 0.0, 1.0))

@@ -26,7 +26,7 @@ import torch
 from . import baselines as B
 from . import infer as I
 from . import splits as S
-from .calibrate import NoctuaCalibration
+from .calibrate import NoctuaCalibration, select_shrinkage
 from .model import BASE_COLS, LEVELS, SHAPE_COLS, Noctua, coupling_penalty, pinball_loss
 from .spec import NON_MODEL_COLS
 
@@ -233,8 +233,17 @@ def main(argv=None) -> int:
 
     print(f"[train] train={int(m_tr.sum())}  calib={int(m_va.sum())}")
 
-    tr, stds = prepare(ep, X, m_tr)
-    va, _ = prepare(ep, X, m_va, *stds)
+    # Stage-B targets must use a causal pre-anchor volatility reference, never
+    # realized future RV. Bounds are estimated from TRAIN only.
+    H_all = ep["H"].to_numpy(np.float64)
+    sigma_ref_all = np.exp(X["har_1d"].to_numpy(np.float64)) * np.sqrt(H_all)
+    ref_train = sigma_ref_all[m_tr]
+    ref_train = ref_train[np.isfinite(ref_train)]
+    lo_ref, hi_ref = np.quantile(ref_train, [0.001, 0.999])
+    sigma_ref_all = np.clip(sigma_ref_all, lo_ref, hi_ref)
+
+    tr, stds = prepare(ep, X, m_tr, sigma_ref=sigma_ref_all[m_tr])
+    va, _ = prepare(ep, X, m_va, *stds, sigma_ref=sigma_ref_all[m_va])
     wtr = S.sample_weights(ep, m_tr)
 
     # Seed Stage A's linear base at the Log-HAR OLS solution. Fitted on the
@@ -251,14 +260,37 @@ def main(argv=None) -> int:
     # ---- Stage C: fit the recalibration layer on the held-out calib split ----
     # H=19 only, but ALL anchor hours, so the PIT maps are estimated on ~13k
     # episodes rather than the ~550 native production ones.
+    # Calibration must use the same Stage-A volatility blend as serving.
+    y_all = B.har_target(ep.RV.to_numpy(), H_all)
+    bl_train = B.fit_vol_baselines(X[m_tr], y_all[m_tr], wtr)
     m_cal19 = m_va & (ep.H == 19).to_numpy()
-    cal_d, _ = prepare(ep, X, m_cal19, *stds)
-    pc = I.predict(model, cal_d)
-    e_cal = ep[m_cal19]
-    calib = NoctuaCalibration().fit(
-        pc, e_cal.M_up.to_numpy(), e_cal.M_dn.to_numpy(), e_cal.R.to_numpy()
+
+    # Nested selection inside calibration: first 80% fits PIT, last 20%
+    # chooses shrinkage. The production test slice is never used to choose it.
+    ts_all = ep["anchor_ts"].to_numpy(np.int64)
+    cut = int(np.quantile(ts_all[m_cal19], 0.80))
+    m_cal_fit = m_cal19 & (ts_all < cut)
+    m_cal_sel = m_cal19 & (ts_all >= cut)
+
+    fit_d, _ = prepare(ep, X, m_cal_fit, *stds, sigma_ref=sigma_ref_all[m_cal_fit])
+    sel_d, _ = prepare(ep, X, m_cal_sel, *stds, sigma_ref=sigma_ref_all[m_cal_sel])
+    full_d, _ = prepare(ep, X, m_cal19, *stds, sigma_ref=sigma_ref_all[m_cal19])
+    p_fit = I.predict(model, fit_d, har_logvol=bl_train["log_har_cal"].predict(X[m_cal_fit]))
+    p_sel = I.predict(model, sel_d, har_logvol=bl_train["log_har_cal"].predict(X[m_cal_sel]))
+    p_full = I.predict(model, full_d, har_logvol=bl_train["log_har_cal"].predict(X[m_cal19]))
+
+    e_fit, e_sel, e_full = ep[m_cal_fit], ep[m_cal_sel], ep[m_cal19]
+    chosen_shrink, shrink_scores = select_shrinkage(
+        p_fit, e_fit.M_up.to_numpy(), e_fit.M_dn.to_numpy(), e_fit.R.to_numpy(),
+        p_sel, e_sel.M_up.to_numpy(), e_sel.M_dn.to_numpy(),
     )
-    print(f"[train] calibration fitted on {int(m_cal19.sum())} episodes")
+    # Refit the PIT maps on all calibration data only after the hyperparameter
+    # is frozen. The selected value is not re-optimized on this refit.
+    calib = NoctuaCalibration(shrink=chosen_shrink).fit(
+        p_full, e_full.M_up.to_numpy(), e_full.M_dn.to_numpy(), e_full.R.to_numpy()
+    )
+    print(f"[train] calibration fitted on {int(m_cal19.sum())} episodes; "
+          f"shrink={chosen_shrink:.2f}; selection={shrink_scores}")
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
@@ -268,7 +300,8 @@ def main(argv=None) -> int:
             "n_feat": tr["Xa"].shape[1],
             "n_base": tr["Xb"].shape[1],
             "n_shape": tr["Xs"].shape[1],
-            "feat_cols": list(X.columns),
+            "feat_cols": list(tr["cols"]["all"]),
+            "stage_b_sigma_ref": "causal_har_1d_clipped",
             "base_cols": BASE_COLS,
             "shape_cols": SHAPE_COLS,
             "levels": LEVELS,
@@ -276,6 +309,12 @@ def main(argv=None) -> int:
             "std_shape": (stds[1].mu, stds[1].sd),
             "std_base": (stds[2].mu, stds[2].sd),
             "calibration": calib.to_dict(),
+            "calibration_selection": {
+                "method": "temporal_nested_80_20",
+                "candidates": [0.0, 0.25, 0.5, 1.0],
+                "selected": float(chosen_shrink),
+                "validation_scores": shrink_scores,
+            },
             "har_beta": ols_std.beta,
             "blend_w": I.BLEND_W,
         },
