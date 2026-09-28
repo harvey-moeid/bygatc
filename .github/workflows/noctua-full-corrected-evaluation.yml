@@ -1,0 +1,89 @@
+name: noctua-full-corrected-evaluation
+
+on:
+  workflow_dispatch:
+    inputs:
+      epochs:
+        description: "Training epochs per fold"
+        required: false
+        default: "40"
+      hidden:
+        description: "NOCTUA hidden width"
+        required: false
+        default: "128"
+
+jobs:
+  corrected-evaluation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r model/serve/requirements-ci.txt
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Fetch source market data
+        run: |
+          git clone --depth 1 https://github.com/ff137/bitstamp-btcusd-minute-data.git /tmp/bitstamp
+
+      - name: Build validated minute parquet
+        run: |
+          python -m model.noctua.ingest --repo /tmp/bitstamp --out model/artifacts
+
+      - name: Build episodes
+        run: |
+          python -m model.noctua.episodes --parquet model/artifacts/btcusd_1min.parquet --out model/artifacts
+
+      - name: Build causal feature matrix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import pandas as pd
+          from model.noctua.features import build_features, audit_lookahead
+
+          out = Path("model/artifacts")
+          hours = pd.read_parquet(out / "btcusd_1h.parquet")
+          episodes = pd.read_parquet(out / "episodes.parquet")
+          X = build_features(hours, episodes)
+          X.to_parquet(out / "features.parquet", index=False, compression="zstd")
+          audit = audit_lookahead(hours, episodes)
+          print(audit)
+          if not audit["leak_free"]:
+              raise SystemExit("lookahead audit failed")
+          PY
+
+      - name: Train corrected artifact
+        run: |
+          python -m model.noctua.train             --artifacts model/artifacts             --epochs ${{ inputs.epochs }}             --hidden ${{ inputs.hidden }}             --out model/artifacts/noctua_corrected.pt
+
+      - name: Run corrected expanding walk-forward
+        run: |
+          python -m model.noctua.walkforward             --artifacts model/artifacts             --epochs ${{ inputs.epochs }}             --hidden ${{ inputs.hidden }}             --out model/artifacts/walkforward_corrected.json
+
+      - name: Summarize corrected results
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p = Path("model/artifacts/walkforward_corrected.json")
+          d = json.loads(p.read_text())
+          print(json.dumps(d["pooled"], indent=2))
+          print(json.dumps(d["barrier_calibration"], indent=2))
+          PY
+
+      - name: Upload corrected evaluation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: noctua-corrected-evaluation
+          path: |
+            model/artifacts/ingest_report.json
+            model/artifacts/episodes_report.json
+            model/artifacts/noctua_corrected.pt
+            model/artifacts/walkforward_corrected.json
