@@ -36,8 +36,6 @@ from .evaluate import ALPHAS, block_bootstrap_pvalue
 from .model import BASE_COLS
 from .train import load_all, prepare, train_model
 
-SHRINKS = (0.0, 0.25, 0.5, 1.0)
-
 
 def run_fold(ep, X, fold, *, epochs, hidden, seed, verbose=False):
     fin = np.isfinite(X.to_numpy()).all(1)
@@ -115,31 +113,32 @@ def run_fold(ep, X, fold, *, epochs, hidden, seed, verbose=False):
     q_ref = qlike_per(bl["log_har_cal"].predict(X[m_te]))
     q_har = qlike_per(bl["log_har"].predict(X[m_te]))
 
-    # ---- barrier calibration at each shrinkage ---------------------------
+    # ---- barrier calibration: ONLY the shrinkage frozen by calibration --
+    # Never select a candidate using this production test slice.
     M_up, M_dn = e.M_up.to_numpy(), -e.M_dn.to_numpy()
     sig_har = np.exp(bl["log_har_cal"].predict(X[m_te])) * np.sqrt(H_te)
     bar = []
     for a in ALPHAS:
-        rec = {"alpha": float(a)}
+        rec = {"alpha": float(a), "selected_shrink": float(chosen_shrink)}
         u_g = -sig_har * norm.ppf(a / 2.0)
         rec["gauss_err_pp"] = 100 * 0.5 * (
             abs((M_up >= u_g).mean() - a) + abs((M_dn >= u_g).mean() - a)
         )
-        for sh in SHRINKS:
-            calib.shrink = sh
-            u = calib.safe_level(pred, a, up=True)
-            l = calib.safe_level(pred, a, up=False)
-            rec[f"up_s{sh}"] = float((M_up >= u).mean())
-            rec[f"dn_s{sh}"] = float((M_dn >= l).mean())
-            rec[f"err_s{sh}"] = 100 * 0.5 * (
-                abs((M_up >= u).mean() - a) + abs((M_dn >= l).mean() - a)
-            )
+        u = calib.safe_level(pred, a, up=True)
+        l = calib.safe_level(pred, a, up=False)
+        rec["up"] = float((M_up >= u).mean())
+        rec["dn"] = float((M_dn >= l).mean())
+        rec["err_pp"] = 100 * 0.5 * (
+            abs(rec["up"] - a) + abs(rec["dn"] - a)
+        )
         bar.append(rec)
 
     return {
         "year": fold["year"],
         "n_test": int(m_te.sum()),
         "n_train": int(m_tr.sum()),
+        "selected_shrink": float(chosen_shrink),
+        "shrinkage_selection_scores": shrink_scores,
         "qlike_noctua": float(q_noc.mean()),
         "qlike_log_har_cal": float(q_ref.mean()),
         "qlike_log_har": float(q_har.mean()),
@@ -186,18 +185,20 @@ def main(argv=None) -> int:
     wins = sum(1 for r in results if r["qlike_gain_pct"] < 0)
     print(f"  folds won: {wins}/{len(results)}")
 
-    print("\n=== BARRIER CALIBRATION: mean |error| in pp, pooled over folds ===")
+    print("\n=== BARRIER CALIBRATION: frozen shrinkage only ===")
     rows = []
     for i, a_ in enumerate(ALPHAS):
-        rec = {"alpha": float(a_),
-               "gauss": float(np.mean([r["barrier"][i]["gauss_err_pp"] for r in results]))}
-        for sh in SHRINKS:
-            rec[f"shrink={sh}"] = float(np.mean([r["barrier"][i][f"err_s{sh}"] for r in results]))
-        rows.append(rec)
+        rows.append({
+            "alpha": float(a_),
+            "gauss": float(np.mean([r["barrier"][i]["gauss_err_pp"] for r in results])),
+            "selected_shrink": float(np.mean([r["barrier"][i]["selected_shrink"] for r in results])),
+            "selected_err": float(np.mean([r["barrier"][i]["err_pp"] for r in results])),
+        })
     tab = pd.DataFrame(rows)
     print(tab.round(3).to_string(index=False))
     print("\n  mean over alphas:")
-    print("   ", {c: round(float(tab[c].mean()), 3) for c in tab.columns if c != "alpha"})
+    print("   ", {c: round(float(tab[c].mean()), 3)
+                  for c in ("gauss", "selected_err")})
 
     a.out.write_text(json.dumps({
         "folds": [{k: v for k, v in r.items() if k not in ("q_noc", "q_ref")} for r in results],
