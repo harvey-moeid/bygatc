@@ -233,8 +233,17 @@ def main(argv=None) -> int:
 
     print(f"[train] train={int(m_tr.sum())}  calib={int(m_va.sum())}")
 
-    tr, stds = prepare(ep, X, m_tr)
-    va, _ = prepare(ep, X, m_va, *stds)
+    # Stage-B targets must use a causal pre-anchor volatility reference, never
+    # realized future RV. Bounds are estimated from TRAIN only.
+    H_all = ep["H"].to_numpy(np.float64)
+    sigma_ref_all = np.exp(X["har_1d"].to_numpy(np.float64)) * np.sqrt(H_all)
+    ref_train = sigma_ref_all[m_tr]
+    ref_train = ref_train[np.isfinite(ref_train)]
+    lo_ref, hi_ref = np.quantile(ref_train, [0.001, 0.999])
+    sigma_ref_all = np.clip(sigma_ref_all, lo_ref, hi_ref)
+
+    tr, stds = prepare(ep, X, m_tr, sigma_ref=sigma_ref_all[m_tr])
+    va, _ = prepare(ep, X, m_va, *stds, sigma_ref=sigma_ref_all[m_va])
     wtr = S.sample_weights(ep, m_tr)
 
     # Seed Stage A's linear base at the Log-HAR OLS solution. Fitted on the
@@ -251,9 +260,15 @@ def main(argv=None) -> int:
     # ---- Stage C: fit the recalibration layer on the held-out calib split ----
     # H=19 only, but ALL anchor hours, so the PIT maps are estimated on ~13k
     # episodes rather than the ~550 native production ones.
+    # Calibration must use the same Stage-A volatility blend as serving.
+    y_all = B.har_target(ep.RV.to_numpy(), H_all)
+    bl_train = B.fit_vol_baselines(X[m_tr], y_all[m_tr], wtr)
     m_cal19 = m_va & (ep.H == 19).to_numpy()
-    cal_d, _ = prepare(ep, X, m_cal19, *stds)
-    pc = I.predict(model, cal_d)
+    cal_d, _ = prepare(ep, X, m_cal19, *stds, sigma_ref=sigma_ref_all[m_cal19])
+    pc = I.predict(
+        model, cal_d,
+        har_logvol=bl_train["log_har_cal"].predict(X[m_cal19])
+    )
     e_cal = ep[m_cal19]
     calib = NoctuaCalibration().fit(
         pc, e_cal.M_up.to_numpy(), e_cal.M_dn.to_numpy(), e_cal.R.to_numpy()
@@ -268,7 +283,8 @@ def main(argv=None) -> int:
             "n_feat": tr["Xa"].shape[1],
             "n_base": tr["Xb"].shape[1],
             "n_shape": tr["Xs"].shape[1],
-            "feat_cols": list(X.columns),
+            "feat_cols": list(tr["cols"]["all"]),
+            "stage_b_sigma_ref": "causal_har_1d_clipped",
             "base_cols": BASE_COLS,
             "shape_cols": SHAPE_COLS,
             "levels": LEVELS,
