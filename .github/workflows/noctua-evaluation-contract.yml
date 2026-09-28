@@ -1,0 +1,36 @@
+name: noctua-evaluation-contract
+
+on:
+  push:
+    paths:
+      - "model/noctua/**"
+      - "model/tests/test_eval_protocol.py"
+      - ".github/workflows/noctua-evaluation-contract.yml"
+  pull_request:
+    paths:
+      - "model/noctua/**"
+      - "model/tests/test_eval_protocol.py"
+      - ".github/workflows/noctua-evaluation-contract.yml"
+  workflow_dispatch: {}
+
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: model/serve/requirements-ci.txt
+
+      - name: Install evaluation dependencies
+        run: pip install --quiet -r model/serve/requirements-ci.txt
+
+      - name: Compile evaluation modules
+        run: python -m py_compile model/noctua/*.py model/tests/test_eval_protocol.py
+
+      - name: Run evaluation contract tests
+        run: python model/tests/test_eval_protocol.py
