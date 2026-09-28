@@ -26,7 +26,7 @@ import torch
 from . import baselines as B
 from . import infer as I
 from . import splits as S
-from .calibrate import NoctuaCalibration
+from .calibrate import NoctuaCalibration, select_shrinkage
 from .model import BASE_COLS, LEVELS, SHAPE_COLS, Noctua, coupling_penalty, pinball_loss
 from .spec import NON_MODEL_COLS
 
@@ -264,16 +264,33 @@ def main(argv=None) -> int:
     y_all = B.har_target(ep.RV.to_numpy(), H_all)
     bl_train = B.fit_vol_baselines(X[m_tr], y_all[m_tr], wtr)
     m_cal19 = m_va & (ep.H == 19).to_numpy()
-    cal_d, _ = prepare(ep, X, m_cal19, *stds, sigma_ref=sigma_ref_all[m_cal19])
-    pc = I.predict(
-        model, cal_d,
-        har_logvol=bl_train["log_har_cal"].predict(X[m_cal19])
+
+    # Nested selection inside calibration: first 80% fits PIT, last 20%
+    # chooses shrinkage. The production test slice is never used to choose it.
+    ts_all = ep["anchor_ts"].to_numpy(np.int64)
+    cut = int(np.quantile(ts_all[m_cal19], 0.80))
+    m_cal_fit = m_cal19 & (ts_all < cut)
+    m_cal_sel = m_cal19 & (ts_all >= cut)
+
+    fit_d, _ = prepare(ep, X, m_cal_fit, *stds, sigma_ref=sigma_ref_all[m_cal_fit])
+    sel_d, _ = prepare(ep, X, m_cal_sel, *stds, sigma_ref=sigma_ref_all[m_cal_sel])
+    full_d, _ = prepare(ep, X, m_cal19, *stds, sigma_ref=sigma_ref_all[m_cal19])
+    p_fit = I.predict(model, fit_d, har_logvol=bl_train["log_har_cal"].predict(X[m_cal_fit]))
+    p_sel = I.predict(model, sel_d, har_logvol=bl_train["log_har_cal"].predict(X[m_cal_sel]))
+    p_full = I.predict(model, full_d, har_logvol=bl_train["log_har_cal"].predict(X[m_cal19]))
+
+    e_fit, e_sel, e_full = ep[m_cal_fit], ep[m_cal_sel], ep[m_cal19]
+    chosen_shrink, shrink_scores = select_shrinkage(
+        p_fit, e_fit.M_up.to_numpy(), e_fit.M_dn.to_numpy(), e_fit.R.to_numpy(),
+        p_sel, e_sel.M_up.to_numpy(), e_sel.M_dn.to_numpy(),
     )
-    e_cal = ep[m_cal19]
-    calib = NoctuaCalibration().fit(
-        pc, e_cal.M_up.to_numpy(), e_cal.M_dn.to_numpy(), e_cal.R.to_numpy()
+    # Refit the PIT maps on all calibration data only after the hyperparameter
+    # is frozen. The selected value is not re-optimized on this refit.
+    calib = NoctuaCalibration(shrink=chosen_shrink).fit(
+        p_full, e_full.M_up.to_numpy(), e_full.M_dn.to_numpy(), e_full.R.to_numpy()
     )
-    print(f"[train] calibration fitted on {int(m_cal19.sum())} episodes")
+    print(f"[train] calibration fitted on {int(m_cal19.sum())} episodes; "
+          f"shrink={chosen_shrink:.2f}; selection={shrink_scores}")
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
@@ -292,6 +309,12 @@ def main(argv=None) -> int:
             "std_shape": (stds[1].mu, stds[1].sd),
             "std_base": (stds[2].mu, stds[2].sd),
             "calibration": calib.to_dict(),
+            "calibration_selection": {
+                "method": "temporal_nested_80_20",
+                "candidates": [0.0, 0.25, 0.5, 1.0],
+                "selected": float(chosen_shrink),
+                "validation_scores": shrink_scores,
+            },
             "har_beta": ols_std.beta,
             "blend_w": I.BLEND_W,
         },
