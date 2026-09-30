@@ -54,8 +54,10 @@ jobs:
           set -e
           test -s /tmp/noctua_out/noctua_history.parquet
           test -s /tmp/noctua_out/noctua_history.csv
-          pnpm dlx wrangler@3.80.0 r2 object put noctua-data/exports/noctua_history.parquet             --file=/tmp/noctua_out/noctua_history.parquet --remote
-          pnpm dlx wrangler@3.80.0 r2 object put noctua-data/exports/noctua_history.csv             --file=/tmp/noctua_out/noctua_history.csv --remote
+
+          pnpm dlx wrangler@3.80.0 r2 object put noctua-data/exports/noctua_history.parquet             --file=/tmp/noctua_out/noctua_history.parquet             --content-type=application/octet-stream             --content-disposition='attachment; filename="noctua_history.parquet"'             --remote --force
+
+          pnpm dlx wrangler@3.80.0 r2 object put noctua-data/exports/noctua_history.csv             --file=/tmp/noctua_out/noctua_history.csv             --content-type='text/csv; charset=utf-8'             --content-disposition='attachment; filename="noctua_history.csv"'             --remote --force
 
       - name: Commit bundle history jika berubah
         run: |
