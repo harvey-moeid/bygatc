@@ -29,10 +29,15 @@ Health check sederhana (`{ ok, ts, env, noctuaData }`). Tidak di-cache.
 | Endpoint | Deskripsi | Cache | Sumber (urutan fallback) |
 |---|---|---|---|
 | `GET /api/v1/market/price` | Harga spot BTC/USDT terkini (price, high, low, change, volume) | 60s | Binance -> Crypto.com -> OKX |
-| `GET /api/v1/market/hourly` | 48 candle terakhir, interval 1 jam | 300s | Binance -> Bybit -> Crypto.com -> OKX |
-| `GET /api/v1/market/daily` | 60 candle terakhir, interval 1 hari | 3600s | Binance -> Bybit -> Crypto.com -> OKX |
+| `GET /api/v1/market/hourly` | 48 candle terakhir, interval 1 jam, BTCUSDT spot saja | 300s | Binance -> Bybit -> Crypto.com -> OKX |
+| `GET /api/v1/market/daily` | 60 candle terakhir, interval 1 hari, BTCUSDT spot saja | 3600s | Binance -> Bybit -> Crypto.com -> OKX |
+| `GET /api/v1/market/candles?symbol=\u0026tf=` | Candle multi timeframe/multi simbol (lihat tabel di bawah) -- cara baru yang direkomendasikan | lihat tabel | lihat tabel |
 | `GET /api/v1/market/funding` | Funding rate futures BTC | 600s | Binance -> Bybit -> OKX |
 | `GET /api/v1/market/options` | Ringkasan option chain BTC | 600s (header `X-Data-Freshness: stale` kalau fallback) | Deribit saja + cache stale 24 jam sebagai jaring pengaman (lihat catatan di bawah) |
+
+`/hourly` dan `/daily` tetap ada apa adanya untuk kompatibilitas mundur
+(BTCUSDT spot saja, tidak berubah). Untuk integrasi baru, atau kalau butuh
+timeframe lain / simbol lain, pakai `/candles`.
 
 Field `source` di response `/price` dan `/funding` menunjukkan exchange mana
 yang benar-benar dipakai untuk request itu (`binance`, `bybit`, `crypto.com`,
@@ -49,6 +54,56 @@ atau mark price dalam USD seperti Deribit. Daripada memetakannya ke shape
 yang sama dengan field-field itu diisi `0` (yang bisa bikin semua strike
 terlihat illiquid), endpoint ini tetap 100% Deribit dan jatuh ke salinan
 cache 24 jam terakhir (`market:options_stale`) kalau Deribit lagi down.
+
+### `GET /market/candles?symbol=\u0026tf=`
+
+```
+GET /api/v1/market/candles?symbol=BTCUSDT&tf=h1
+GET /api/v1/market/candles?symbol=BTCUSDT.P&tf=m15
+GET /api/v1/market/candles?symbol=XAUUSD&tf=m5
+```
+
+**`symbol`** (wajib salah satu dari):
+
+| Symbol | Artinya | Sumber |
+|---|---|---|
+| `BTCUSDT` | Spot BTC/USDT | Binance -> Bybit spot -> OKX spot |
+| `BTCUSDT.P` | BTC perpetual futures (notasi `.P` seperti di TradingView) | Binance futures -> Bybit linear -> OKX SWAP |
+| `XAUUSD` | **Proxy** harga emas lewat PAXGUSDT (PAX Gold, token di-backing 1:1 oleh emas fisik) | Binance -> Bybit spot -> OKX spot |
+
+> **Penting soal `XAUUSD`:** ini BUKAN feed forex XAUUSD resmi. Tidak ada
+> exchange crypto yang menyediakan harga forex/komoditas asli secara gratis
+> tanpa API key berbayar (Twelve Data, Alpha Vantage, dll). PAXGUSDT dipakai
+> sebagai proxy karena tracking harga spot emas dengan sangat dekat dan bisa
+> diambil lewat API yang sama tanpa integrasi baru. Kalau kamu butuh harga
+> XAUUSD forex resmi, itu perlu provider terpisah -- kasih tahu kalau mau
+> ditambahkan.
+
+**`tf`** (wajib salah satu dari): `m5` (5 menit), `m15` (15 menit), `h1` (1 jam),
+`d1` (1 hari).
+
+| tf | Jumlah candle | Cache |
+|---|---|---|
+| `m5` | 288 (~24 jam) | 60s |
+| `m15` | 96 (~24 jam) | 180s |
+| `h1` | 48 (~2 hari) | 300s |
+| `d1` | 60 (~2 bulan) | 3600s |
+
+Response:
+```json
+{
+  "symbol": "BTCUSDT",
+  "tf": "h1",
+  "source": "binance",
+  "candles": [
+    { "t": 1730000000000, "o": 67000, "h": 67200, "l": 66800, "c": 67100, "v": 123.4 }
+  ]
+}
+```
+`source` menunjukkan exchange mana yang benar-benar melayani request itu --
+cek ini khususnya untuk `XAUUSD` supaya tahu proxy-nya berasal dari mana.
+Parameter yang salah (`symbol`/`tf` di luar daftar) balas `400`; kalau semua
+sumber gagal, balas `503`.
 
 ## Enrichment
 
@@ -76,6 +131,15 @@ async function getBtcPrice() {
   if (!res.ok) throw new Error(`price fetch failed: ${res.status}`);
   return res.json();
 }
+
+async function getCandles(symbol, tf) {
+  const url = `https://<worker-subdomain>.workers.dev/api/v1/market/candles?symbol=${symbol}&tf=${tf}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`candles fetch failed: ${res.status}`);
+  return res.json(); // { symbol, tf, source, candles }
+}
+
+// contoh: getCandles('BTCUSDT.P', 'm15'), getCandles('XAUUSD', 'h1')
 ```
 
 Tidak perlu API key untuk endpoint di atas. Karena CORS sudah terbuka,
