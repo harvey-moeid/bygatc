@@ -1,20 +1,3 @@
-/**
- * routes/noctua.ts
- * -------------------------------------------------------------------
- * Bridge antara GH Actions (Python NOCTUA model) dan dashboard browser.
- *
- * GH Actions menjalankan model/serve/predict.py, lalu POST hasilnya ke:
- *   POST /api/noctua/push  (dengan header Authorization: Bearer <secret>)
- * Worker menyimpan ke KV, lalu cek perubahan regime vol untuk notif Discord
- * (lihat lib/futuresSignal.ts -- bukan sinyal arah, cuma p_vol_amplify).
- *
- * Dashboard browser fetch dari:
- *   GET  /api/noctua/latest
- *
- * Secret dikonfigurasi sebagai wrangler secret: NOCTUA_PUSH_SECRET
- * Di GH Actions: set repo secret NOCTUA_PUSH_SECRET dengan value yang sama.
- */
-
 import { Hono } from 'hono';
 import type { Env } from '../index';
 import { checkFuturesVolAlert } from '../lib/futuresSignal';
@@ -23,25 +6,10 @@ type NoctuaEnv = Env & { NOCTUA_PUSH_SECRET: string };
 
 export const noctuaRoutes = new Hono<{ Bindings: NoctuaEnv }>();
 
-// -- Allow-list skema payload -------------------------------------------
-//
-// Sebelumnya seluruh body (`...b`) di-spread langsung ke KV tanpa skema --
-// cuma upside/volAmp yang divalidasi. Field lain lolos apa adanya dan
-// diserve verbatim lewat GET /latest, lalu beberapa di antaranya (sourceTs,
-// proxy, freshness) dirender ke innerHTML di ui.js. Selama NOCTUA_PUSH_SECRET
-// tidak bocor ini aman (pipeline model tepercaya), tapi kalau bocor ini jadi
-// jalur stored-XSS langsung ke browser setiap pengunjung dashboard. Payload
-// dari model/serve/predict.py::to_legacy() + forecast() sekarang divalidasi
-// strict di sini: field yang tidak dikenal dibuang, field yang dikenal
-// dipaksa ke tipe yang diharapkan, dan string dibatasi panjang + dibersihkan
-// dari karakter kontrol. Ini pertahanan lapis-server; ui.js tetap HARUS
-// meng-escape setiap field ini sebelum masuk innerHTML (lihat ui.js).
-
 const MAX_STR_LEN = 500;
 
 function safeStr(v: unknown, maxLen = MAX_STR_LEN): string | undefined {
   if (typeof v !== 'string') return undefined;
-  // Buang karakter kontrol (termasuk null byte); potong ke panjang maksimum.
   const cleaned = v.replace(/[\u0000-\u001F\u007F]/g, '');
   return cleaned.length > maxLen ? cleaned.slice(0, maxLen) : cleaned;
 }
@@ -54,11 +22,6 @@ function safeBool(v: unknown): boolean | undefined {
   return typeof v === 'boolean' ? v : undefined;
 }
 
-// Untuk field kompleks (safe_levels, barrier_curves, vol_calibration): tidak
-// mem-blok struktur model yang bisa berkembang, tapi memastikan hasilnya
-// selalu JSON "polos" -- cuma object/array/string/number/boolean/null, tanpa
-// function, tanpa __proto__, dengan batas kedalaman & ukuran supaya body raksasa
-// tidak bisa membengkakkan KV.
 function safeJson(v: unknown, depth = 0): unknown {
   if (depth > 5) return null;
   if (v === null || v === undefined) return null;
@@ -76,11 +39,9 @@ function safeJson(v: unknown, depth = 0): unknown {
     }
     return out;
   }
-  return null; // function, symbol, dll -- tidak diizinkan
+  return null;
 }
 
-// Field string/number/boolean dikenal, datang dari to_legacy() (BGTC) dan
-// forecast() (noctua) di model/serve/predict.py, digabung oleh merge_payload.py.
 const STRING_FIELDS = [
   'sourceTs', 'tz', 'proxy', 'freshness', 'model', 'warning',
   'source', 'anchor_utc', 'settle_utc', '_source',
@@ -93,9 +54,6 @@ const NUMBER_FIELDS = [
 ] as const;
 
 const BOOL_FIELDS = ['upside_is_informative'] as const;
-
-// Field terstruktur (array/object bertingkat) -- dibersihkan lewat safeJson(),
-// bukan divalidasi field-per-field, supaya skema model masih boleh berevolusi.
 const JSON_FIELDS = ['safe_levels', 'barrier_curves', 'vol_calibration'] as const;
 
 function sanitizePayload(b: Record<string, unknown>, upside: number, volAmp: number) {
@@ -120,8 +78,6 @@ function sanitizePayload(b: Record<string, unknown>, upside: number, volAmp: num
   return out;
 }
 
-// -- POST /api/noctua/push -- dipanggil GH Actions ----------------------
-
 noctuaRoutes.post('/push', async (c) => {
   const authHeader = c.req.header('Authorization') || '';
   const token = authHeader.replace(/^Bearer\s+/, '');
@@ -138,10 +94,9 @@ noctuaRoutes.post('/push', async (c) => {
   }
 
   const b = body as Record<string, unknown>;
-
-  // Validasi type + range -- cegah nilai luar batas masuk KV dan ditampilkan di dashboard
   const upside = b['upside'];
   const volAmp = b['volAmp'];
+
   if (
     typeof upside !== 'number' || typeof volAmp !== 'number' ||
     upside < 0 || upside > 100 ||
@@ -153,33 +108,87 @@ noctuaRoutes.post('/push', async (c) => {
     );
   }
 
-  // Hanya field yang dikenal & sudah divalidasi tipe/panjangnya yang masuk KV --
-  // tidak ada lagi `...b` mentah. Field tak dikenal dibuang diam-diam.
   const payload = {
     ...sanitizePayload(b, upside, volAmp),
     _receivedMs: Date.now(),
     _updatedMs: Date.now(),
   };
 
-  // TTL 26 jam -- model jalan sehari sekali, kasih buffer
   await c.env.BTC_CACHE.put('noctua:latest', JSON.stringify(payload), {
     expirationTtl: 93600,
   });
 
   console.log(`[noctua/push] stored: upside=${upside} volAmp=${volAmp}`);
-
-  // Notif Discord kalau regime vol (p_vol_amplify) berubah tier. Sengaja
-  // TIDAK pakai upside/p_up_raw sebagai sinyal arah -- lihat komentar di
-  // lib/futuresSignal.ts dan docs/TRADE_FLOW.md bagian 3 & 8.
   await checkFuturesVolAlert(c.env, payload);
 
   return c.json({ ok: true });
 });
 
-// -- GET /api/noctua/latest -- dipanggil browser ------------------------
-
 noctuaRoutes.get('/latest', async (c) => {
   const raw = await c.env.BTC_CACHE.get('noctua:latest');
   if (!raw) return c.json({ error: 'no prediction available yet' }, 404);
   return c.json(JSON.parse(raw));
+});
+
+// Metadata for the downloadable history bundle.
+noctuaRoutes.get('/data', async (c) => {
+  const object = await c.env.NOCTUA_DATA.head('exports/noctua_history.parquet');
+  if (!object) return c.json({ error: 'history export not available yet' }, 404);
+
+  return c.json({
+    ok: true,
+    key: 'exports/noctua_history.parquet',
+    size_bytes: object.size,
+    uploaded: object.uploaded.toISOString(),
+    etag: object.etag,
+    download: '/download/noctua-history',
+    formats: ['parquet', 'csv'],
+  });
+});
+
+// Public download endpoint for the current NOCTUA history snapshot.
+noctuaRoutes.get('/download', async (c) => {
+  const format = c.req.query('format') === 'csv' ? 'csv' : 'parquet';
+  const key = format === 'csv'
+    ? 'exports/noctua_history.csv'
+    : 'exports/noctua_history.parquet';
+
+  const object = await c.env.NOCTUA_DATA.get(key);
+  if (!object?.body) {
+    return c.json({ error: `${format} history export not available yet` }, 404);
+  }
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set('etag', object.httpEtag);
+  headers.set(
+    'Content-Disposition',
+    `attachment; filename="noctua_history.${format}"`,
+  );
+  headers.set(
+    'Content-Type',
+    format === 'csv'
+      ? 'text/csv; charset=utf-8'
+      : 'application/octet-stream',
+  );
+  headers.set('Cache-Control', 'public, max-age=300');
+
+  return new Response(object.body, { headers });
+});
+
+// Friendly non-API download path.
+noctuaRoutes.get('/download/noctua-history', async (c) => {
+  const format = c.req.query('format') === 'csv' ? 'csv' : 'parquet';
+  const object = await c.env.NOCTUA_DATA.get(
+    format === 'csv' ? 'exports/noctua_history.csv' : 'exports/noctua_history.parquet',
+  );
+  if (!object?.body) return c.json({ error: 'history export not available yet' }, 404);
+
+  const headers = new Headers();
+  object.writeHttpMetadata(headers);
+  headers.set('etag', object.httpEtag);
+  headers.set('Content-Disposition', `attachment; filename="noctua_history.${format}"`);
+  headers.set('Content-Type', format === 'csv' ? 'text/csv; charset=utf-8' : 'application/octet-stream');
+  headers.set('Cache-Control', 'public, max-age=300');
+  return new Response(object.body, { headers });
 });

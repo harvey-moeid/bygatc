@@ -1,26 +1,4 @@
-# .github/workflows/noctua-predict.yml
-# =====================================================================
-# Jalankan NOCTUA Python model (predict.py) setiap 60 menit (per jam).
-# Hasilnya di-push ke Cloudflare Worker KV via POST /api/noctua/push
-#
-# Secrets yang dibutuhkan di repo settings:
-#   NOCTUA_WORKER_URL   -- misal: https://btc-dashboard-worker-production.xxx.workers.dev
-#   NOCTUA_PUSH_SECRET  -- sama dengan wrangler secret NOCTUA_PUSH_SECRET di Worker
-#
-# Catatan bundle history:
-#   serve/history.py::get_hours() menulis ulang data/noctua_history.parquet
-#   di disk kira-kira sekali seminggu (PERSIST_AFTER_HOURS) supaya live-fetch
-#   tail-nya tidak terus membengkak. Perubahan itu HARUS di-commit balik ke
-#   repo di sini (step "Commit bundle history jika berubah") -- kalau tidak,
-#   bundle yang ter-commit beku di kondisi bootstrap dan cron ini akan mulai
-#   gagal terus-menerus begitu gap-nya melebihi batas tail-fetch (~30 hari).
-#
-# Catatan anggaran menit CI:
-#   Cron diturunkan dari tiap 30 menit ke tiap 60 menit (24 run/hari, ~720
-#   run/bulan) untuk menekan pemakaian menit Actions di repo private.
-#   Step install juga pakai cache pip supaya numpy/scipy/pandas/pyarrow
-#   tidak di-download & di-build ulang dari nol di setiap run.
-
+# NOCTUA hourly forecast + R2 data export.
 name: noctua-predict
 
 on:
@@ -36,7 +14,6 @@ jobs:
   predict:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-
     permissions:
       contents: write
 
@@ -57,64 +34,54 @@ jobs:
       - name: Bootstrap history bundle (hanya jika belum ada)
         run: |
           if [ ! -f data/noctua_history.parquet ]; then
-            echo "[CI] Bundle belum ada, menjalankan bootstrap..."
             python model/serve/bootstrap_bundle.py
-            git config user.name  "github-actions[bot]"
+            git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add data/noctua_history.parquet
-            if git diff --cached --quiet; then
-              echo "[CI] ERROR: git add tidak meng-stage file apapun."
-              git status
-              git check-ignore -v data/noctua_history.parquet || true
-              exit 1
-            fi
+            git diff --cached --quiet && exit 1
             git commit -m "chore: bootstrap noctua history bundle via CI [skip ci]"
             git push
-            echo "[CI] Bundle berhasil di-commit."
-          else
-            echo "[CI] Bundle sudah ada, skip bootstrap."
           fi
 
-      - name: Run NOCTUA forecast
+      - name: Run NOCTUA forecast + build current data export
         run: python model/serve/predict.py --out-dir /tmp/noctua_out
+
+      - name: Upload current NOCTUA data to R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -e
+          test -s /tmp/noctua_out/noctua_history.parquet
+          test -s /tmp/noctua_out/noctua_history.csv
+          pnpm dlx wrangler@3.80.0 r2 object put noctua-data/exports/noctua_history.parquet             --file=/tmp/noctua_out/noctua_history.parquet --remote
+          pnpm dlx wrangler@3.80.0 r2 object put noctua-data/exports/noctua_history.csv             --file=/tmp/noctua_out/noctua_history.csv --remote
 
       - name: Commit bundle history jika berubah
         run: |
           set -e
-          # get_hours() menulis ulang data/noctua_history.parquet di disk saat
-          # gap sejak commit terakhir >= PERSIST_AFTER_HOURS (lihat header file
-          # ini). Cek langsung ke git status -- tidak bergantung pada bookkeeping
-          # internal Python -- supaya kejadian ini tetap ke-commit walau logika
-          # di history.py berubah nanti.
           if [ -n "$(git status --porcelain -- data/noctua_history.parquet)" ]; then
-            echo "[CI] Bundle history ditulis ulang oleh run ini -- commit & push."
-            git config user.name  "github-actions[bot]"
+            git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
             git add data/noctua_history.parquet
             git commit -m "chore: refresh noctua history bundle via CI [skip ci]"
             git pull --rebase origin main
             git push
-            echo "[CI] Bundle history berhasil di-refresh."
-          else
-            echo "[CI] Bundle history tidak berubah pada run ini -- tidak ada yang di-commit."
           fi
 
-      - name: Push hasil ke Cloudflare Worker KV
+      - name: Push prediction ke Cloudflare Worker KV
         env:
           NOCTUA_WORKER_URL: ${{ secrets.NOCTUA_WORKER_URL }}
           NOCTUA_PUSH_SECRET: ${{ secrets.NOCTUA_PUSH_SECRET }}
         run: |
           set -e
-
           if [ -z "${NOCTUA_WORKER_URL}" ]; then
-            echo "[CI] WARNING: NOCTUA_WORKER_URL secret belum diset -- skip push."
+            echo "[CI] WARNING: NOCTUA_WORKER_URL belum diset -- skip push."
             exit 0
           fi
-
           NOCTUA_FILE="/tmp/noctua_out/noctua.json"
           BGTC_FILE="/tmp/noctua_out/BGTC.json"
           PAYLOAD="/tmp/noctua_payload.json"
-
           if [ -f "$NOCTUA_FILE" ] && [ -f "$BGTC_FILE" ]; then
             python model/serve/merge_payload.py "$NOCTUA_FILE" "$BGTC_FILE" "$PAYLOAD"
           elif [ -f "$NOCTUA_FILE" ]; then
@@ -126,19 +93,6 @@ jobs:
             exit 0
           fi
 
-          echo "Pushing prediction to Worker..."
-          HTTP_STATUS=$(curl -s -o /tmp/push_response.txt -w "%{http_code}" \
-            -X POST "${NOCTUA_WORKER_URL}/api/noctua/push" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${NOCTUA_PUSH_SECRET}" \
-            --data-binary @"$PAYLOAD")
-
+          HTTP_STATUS=$(curl -s -o /tmp/push_response.txt -w "%{http_code}"             -X POST "${NOCTUA_WORKER_URL}/api/noctua/push"             -H "Content-Type: application/json"             -H "Authorization: Bearer ${NOCTUA_PUSH_SECRET}"             --data-binary @"$PAYLOAD")
           cat /tmp/push_response.txt
-          echo ""
-
-          if [ "$HTTP_STATUS" != "200" ]; then
-            echo "Push failed with HTTP $HTTP_STATUS"
-            exit 1
-          fi
-
-          echo "Push OK -- prediction live in KV"
+          test "$HTTP_STATUS" = "200"

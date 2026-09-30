@@ -4,60 +4,30 @@
 # staging tidak pernah benar-benar terisolasi dan tidak pernah dipakai
 # (deploy-worker.yml cuma pernah deploy ke production). Disederhanakan jadi
 # satu config di top-level yang IDENTIK dengan [env.production] yang lama,
-# termasuk `name`, supaya ini tetap Worker yang sama persis yang sudah live
-# di Cloudflare (deploy berikutnya via `wrangler deploy` biasa, tanpa --env,
-# akan meng-update worker yang sama -- bukan membuat worker baru).
+# termasuk name, supaya ini tetap Worker yang sama persis yang sudah live.
 #
-# Konsekuensi: `wrangler dev` lokal sekarang otomatis pakai KV/D1 production
-# (memang sudah begitu sejak awal, preview_id-nya sama dengan id produksi --
-# ini cuma menghapus ilusi bahwa itu terpisah). Hati-hati menulis data test
-# lewat `wrangler dev` karena akan masuk ke cache production yang sama.
+# R2 NOCTUA_DATA menyimpan export history yang dapat di-download publik.
+# KV tetap dipakai untuk state/prediction terbaru; R2 untuk file data besar.
 
 name = "btc-dashboard-worker-production"
 main = "src/index.ts"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 
-# -- Cron Triggers ---------------------------------------------------------
-# '0 * * * *'   -- tiap jam: fetch news + fear & greed -> simpan ke KV
-# '*/5 * * * *' -- tiap 5 menit: cek breakout harga BTC vs threshold di KV
-#                  (alert:price_config) -> notif Discord kalau tembus.
-#                  Lihat src/cron/priceAlert.ts. No-op kalau threshold belum
-#                  pernah diset lewat PUT /api/alerts/config.
 [triggers]
 crons = ["0 * * * *", "*/5 * * * *"]
 
-# -- KV cache ---------------------------------------------------------------
 [[kv_namespaces]]
 binding = "BTC_CACHE"
 id = "ed38018b3b2e4f6e832ddc996d256cc9"
 
-# NB: sebelumnya ada binding D1 `BITBOT_DB` di sini. Dihapus -- tidak ada
-# referensi Env.BITBOT_DB di apps/worker/src/** (dicek: index.ts, routes/*,
-# cron/*), sisa boilerplate dari project lain. Lihat TODO_btb.md.
+[[r2_buckets]]
+binding = "NOCTUA_DATA"
+bucket_name = "noctua-data"
 
-# -- Price alert (Discord) ---------------------------------------------------
-# Secrets (wrangler secret put ...), tidak ditulis di sini:
-#   DISCORD_WEBHOOK_URL -- webhook Discord tujuan notif breakout
-#   ALERTS_SECRET        -- proteksi GET/PUT /api/alerts/config
-#
-# Threshold breakout diatur runtime lewat KV (PUT /api/alerts/config), bukan
-# di sini. ALERT_PRICE_UPPER/LOWER di bawah cuma dipakai sebagai default
-# kalau KV masih kosong -- opsional, uncomment kalau perlu.
-# DASHBOARD_URL dipakai buat deep-link di notif Discord (lib/discord.ts) --
-# klik judul embed di Discord langsung buka halaman dashboard terkait.
-# Custom domain bygatc.muidsoft.com sudah di-route ke worker ini (dicek
-# manual: /api/health lewat custom domain merespons identik dengan lewat
-# *.workers.dev) -- dipakai sebagai DASHBOARD_URL, bukan workers.dev.
 [vars]
 DASHBOARD_URL = "https://bygatc.muidsoft.com"
-# ALERT_PRICE_UPPER = "120000"
-# ALERT_PRICE_LOWER = "100000"
 
-# -- Static assets (frontend dashboard) --------------------------------------
-# Serve apps/frontend sebagai static assets dari worker yang sama.
-# Asset yang cocok (index.html, options.html, src/*.js, data/*.json) di-serve
-# langsung; request yang tidak cocok (mis. /api/*) diteruskan ke fetch handler.
 [assets]
 directory = "../frontend"
 binding = "ASSETS"
