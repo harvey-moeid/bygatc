@@ -12,6 +12,21 @@
  *   market:options   -  10 menit
  *   market:options_stale  -  24 jam (fallback kalau Deribit gagal, lihat v4.4)
  *
+ * v4.7: Tambah OKX sebagai fallback terakhir di /price, /hourly, /daily,
+ *   dan /funding (Binance -> Bybit -> Crypto.com -> OKX untuk kline/funding;
+ *   Binance -> Crypto.com -> OKX untuk price). Shape response OKX
+ *   (market/ticker, market/candles, public/funding-rate, public/mark-price)
+ *   cocok 1:1 dengan field yang sudah dipakai exchange lain, jadi aman
+ *   dipetakan langsung tanpa field kosong/palsu.
+ *
+ *   /market/options SENGAJA TIDAK ditambah fallback OKX. Endpoint options
+ *   OKX (`public/opt-summary`) cuma balikin implied volatility & Greeks
+ *   per instrumen -- tidak ada open_interest, volume, atau mark price
+ *   dalam USD seperti Deribit. Memetakannya ke shape yang sama berarti
+ *   ngisi oi/vol/mark dengan 0 di semua baris, yang lebih menyesatkan
+ *   buat findAtmIv/classifyRegime di frontend dibanding tetap 503 dan
+ *   jatuh ke market:options_stale seperti sekarang.
+ *
  * v4.6: Tambahkan header `Cache-Control` di tiap response sukses, selaras
  *   dengan TTL KV di atas, supaya browser & Cloudflare edge cache ikut
  *   menahan beban saat endpoint ini dipanggil dari banyak web eksternal
@@ -126,7 +141,36 @@ marketRoutes.get('/price', async (c) => {
     c.header('Cache-Control', 'public, max-age=60');
     return c.json(data);
   } catch (e) {
-    console.error('[market/price] both sources failed:', (e as Error).message);
+    console.warn('[market/price] crypto.com failed, trying okx:', (e as Error).message);
+  }
+
+  // Fallback 2: OKX v5 public ticker
+  try {
+    const r = await fetch(
+      'https://www.okx.com/api/v5/market/ticker?instId=BTC-USDT',
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (!r.ok) throw new Error(`OKX HTTP ${r.status}`);
+    const j = await r.json() as { data?: Array<Record<string, string>> };
+    const t = j?.data?.[0];
+    if (!t || !t.last) throw new Error('No ticker data');
+    const last = parseFloat(t.last);
+    const open24h = parseFloat(t.open24h);
+    const data = {
+      price: last,
+      high: parseFloat(t.high24h),
+      low: parseFloat(t.low24h),
+      change: open24h ? (last - open24h) / open24h : 0,
+      vol: parseFloat(t.vol24h),
+      volUsd: parseFloat(t.volCcy24h),
+      ts: Date.now(),
+      source: 'okx',
+    };
+    await kvPut(c.env.BTC_CACHE, 'market:price', data, 60);
+    c.header('Cache-Control', 'public, max-age=60');
+    return c.json(data);
+  } catch (e) {
+    console.error('[market/price] all sources failed:', (e as Error).message);
     c.header('Cache-Control', 'no-store');
     return c.json({ error: 'price unavailable' }, 503);
   }
@@ -199,6 +243,27 @@ marketRoutes.get('/hourly', async (c) => {
     const data = rows
       .map((k) => ({ t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, v: +k.v }))
       .sort((a, b) => a.t - b.t);
+    await kvPut(c.env.BTC_CACHE, 'market:hourly', data, 300);
+    c.header('Cache-Control', 'public, max-age=300');
+    return c.json(data);
+  } catch (e) {
+    console.warn('[market/hourly] crypto.com failed, trying okx:', (e as Error).message);
+  }
+
+  // Fallback 3: OKX v5 public candles
+  try {
+    const r = await fetch(
+      'https://www.okx.com/api/v5/market/candles?instId=BTC-USDT&bar=1H&limit=48',
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (!r.ok) throw new Error(`OKX HTTP ${r.status}`);
+    const j = await r.json() as { data?: Array<Array<string>> };
+    const rows = j?.data;
+    if (!rows?.length) throw new Error('No candle data');
+    // OKX returns newest-first, each row [ts, o, h, l, c, vol, volCcy, volCcyQuote, confirm].
+    const data = rows
+      .map((k) => ({ t: +k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }))
+      .reverse();
     await kvPut(c.env.BTC_CACHE, 'market:hourly', data, 300);
     c.header('Cache-Control', 'public, max-age=300');
     return c.json(data);
@@ -277,6 +342,27 @@ marketRoutes.get('/daily', async (c) => {
     const data = rows
       .map((k) => ({ t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, v: +k.v }))
       .sort((a, b) => a.t - b.t);
+    await kvPut(c.env.BTC_CACHE, 'market:daily', data, 3600);
+    c.header('Cache-Control', 'public, max-age=3600');
+    return c.json(data);
+  } catch (e) {
+    console.warn('[market/daily] crypto.com failed, trying okx:', (e as Error).message);
+  }
+
+  // Fallback 3: OKX v5 public candles
+  try {
+    const r = await fetch(
+      'https://www.okx.com/api/v5/market/candles?instId=BTC-USDT&bar=1D&limit=60',
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (!r.ok) throw new Error(`OKX HTTP ${r.status}`);
+    const j = await r.json() as { data?: Array<Array<string>> };
+    const rows = j?.data;
+    if (!rows?.length) throw new Error('No candle data');
+    // OKX returns newest-first, each row [ts, o, h, l, c, vol, volCcy, volCcyQuote, confirm].
+    const data = rows
+      .map((k) => ({ t: +k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }))
+      .reverse();
     await kvPut(c.env.BTC_CACHE, 'market:daily', data, 3600);
     c.header('Cache-Control', 'public, max-age=3600');
     return c.json(data);
@@ -368,13 +454,62 @@ marketRoutes.get('/funding', async (c) => {
     c.header('Cache-Control', 'public, max-age=600');
     return c.json(data);
   } catch (e) {
-    console.error('[market/funding] both sources failed:', (e as Error).message);
+    console.warn('[market/funding] bybit failed, trying okx:', (e as Error).message);
+  }
+
+  // Fallback 2: OKX v5 public funding-rate (+ mark-price, best-effort)
+  try {
+    const r = await fetch(
+      'https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP',
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (!r.ok) throw new Error(`OKX HTTP ${r.status}`);
+    const j = await r.json() as { data?: Array<{ fundingRate?: string; nextFundingTime?: string }> };
+    const row = j?.data?.[0];
+    if (!row?.fundingRate) throw new Error('No funding data');
+    const rate = parseFloat(row.fundingRate);
+
+    // OKX splits mark price into a separate endpoint (funding-rate itself
+    // has no mark price field) -- same best-effort pattern as the Bybit
+    // mark price lookup above.
+    let markPrice = 0;
+    try {
+      const mr = await fetch(
+        'https://www.okx.com/api/v5/public/mark-price?instType=SWAP&instId=BTC-USDT-SWAP',
+        { signal: AbortSignal.timeout(6000) },
+      );
+      const mj = await mr.json() as { data?: Array<{ markPx?: string }> };
+      markPrice = parseFloat(mj?.data?.[0]?.markPx ?? '0');
+    } catch { /* non-fatal, keep markPrice = 0 */ }
+
+    const data = {
+      rate,
+      ratePct: rate * 100,
+      annualizedPct: rate * 3 * 365 * 100,
+      markPrice,
+      nextFundingMs: row.nextFundingTime ? +row.nextFundingTime : null,
+      flag:
+        Math.abs(rate) > 0.0003
+          ? rate > 0 ? 'long-extreme' : 'short-extreme'
+          : Math.abs(rate) > 0.0001
+          ? rate > 0 ? 'long-heavy' : 'short-heavy'
+          : 'neutral',
+      ts: Date.now(),
+      source: 'okx',
+    };
+    await kvPut(c.env.BTC_CACHE, 'market:funding', data, 600);
+    c.header('Cache-Control', 'public, max-age=600');
+    return c.json(data);
+  } catch (e) {
+    console.error('[market/funding] all sources failed:', (e as Error).message);
     c.header('Cache-Control', 'no-store');
     return c.json({ error: 'funding unavailable' }, 503);
   }
 });
 
 // ---- GET /api/market/options ----
+// Deribit-only, sengaja tidak ditambah fallback OKX -- lihat catatan v4.7
+// di header file ini soal ketidakcocokan shape data (oi/vol/mark).
 
 marketRoutes.get('/options', async (c) => {
   const cached = await kvGet<Array<Record<string, unknown>>>(c.env.BTC_CACHE, 'market:options');
