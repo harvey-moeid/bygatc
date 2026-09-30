@@ -148,17 +148,28 @@ noctuaRoutes.post('/data/upload', async (c) => {
   return c.json({ ok: true, key, size_bytes: body.byteLength });
 });
 
+// GET /api/noctua/latest -- prediksi terbaru, di-push tiap ~30 menit oleh
+// GitHub Actions. Cache-Control lebih pendek dari TTL KV (93600s) karena
+// nilainya berubah tiap siklus prediksi, bukan tiap TTL habis.
 noctuaRoutes.get('/latest', async (c) => {
   const raw = await c.env.BTC_CACHE.get('noctua:latest');
-  if (!raw) return c.json({ error: 'no prediction available yet' }, 404);
+  if (!raw) {
+    c.header('Cache-Control', 'no-store');
+    return c.json({ error: 'no prediction available yet' }, 404);
+  }
+  c.header('Cache-Control', 'public, max-age=120');
   return c.json(JSON.parse(raw));
 });
 
 noctuaRoutes.get('/data', async (c) => {
   const parquet = await c.env.NOCTUA_DATA.head('exports/noctua_history.parquet');
   const csv = await c.env.NOCTUA_DATA.head('exports/noctua_history.csv');
-  if (!parquet && !csv) return c.json({ error: 'history export not available yet' }, 404);
+  if (!parquet && !csv) {
+    c.header('Cache-Control', 'no-store');
+    return c.json({ error: 'history export not available yet' }, 404);
+  }
 
+  c.header('Cache-Control', 'public, max-age=300');
   return c.json({
     ok: true,
     parquet: parquet ? {
