@@ -72,14 +72,16 @@ function sanitizePayload(b: Record<string, unknown>, upside: number, volAmp: num
   return out;
 }
 
-function authOk(c: { req: { header(name: string): string | undefined }; env: NoctuaEnv }): boolean {
-  const authHeader = c.req.header('Authorization') || '';
+function authorized(request: Request, secret: string): boolean {
+  const authHeader = request.headers.get('Authorization') || '';
   const token = authHeader.replace(/^Bearer\s+/, '');
-  return Boolean(token && token === c.env.NOCTUA_PUSH_SECRET);
+  return Boolean(token && token === secret);
 }
 
 noctuaRoutes.post('/push', async (c) => {
-  if (!authOk(c)) return c.json({ error: 'unauthorized' }, 401);
+  if (!authorized(c.req.raw, c.env.NOCTUA_PUSH_SECRET)) {
+    return c.json({ error: 'unauthorized' }, 401);
+  }
 
   let body: unknown;
   try {
@@ -116,11 +118,10 @@ noctuaRoutes.post('/push', async (c) => {
   return c.json({ ok: true });
 });
 
-// Authenticated CI upload. This avoids requiring a second GitHub secret with
-// R2 API permissions: GitHub already knows NOCTUA_PUSH_SECRET and the Worker
-// owns the R2 binding.
 noctuaRoutes.post('/data/upload', async (c) => {
-  if (!authOk(c)) return c.json({ error: 'unauthorized' }, 401);
+  if (!authorized(c.req.raw, c.env.NOCTUA_PUSH_SECRET)) {
+    return c.json({ error: 'unauthorized' }, 401);
+  }
 
   const format = c.req.query('format') === 'csv' ? 'csv' : 'parquet';
   const contentLength = Number(c.req.header('Content-Length') || '0');
