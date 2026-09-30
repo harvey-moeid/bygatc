@@ -10,6 +10,9 @@
  * Tiap grafik dirender independen (Promise.allSettled): kalau satu sumber
  * gagal, hanya kartu itu yang menampilkan pesan kosong, sisanya tetap jalan.
  * Semua teks dari data ditulis lewat textContent (tanpa innerHTML).
+ *
+ * Catatan encoding: file ini sengaja ASCII-only (karakter khusus ditulis
+ * sebagai escape \uXXXX) supaya lolos scripts/check-encoding.js.
  */
 const ChartsPage = (() => {
   'use strict';
@@ -18,6 +21,8 @@ const ChartsPage = (() => {
   const inst = {};
   const C = {};
   const GRID = 'rgba(255,255,255,0.05)';
+  const DOT = ' \u00b7 ';      // middle dot
+  const DASH = '\u2014';        // em dash
 
   function readPalette() {
     const s = getComputedStyle(document.documentElement);
@@ -140,13 +145,13 @@ const ChartsPage = (() => {
 
   // --------------------------------------------------------------- NOCTUA
   function renderNoctua(n) {
-    $('noctuaTag').textContent = `${n.model || 'NOCTUA'} · horizon ${n.H_hours ?? '?'}j · anchor ${String(n.anchor_utc || '').slice(0, 16)} UTC`;
+    $('noctuaTag').textContent = `${n.model || 'NOCTUA'}${DOT}horizon ${n.H_hours ?? '?'}j${DOT}anchor ${String(n.anchor_utc || '').slice(0, 16)} UTC`;
 
     const up = n.barrier_curves?.up || [];
     const dn = n.barrier_curves?.dn || [];
     if (up.length && dn.length) {
       clearEmpty('boxBarrier');
-      const labels = up.map(p => '±' + Math.abs(p.pct) + '%');
+      const labels = up.map(p => '\u00b1' + Math.abs(p.pct) + '%');
       mk('cBarrier', {
         type: 'line',
         data: { labels, datasets: [
@@ -180,7 +185,7 @@ const ChartsPage = (() => {
       clearEmpty('boxSafe');
       mk('cSafe', {
         type: 'bar',
-        data: { labels: safe.map(s => 'α ' + (s.alpha * 100).toFixed(0) + '%'), datasets: [
+        data: { labels: safe.map(s => '\u03b1 ' + (s.alpha * 100).toFixed(0) + '%'), datasets: [
           { label: 'Level call (%)', data: safe.map(s => s.call_pct), backgroundColor: tint(C.green, 0.7), borderRadius: 4 },
           { label: 'Level put (%)',  data: safe.map(s => s.put_pct),  backgroundColor: tint(C.red, 0.7),   borderRadius: 4 },
         ] },
@@ -208,12 +213,12 @@ const ChartsPage = (() => {
     // summary strip
     if (n.spot != null) {
       $('sSpot').textContent = fmtUsd(n.spot);
-      $('sSpotSub').textContent = n.source || '—';
+      $('sSpotSub').textContent = n.source || DASH;
     }
     if (n.sigma_window_pct != null) {
       $('sSigma').textContent = fmtPct(n.sigma_window_pct, 2);
       $('sSigmaSub').textContent = n.sigma_annualized_pct != null
-        ? `tahunan ${fmtPct(n.sigma_annualized_pct)} · RV trailing ${fmtPct(n.trailing_rv_pct, 2)}` : '—';
+        ? `tahunan ${fmtPct(n.sigma_annualized_pct)}${DOT}RV trailing ${fmtPct(n.trailing_rv_pct, 2)}` : DASH;
     }
     if (n.p_vol_amplify != null) {
       const p = n.p_vol_amplify * 100;
@@ -280,7 +285,7 @@ const ChartsPage = (() => {
   }
 
   function renderSeason(s) {
-    $('seasonTag').textContent = s.built ? `dibangun ${s.built}` : '—';
+    $('seasonTag').textContent = s.built ? `dibangun ${s.built}` : DASH;
 
     const years = Object.keys(s.yearlyRv || {}).sort();
     if (years.length) {
@@ -290,7 +295,7 @@ const ChartsPage = (() => {
         years.map(y => y === last ? C.accent : tint(C.accent, 0.45)), '%');
       if (s.eras) {
         $('eraNote').textContent =
-          `Rata-rata 2020–2023: ${s.eras.preEtf2020_2023}% · pasca-ETF: ${s.eras.postEtf}%. Tahun terakhir ditandai (parsial).`;
+          `Rata-rata 2020\u20132023: ${s.eras.preEtf2020_2023}%${DOT}pasca-ETF: ${s.eras.postEtf}%. Tahun terakhir ditandai (parsial).`;
       }
     } else setEmpty('boxYear', 'yearlyRv tidak tersedia.');
 
@@ -308,7 +313,7 @@ const ChartsPage = (() => {
       const vals = DOW.map((_, i) => s.dowDailyRv[String(i)] ?? null);
       barChart('cDow', DOW, vals, vals.map((_, i) => i >= 5 ? C.cyan : tint(C.accent, 0.6)), '%');
       if (s.weekendVolRatio != null) {
-        $('dowNote').textContent = `Akhir pekan ≈ ${Math.round(s.weekendVolRatio * 100)}% dari vol hari kerja.`;
+        $('dowNote').textContent = `Akhir pekan \u2248 ${Math.round(s.weekendVolRatio * 100)}% dari vol hari kerja.`;
       }
     } else setEmpty('boxDow', 'dowDailyRv tidak tersedia.');
 
@@ -326,14 +331,14 @@ const ChartsPage = (() => {
     if (s.current30dRv != null) {
       $('sRv').textContent = fmtPct(s.current30dRv);
       $('sRvSub').textContent = s.current30dPctilePostEtf != null
-        ? `persentil ke-${s.current30dPctilePostEtf} (pasca-ETF)` : '—';
+        ? `persentil ke-${s.current30dPctilePostEtf} (pasca-ETF)` : DASH;
     }
   }
 
   // ------------------------------------------------------------------ MAIN
   async function loadAll() {
     const status = $('status');
-    status.textContent = 'memuat…';
+    status.textContent = 'memuat\u2026';
     const tasks = [
       ['harga 1J',   renderHourly()],
       ['harga 1H',   renderDaily()],
@@ -359,7 +364,7 @@ const ChartsPage = (() => {
     failed.forEach(name => (boxesFor[name] || []).forEach(b => setEmpty(b, 'Gagal memuat data. Coba segarkan.')));
 
     const t = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    status.textContent = failed.length ? `sebagian gagal · ${t}` : `diperbarui ${t}`;
+    status.textContent = failed.length ? `sebagian gagal${DOT}${t}` : `diperbarui ${t}`;
   }
 
   function init() {
