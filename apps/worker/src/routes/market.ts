@@ -12,6 +12,13 @@
  *   market:options   -  10 menit
  *   market:options_stale  -  24 jam (fallback kalau Deribit gagal, lihat v4.4)
  *
+ * v4.6: Tambahkan header `Cache-Control` di tiap response sukses, selaras
+ *   dengan TTL KV di atas, supaya browser & Cloudflare edge cache ikut
+ *   menahan beban saat endpoint ini dipanggil dari banyak web eksternal
+ *   sekaligus -- bukan cuma di-cache di sisi Worker/KV. Response error
+ *   (503) ditandai `no-store` supaya konsumen tidak menyimpan kegagalan
+ *   sementara.
+ *
  * v4.5: /market/hourly dan /market/daily kena blokir dari DUA sisi sekaligus
  *   -- Binance balas 451 (restricted location) dan fallback Bybit yang
  *   ditambahkan di v4.3 kini ikut diblokir CloudFront (403) dari region
@@ -65,7 +72,10 @@ async function kvPut(kv: KVNamespace, key: string, data: unknown, ttl: number): 
 
 marketRoutes.get('/price', async (c) => {
   const cached = await kvGet(c.env.BTC_CACHE, 'market:price');
-  if (cached) return c.json(cached);
+  if (cached) {
+    c.header('Cache-Control', 'public, max-age=60');
+    return c.json(cached);
+  }
 
   // Primary: Binance
   try {
@@ -86,6 +96,7 @@ marketRoutes.get('/price', async (c) => {
       source: 'binance',
     };
     await kvPut(c.env.BTC_CACHE, 'market:price', data, 60);
+    c.header('Cache-Control', 'public, max-age=60');
     return c.json(data);
   } catch (e) {
     console.warn('[market/price] binance failed, trying crypto.com:', (e as Error).message);
@@ -112,9 +123,11 @@ marketRoutes.get('/price', async (c) => {
       source: 'crypto.com',
     };
     await kvPut(c.env.BTC_CACHE, 'market:price', data, 60);
+    c.header('Cache-Control', 'public, max-age=60');
     return c.json(data);
   } catch (e) {
     console.error('[market/price] both sources failed:', (e as Error).message);
+    c.header('Cache-Control', 'no-store');
     return c.json({ error: 'price unavailable' }, 503);
   }
 });
@@ -123,7 +136,10 @@ marketRoutes.get('/price', async (c) => {
 
 marketRoutes.get('/hourly', async (c) => {
   const cached = await kvGet(c.env.BTC_CACHE, 'market:hourly');
-  if (cached) return c.json(cached);
+  if (cached) {
+    c.header('Cache-Control', 'public, max-age=300');
+    return c.json(cached);
+  }
 
   try {
     const r = await fetch(
@@ -136,6 +152,7 @@ marketRoutes.get('/hourly', async (c) => {
       t: k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5],
     }));
     await kvPut(c.env.BTC_CACHE, 'market:hourly', data, 300);
+    c.header('Cache-Control', 'public, max-age=300');
     return c.json(data);
   } catch (e) {
     console.warn('[market/hourly] binance failed, trying bybit:', (e as Error).message);
@@ -156,6 +173,7 @@ marketRoutes.get('/hourly', async (c) => {
       .map((k) => ({ t: +k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }))
       .reverse();
     await kvPut(c.env.BTC_CACHE, 'market:hourly', data, 300);
+    c.header('Cache-Control', 'public, max-age=300');
     return c.json(data);
   } catch (e) {
     console.warn('[market/hourly] bybit failed, trying crypto.com:', (e as Error).message);
@@ -182,9 +200,11 @@ marketRoutes.get('/hourly', async (c) => {
       .map((k) => ({ t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, v: +k.v }))
       .sort((a, b) => a.t - b.t);
     await kvPut(c.env.BTC_CACHE, 'market:hourly', data, 300);
+    c.header('Cache-Control', 'public, max-age=300');
     return c.json(data);
   } catch (e) {
     console.error('[market/hourly] all sources failed:', (e as Error).message);
+    c.header('Cache-Control', 'no-store');
     return c.json({ error: 'hourly unavailable' }, 503);
   }
 });
@@ -193,7 +213,10 @@ marketRoutes.get('/hourly', async (c) => {
 
 marketRoutes.get('/daily', async (c) => {
   const cached = await kvGet(c.env.BTC_CACHE, 'market:daily');
-  if (cached) return c.json(cached);
+  if (cached) {
+    c.header('Cache-Control', 'public, max-age=3600');
+    return c.json(cached);
+  }
 
   try {
     const r = await fetch(
@@ -206,6 +229,7 @@ marketRoutes.get('/daily', async (c) => {
       t: k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5],
     }));
     await kvPut(c.env.BTC_CACHE, 'market:daily', data, 3600);
+    c.header('Cache-Control', 'public, max-age=3600');
     return c.json(data);
   } catch (e) {
     console.warn('[market/daily] binance failed, trying bybit:', (e as Error).message);
@@ -226,6 +250,7 @@ marketRoutes.get('/daily', async (c) => {
       .map((k) => ({ t: +k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }))
       .reverse();
     await kvPut(c.env.BTC_CACHE, 'market:daily', data, 3600);
+    c.header('Cache-Control', 'public, max-age=3600');
     return c.json(data);
   } catch (e) {
     console.warn('[market/daily] bybit failed, trying crypto.com:', (e as Error).message);
@@ -253,9 +278,11 @@ marketRoutes.get('/daily', async (c) => {
       .map((k) => ({ t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, v: +k.v }))
       .sort((a, b) => a.t - b.t);
     await kvPut(c.env.BTC_CACHE, 'market:daily', data, 3600);
+    c.header('Cache-Control', 'public, max-age=3600');
     return c.json(data);
   } catch (e) {
     console.error('[market/daily] all sources failed:', (e as Error).message);
+    c.header('Cache-Control', 'no-store');
     return c.json({ error: 'daily unavailable' }, 503);
   }
 });
@@ -264,7 +291,10 @@ marketRoutes.get('/daily', async (c) => {
 
 marketRoutes.get('/funding', async (c) => {
   const cached = await kvGet(c.env.BTC_CACHE, 'market:funding');
-  if (cached) return c.json(cached);
+  if (cached) {
+    c.header('Cache-Control', 'public, max-age=600');
+    return c.json(cached);
+  }
 
   try {
     const r = await fetch(
@@ -290,6 +320,7 @@ marketRoutes.get('/funding', async (c) => {
       source: 'binance',
     };
     await kvPut(c.env.BTC_CACHE, 'market:funding', data, 600);
+    c.header('Cache-Control', 'public, max-age=600');
     return c.json(data);
   } catch (e) {
     console.warn('[market/funding] binance failed, trying bybit:', (e as Error).message);
@@ -334,9 +365,11 @@ marketRoutes.get('/funding', async (c) => {
       source: 'bybit',
     };
     await kvPut(c.env.BTC_CACHE, 'market:funding', data, 600);
+    c.header('Cache-Control', 'public, max-age=600');
     return c.json(data);
   } catch (e) {
     console.error('[market/funding] both sources failed:', (e as Error).message);
+    c.header('Cache-Control', 'no-store');
     return c.json({ error: 'funding unavailable' }, 503);
   }
 });
@@ -345,7 +378,10 @@ marketRoutes.get('/funding', async (c) => {
 
 marketRoutes.get('/options', async (c) => {
   const cached = await kvGet<Array<Record<string, unknown>>>(c.env.BTC_CACHE, 'market:options');
-  if (cached) return c.json(cached);
+  if (cached) {
+    c.header('Cache-Control', 'public, max-age=600');
+    return c.json(cached);
+  }
 
   try {
     const r = await fetch(
@@ -387,6 +423,7 @@ marketRoutes.get('/options', async (c) => {
     // every successful fetch so it's always close to the last known-good
     // book, unlike the 10-min primary key.
     await kvPut(c.env.BTC_CACHE, 'market:options_stale', parsed, 86400);
+    c.header('Cache-Control', 'public, max-age=600');
     return c.json(parsed);
   } catch (e) {
     console.error('[market/options] deribit failed, trying stale cache:', (e as Error).message);
@@ -396,8 +433,12 @@ marketRoutes.get('/options', async (c) => {
       // a plain array with .length, so the response shape stays identical
       // whether it's live or stale. Consumers that care can check the header.
       c.header('X-Data-Freshness', 'stale');
+      // Short max-age on purpose -- this is already known-stale data, don't
+      // let downstream caches hold onto it longer than the live TTL would.
+      c.header('Cache-Control', 'public, max-age=60');
       return c.json(stale);
     }
+    c.header('Cache-Control', 'no-store');
     return c.json({ error: 'options unavailable' }, 503);
   }
 });
