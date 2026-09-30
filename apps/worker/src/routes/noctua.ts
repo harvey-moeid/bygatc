@@ -7,21 +7,19 @@ type NoctuaEnv = Env & { NOCTUA_PUSH_SECRET: string };
 export const noctuaRoutes = new Hono<{ Bindings: NoctuaEnv }>();
 
 const MAX_STR_LEN = 500;
+const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
 
 function safeStr(v: unknown, maxLen = MAX_STR_LEN): string | undefined {
   if (typeof v !== 'string') return undefined;
   const cleaned = v.replace(/[\u0000-\u001F\u007F]/g, '');
   return cleaned.length > maxLen ? cleaned.slice(0, maxLen) : cleaned;
 }
-
 function safeNum(v: unknown): number | undefined {
   return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
 }
-
 function safeBool(v: unknown): boolean | undefined {
   return typeof v === 'boolean' ? v : undefined;
 }
-
 function safeJson(v: unknown, depth = 0): unknown {
   if (depth > 5) return null;
   if (v === null || v === undefined) return null;
@@ -46,19 +44,16 @@ const STRING_FIELDS = [
   'sourceTs', 'tz', 'proxy', 'freshness', 'model', 'warning',
   'source', 'anchor_utc', 'settle_utc', '_source',
 ] as const;
-
 const NUMBER_FIELDS = [
   'p_up_raw', 'sourceMs', 'ageHrs', 'fetchedAt', '_updatedMs',
   'H_hours', 'spot', 'sigma_window_pct', 'sigma_annualized_pct',
   'trailing_rv_pct', 'p_up', 'p_vol_amplify', 'history_hours',
 ] as const;
-
 const BOOL_FIELDS = ['upside_is_informative'] as const;
 const JSON_FIELDS = ['safe_levels', 'barrier_curves', 'vol_calibration'] as const;
 
 function sanitizePayload(b: Record<string, unknown>, upside: number, volAmp: number) {
   const out: Record<string, unknown> = { upside, volAmp };
-
   for (const k of STRING_FIELDS) {
     const s = safeStr(b[k]);
     if (s !== undefined) out[k] = s;
@@ -74,17 +69,17 @@ function sanitizePayload(b: Record<string, unknown>, upside: number, volAmp: num
   for (const k of JSON_FIELDS) {
     if (b[k] !== undefined) out[k] = safeJson(b[k]);
   }
-
   return out;
 }
 
-noctuaRoutes.post('/push', async (c) => {
+function authOk(c: { req: { header(name: string): string | undefined }; env: NoctuaEnv }): boolean {
   const authHeader = c.req.header('Authorization') || '';
   const token = authHeader.replace(/^Bearer\s+/, '');
+  return Boolean(token && token === c.env.NOCTUA_PUSH_SECRET);
+}
 
-  if (!token || token !== c.env.NOCTUA_PUSH_SECRET) {
-    return c.json({ error: 'unauthorized' }, 401);
-  }
+noctuaRoutes.post('/push', async (c) => {
+  if (!authOk(c)) return c.json({ error: 'unauthorized' }, 401);
 
   let body: unknown;
   try {
@@ -99,8 +94,7 @@ noctuaRoutes.post('/push', async (c) => {
 
   if (
     typeof upside !== 'number' || typeof volAmp !== 'number' ||
-    upside < 0 || upside > 100 ||
-    volAmp < 0 || volAmp > 100
+    upside < 0 || upside > 100 || volAmp < 0 || volAmp > 100
   ) {
     return c.json(
       { error: 'missing or out-of-range upside/volAmp (expected numbers in 0-100)' },
@@ -118,10 +112,39 @@ noctuaRoutes.post('/push', async (c) => {
     expirationTtl: 93600,
   });
 
-  console.log(`[noctua/push] stored: upside=${upside} volAmp=${volAmp}`);
   await checkFuturesVolAlert(c.env, payload);
-
   return c.json({ ok: true });
+});
+
+// Authenticated CI upload. This avoids requiring a second GitHub secret with
+// R2 API permissions: GitHub already knows NOCTUA_PUSH_SECRET and the Worker
+// owns the R2 binding.
+noctuaRoutes.post('/data/upload', async (c) => {
+  if (!authOk(c)) return c.json({ error: 'unauthorized' }, 401);
+
+  const format = c.req.query('format') === 'csv' ? 'csv' : 'parquet';
+  const contentLength = Number(c.req.header('Content-Length') || '0');
+  if (contentLength > MAX_UPLOAD_BYTES) {
+    return c.json({ error: 'file too large' }, 413);
+  }
+
+  const body = await c.req.raw.arrayBuffer();
+  if (body.byteLength === 0) return c.json({ error: 'empty upload' }, 400);
+  if (body.byteLength > MAX_UPLOAD_BYTES) return c.json({ error: 'file too large' }, 413);
+
+  const key = format === 'csv'
+    ? 'exports/noctua_history.csv'
+    : 'exports/noctua_history.parquet';
+
+  await c.env.NOCTUA_DATA.put(key, body, {
+    httpMetadata: {
+      contentType: format === 'csv' ? 'text/csv; charset=utf-8' : 'application/octet-stream',
+      contentDisposition: `attachment; filename="noctua_history.${format}"`,
+      cacheControl: 'public, max-age=300',
+    },
+  });
+
+  return c.json({ ok: true, key, size_bytes: body.byteLength });
 });
 
 noctuaRoutes.get('/latest', async (c) => {
@@ -130,23 +153,30 @@ noctuaRoutes.get('/latest', async (c) => {
   return c.json(JSON.parse(raw));
 });
 
-// Metadata for the downloadable history bundle.
 noctuaRoutes.get('/data', async (c) => {
-  const object = await c.env.NOCTUA_DATA.head('exports/noctua_history.parquet');
-  if (!object) return c.json({ error: 'history export not available yet' }, 404);
+  const parquet = await c.env.NOCTUA_DATA.head('exports/noctua_history.parquet');
+  const csv = await c.env.NOCTUA_DATA.head('exports/noctua_history.csv');
+  if (!parquet && !csv) return c.json({ error: 'history export not available yet' }, 404);
 
   return c.json({
     ok: true,
-    key: 'exports/noctua_history.parquet',
-    size_bytes: object.size,
-    uploaded: object.uploaded.toISOString(),
-    etag: object.etag,
-    download: '/download/noctua-history',
-    formats: ['parquet', 'csv'],
+    parquet: parquet ? {
+      key: 'exports/noctua_history.parquet',
+      size_bytes: parquet.size,
+      uploaded: parquet.uploaded.toISOString(),
+      etag: parquet.etag,
+    } : null,
+    csv: csv ? {
+      key: 'exports/noctua_history.csv',
+      size_bytes: csv.size,
+      uploaded: csv.uploaded.toISOString(),
+      etag: csv.etag,
+    } : null,
+    download_parquet: '/api/noctua/download?format=parquet',
+    download_csv: '/api/noctua/download?format=csv',
   });
 });
 
-// Public download endpoint for the current NOCTUA history snapshot.
 noctuaRoutes.get('/download', async (c) => {
   const format = c.req.query('format') === 'csv' ? 'csv' : 'parquet';
   const key = format === 'csv'
@@ -154,29 +184,17 @@ noctuaRoutes.get('/download', async (c) => {
     : 'exports/noctua_history.parquet';
 
   const object = await c.env.NOCTUA_DATA.get(key);
-  if (!object?.body) {
-    return c.json({ error: `${format} history export not available yet` }, 404);
-  }
+  if (!object?.body) return c.json({ error: `${format} history export not available yet` }, 404);
 
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   headers.set('etag', object.httpEtag);
-  headers.set(
-    'Content-Disposition',
-    `attachment; filename="noctua_history.${format}"`,
-  );
-  headers.set(
-    'Content-Type',
-    format === 'csv'
-      ? 'text/csv; charset=utf-8'
-      : 'application/octet-stream',
-  );
+  headers.set('Content-Disposition', `attachment; filename="noctua_history.${format}"`);
+  headers.set('Content-Type', format === 'csv' ? 'text/csv; charset=utf-8' : 'application/octet-stream');
   headers.set('Cache-Control', 'public, max-age=300');
-
   return new Response(object.body, { headers });
 });
 
-// Friendly non-API download path.
 noctuaRoutes.get('/download/noctua-history', async (c) => {
   const format = c.req.query('format') === 'csv' ? 'csv' : 'parquet';
   const object = await c.env.NOCTUA_DATA.get(
