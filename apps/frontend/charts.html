@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https:; frame-src 'none'; object-src 'none'; base-uri 'self'">
+<title>Grafik Data BTC &middot; NOCTUA / Volatilitas / Sentimen</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230c0d10'/><g fill='none' stroke-linecap='round'><path d='M9 23V16M9 13V9' stroke='%234fb8ac' stroke-width='3'/><rect x='6.7' y='13' width='4.6' height='7' rx='1.4' fill='%234fb8ac'/><path d='M16 25V18M16 12V7' stroke='%23d1a350' stroke-width='3'/><rect x='13.7' y='14' width='4.6' height='6' rx='1.4' fill='%23d1a350'/><path d='M23 21V15M23 12V9' stroke='%234fb8ac' stroke-width='3'/><rect x='20.7' y='13' width='4.6' height='6' rx='1.4' fill='%234fb8ac'/></g></svg>">
+<link rel="stylesheet" href="styles/base.css">
+<style>
+body{overflow-x:hidden}
+.wrap{position:relative;max-width:1280px;margin:0 auto;padding:18px 16px}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:12px}
+.brand-logo{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--accent);letter-spacing:-.02em}
+.brand-logo b{color:var(--cyan)}
+.brand-sub{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.navlink{text-decoration:none;border-radius:6px;padding:2px 8px;font-size:10px;font-family:var(--font-mono)}
+
+.sh{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:22px 0 10px;display:flex;align-items:center;gap:10px;font-weight:500}
+.sh::after{content:'';flex:1;height:1px;background:var(--border)}
+.sh-tag{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:var(--surface2);padding:2px 7px;border-radius:3px;border:1px solid var(--border);font-weight:400}
+
+.stat-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:6px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 13px;box-shadow:var(--shadow-sm)}
+.stat-l{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.stat-v{font-family:var(--font-mono);font-size:17px;font-weight:700;line-height:1.1}
+.stat-s{font-size:10px;color:var(--muted);margin-top:3px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.grid1{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+
+.ch-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow-sm);min-width:0}
+.ch-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px}
+.ch-sub{font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.ch-box{position:relative;width:100%;height:240px}
+.ch-box.tall{height:300px}
+.ch-box.is-empty canvas{visibility:hidden}
+.ch-box.is-empty::after{content:attr(data-msg);position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 20px;font-size:11px;color:var(--muted)}
+
+.fg-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.fg-gauge{position:relative;width:200px;height:120px;flex-shrink:0}
+.fg-center{position:absolute;left:0;right:0;bottom:2px;text-align:center}
+.fg-num{font-family:var(--font-mono);font-size:30px;font-weight:700;line-height:1}
+.fg-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-top:2px}
+.fg-meta{font-size:12px;line-height:1.8}
+.fg-meta .mono{font-family:var(--font-mono);font-weight:700}
+
+.legend-note{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.6}
+.legend-note i{display:inline-block;width:8px;height:8px;border-radius:2px;margin:0 4px 0 10px;vertical-align:baseline}
+.legend-note i:first-child{margin-left:0}
+
+footer{margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+@media(max-width:480px){
+  .topbar{gap:10px}
+  .topbar-right{gap:8px;width:100%}
+  .topbar-right .btn,.topbar-right .navlink{padding:9px 13px;font-size:11px}
+  .ch-box{height:220px}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+
+<header class="topbar">
+  <div>
+    <h1 class="brand-logo">BTC<b>/</b>GRAFIK &middot; <span style="color:var(--cyan)">DATA</span></h1>
+    <div class="brand-sub">Harga &middot; NOCTUA &middot; Volatilitas &middot; Sentimen</div>
+  </div>
+  <div class="topbar-right">
+    <a href="index.html" class="pill-sm navlink" style="color:var(--muted);border:1px solid var(--border)">&larr; DASBOR</a>
+    <a href="options.html" class="pill-sm navlink" style="color:#d1a350;border:1px solid rgba(209,163,80,.35)">DESK OPSI</a>
+    <a href="futures.html" class="pill-sm navlink" style="color:#35c46a;border:1px solid rgba(53,196,106,.35)">DESK FUTURES</a>
+    <span id="status" class="pill-sm muted" role="status" aria-live="polite">memuat&hellip;</span>
+    <button class="btn btn-cta" id="btnRefresh" aria-label="Segarkan semua grafik">&#8635; SEGARKAN</button>
+  </div>
+</header>
+
+<!-- RINGKASAN -->
+<div class="stat-strip">
+  <div class="stat"><div class="stat-l">Spot NOCTUA</div><div class="stat-v" id="sSpot">&mdash;</div><div class="stat-s" id="sSpotSub">&mdash;</div></div>
+  <div class="stat"><div class="stat-l">&sigma; jendela</div><div class="stat-v" id="sSigma" style="color:var(--cyan)">&mdash;</div><div class="stat-s" id="sSigmaSub">&mdash;</div></div>
+  <div class="stat"><div class="stat-l">p(amplifikasi vol)</div><div class="stat-v" id="sAmp">&mdash;</div><div class="stat-s">sinyal ukuran posisi</div></div>
+  <div class="stat"><div class="stat-l">Takut &amp; Serakah</div><div class="stat-v" id="sFg">&mdash;</div><div class="stat-s" id="sFgSub">&mdash;</div></div>
+  <div class="stat"><div class="stat-l">RV 30 hari</div><div class="stat-v" id="sRv" style="color:var(--accent)">&mdash;</div><div class="stat-s" id="sRvSub">&mdash;</div></div>
+</div>
+
+<!-- HARGA -->
+<div class="sh">Harga <span class="sh-tag">via Worker / cache</span></div>
+<div class="grid2">
+  <div class="ch-card">
+    <div class="ch-title">BTC/USDT &middot; 48 jam terakhir</div>
+    <div class="ch-sub">Candle 1J, harga penutupan. Jam memakai zona waktu perangkat Anda.</div>
+    <div class="ch-box" id="boxHourly"><canvas id="cHourly"></canvas></div>
+  </div>
+  <div class="ch-card">
+    <div class="ch-title">Harga harian &amp; HV20</div>
+    <div class="ch-sub">Penutupan harian (kiri) dan volatilitas realisasi 20 hari, tahunan (kanan).</div>
+    <div class="ch-box" id="boxDaily"><canvas id="cDaily"></canvas></div>
+  </div>
+</div>
+
+<!-- NOCTUA -->
+<div class="sh">NOCTUA <span class="sh-tag" id="noctuaTag">&mdash;</span></div>
+<div class="grid2">
+  <div class="ch-card">
+    <div class="ch-title">Kurva barrier &middot; probabilitas sentuh</div>
+    <div class="ch-sub">P(harga menyentuh level kapan saja selama jendela horizon), menurut jarak dari spot.</div>
+    <div class="ch-box tall" id="boxBarrier"><canvas id="cBarrier"></canvas></div>
+  </div>
+  <div class="ch-card">
+    <div class="ch-title">Level aman &middot; zona no-touch</div>
+    <div class="ch-sub">Jarak terkecil (% dari spot) agar P(sentuh) &le; &alpha;. Arahkan kursor untuk melihat level harga.</div>
+    <div class="ch-box tall" id="boxSafe"><canvas id="cSafe"></canvas></div>
+  </div>
+</div>
+
+<!-- SENTIMEN -->
+<div class="sh">Sentimen</div>
+<div class="grid1">
+  <div class="ch-card">
+    <div class="ch-title">Indeks Takut &amp; Serakah</div>
+    <div class="ch-sub">Nilai terbaru dibandingkan pembacaan sebelumnya.</div>
+    <div class="fg-wrap" id="boxFg">
+      <div class="fg-gauge">
+        <canvas id="cFg"></canvas>
+        <div class="fg-center"><div class="fg-num" id="fgNum">&mdash;</div><div class="fg-lbl" id="fgLbl">&mdash;</div></div>
+      </div>
+      <div class="fg-meta">
+        <div>Sebelumnya: <span class="mono" id="fgPrev">&mdash;</span></div>
+        <div>Perubahan: <span class="mono" id="fgDelta">&mdash;</span></div>
+        <div style="font-size:10px;color:var(--muted)" id="fgTs">&mdash;</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SEASONALITY -->
+<div class="sh">Musiman volatilitas <span class="sh-tag" id="seasonTag">&mdash;</span></div>
+<div class="grid2">
+  <div class="ch-card">
+    <div class="ch-title">RV per tahun (%)</div>
+    <div class="ch-sub" id="eraNote">Volatilitas realisasi tahunan.</div>
+    <div class="ch-box" id="boxYear"><canvas id="cYear"></canvas></div>
+  </div>
+  <div class="ch-card">
+    <div class="ch-title">RV per bulan (%)</div>
+    <div class="ch-sub">Rata-rata historis menurut bulan kalender.</div>
+    <div class="ch-box" id="boxMonth"><canvas id="cMonth"></canvas></div>
+  </div>
+  <div class="ch-card">
+    <div class="ch-title">RV harian per hari dalam pekan (%)</div>
+    <div class="ch-sub" id="dowNote">Akhir pekan jauh lebih tenang.</div>
+    <div class="ch-box" id="boxDow"><canvas id="cDow"></canvas></div>
+  </div>
+  <div class="ch-card">
+    <div class="ch-title">Volatilitas per jam (bps, UTC) &middot; era pasca-ETF</div>
+    <div class="ch-sub">Jam tenang dan jam ramai ditandai warna.</div>
+    <div class="ch-box" id="boxHour"><canvas id="cHour"></canvas></div>
+    <div class="legend-note"><i style="background:var(--cyan)"></i>jam tenang<i style="background:var(--red)"></i>jam ramai<i style="background:var(--accent)"></i>lainnya</div>
+  </div>
+</div>
+
+<footer>
+  <div>Data: snapshot <code>./data/*.json</code> &middot; Worker <code>/api/market/*</code> &middot; NOCTUA</div>
+  <div>Bukan nasihat finansial</div>
+</footer>
+
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"
+        integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG"
+        crossorigin="anonymous"></script>
+<script src="src/config.js" onerror="this.remove()"></script>
+<script src="src/rateLimit.js"></script>
+<script src="src/data.js"></script>
+<script src="src/charts-page.js"></script>
+</body>
+</html>
