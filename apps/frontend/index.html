@@ -295,6 +295,27 @@ footer a:hover{color:var(--accent)}
   .topbar-right .btn,.topbar-right .pill-sm{padding:9px 13px;font-size:11px}
   .live-pill{padding:5px 11px}
 }
+
+/* NOCTUA R2 EXPORT */
+.noctua-export{background:linear-gradient(135deg,rgba(209,163,80,.045),rgba(79,184,172,.025)),var(--surface);border:1px solid var(--border);border-radius:12px;padding:15px 16px;margin-bottom:14px;box-shadow:var(--shadow-sm)}
+.noctua-export-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-bottom:13px;border-bottom:1px solid var(--border)}
+.noctua-export-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;font-family:var(--font-mono)}
+.noctua-export-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;color:var(--accent);background:rgba(209,163,80,.08);border:1px solid rgba(209,163,80,.2)}
+.noctua-export-sub{font-size:10px;color:var(--muted);margin-top:4px}
+.noctua-export-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.noctua-file{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 11px;min-width:0}
+.noctua-file-main{display:flex;align-items:center;gap:9px;min-width:0}
+.noctua-file-icon{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:7px;font:700 9px var(--font-mono);letter-spacing:.03em;flex-shrink:0}
+.noctua-file-icon.parquet{color:var(--cyan);background:rgba(79,184,172,.08);border:1px solid rgba(79,184,172,.2)}
+.noctua-file-icon.csv{color:var(--accent);background:rgba(209,163,80,.08);border:1px solid rgba(209,163,80,.2)}
+.noctua-file-name{font:700 11px var(--font-mono)}
+.noctua-file-meta{font-size:9px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.noctua-download{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:31px;padding:5px 9px;border-radius:7px;border:1px solid rgba(209,163,80,.28);background:rgba(209,163,80,.06);color:var(--accent);font:700 9px var(--font-mono);text-decoration:none;letter-spacing:.05em;transition:all .18s ease;flex-shrink:0}
+.noctua-download:hover{background:rgba(209,163,80,.13);border-color:var(--accent);box-shadow:0 5px 14px rgba(0,0,0,.18);transform:translateY(-1px)}
+.noctua-download.ready{pointer-events:auto !important;opacity:1 !important}
+.noctua-export-foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px;font:9px var(--font-mono);color:var(--muted)}
+@media(max-width:620px){.noctua-export-grid{grid-template-columns:1fr}.noctua-file{padding:10px}.noctua-file-meta{max-width:150px}}
+
 </style>
 </head>
 <body>
@@ -512,6 +533,58 @@ footer a:hover{color:var(--accent)}
     </div>
   </div>
 </div>
+
+
+<!-- NOCTUA DATA EXPORT -->
+<div class="sh">NOCTUA Data <span class="sh-tag">R2 EXPORT</span></div>
+<section class="noctua-export" id="noctuaExport" aria-label="Unduhan data NOCTUA">
+  <div class="noctua-export-head">
+    <div>
+      <div class="noctua-export-title">
+        <span class="noctua-export-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v11"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M4 17.5v1.8A1.7 1.7 0 0 0 5.7 21h12.6a1.7 1.7 0 0 0 1.7-1.7v-1.8"/>
+          </svg>
+        </span>
+        Export histori NOCTUA
+      </div>
+      <div class="noctua-export-sub">Data historis yang diproses pipeline dan disimpan di Cloudflare R2.</div>
+    </div>
+    <span class="pill-sm muted" id="noctuaExportStatus">MENGECEK R2...</span>
+  </div>
+  <div class="noctua-export-grid">
+    <div class="noctua-file">
+      <div class="noctua-file-main">
+        <div class="noctua-file-icon parquet">PQ</div>
+        <div>
+          <div class="noctua-file-name">Parquet</div>
+          <div class="noctua-file-meta" id="noctuaParquetMeta">Memuat metadata...</div>
+        </div>
+      </div>
+      <a class="noctua-download" id="noctuaParquetBtn" href="/api/noctua/download?format=parquet" download="noctua_history.parquet" aria-label="Download data NOCTUA Parquet" style="pointer-events:none;opacity:.45">
+        DOWNLOAD
+        <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3v9"/><path d="m6.5 9 3.5 3.5L13.5 9"/><path d="M4 15.5v1A1.5 1.5 0 0 0 5.5 18h9a1.5 1.5 0 0 0 1.5-1.5v-1"/></svg>
+      </a>
+    </div>
+    <div class="noctua-file">
+      <div class="noctua-file-main">
+        <div class="noctua-file-icon csv">CSV</div>
+        <div>
+          <div class="noctua-file-name">CSV</div>
+          <div class="noctua-file-meta" id="noctuaCsvMeta">Memuat metadata...</div>
+        </div>
+      </div>
+      <a class="noctua-download" id="noctuaCsvBtn" href="/api/noctua/download?format=csv" download="noctua_history.csv" aria-label="Download data NOCTUA CSV" style="pointer-events:none;opacity:.45">
+        DOWNLOAD
+        <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3v9"/><path d="m6.5 9 3.5 3.5L13.5 9"/><path d="M4 15.5v1A1.5 1.5 0 0 0 5.5 18h9a1.5 1.5 0 0 0 1.5-1.5v-1"/></svg>
+      </a>
+    </div>
+  </div>
+  <div class="noctua-export-foot">
+    <span id="noctuaExportUpdated">Sinkronisasi metadata...</span>
+    <span>R2 · pipeline hourly</span>
+  </div>
+</section>
 
 <footer>
   <div>Data: Binance &middot; Deribit &middot; BGTC (NOCTUA/AAAI 2026) &middot; alternative.me &middot; CryptoPanic / GDELT &middot; Exa opsional</div>

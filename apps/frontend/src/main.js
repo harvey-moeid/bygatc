@@ -8,7 +8,7 @@
 
 let state = {
   price: null, hourly: null, daily: null, fg: null, BGTC: null, news: null,
-  options: null, ranger: null, sentiment: null, hv20: null, atmInfo: null,
+  options: null, ranger: null, sentiment: null, hv20: null, atmInfo: null, noctuaExport: null,
   regime: null, retailPlan: null, funding: null, session: null, decision: null,
 };
 
@@ -24,11 +24,75 @@ async function refreshAll() {
   }
 }
 
+async function fetchNoctuaExport() {
+  try {
+    const r = await fetch('/api/noctua/data', { signal: AbortSignal.timeout(7000), cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch (e) {
+    console.warn('[NOCTUA export] metadata unavailable:', e.message);
+    return null;
+  }
+}
+
+function renderNoctuaExport(meta) {
+  const status = document.getElementById('noctuaExportStatus');
+  const pqMeta = document.getElementById('noctuaParquetMeta');
+  const csvMeta = document.getElementById('noctuaCsvMeta');
+  const updated = document.getElementById('noctuaExportUpdated');
+  const pqBtn = document.getElementById('noctuaParquetBtn');
+  const csvBtn = document.getElementById('noctuaCsvBtn');
+  if (!status || !pqMeta || !csvMeta) return;
+
+  const fmtSize = bytes => {
+    if (!Number.isFinite(bytes)) return '—';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+  };
+  const fmtDate = iso => {
+    const d = iso ? new Date(iso) : null;
+    return d && !Number.isNaN(d.getTime())
+      ? d.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
+      : '—';
+  };
+  const enable = (el, href) => {
+    if (!el || !href) return;
+    el.href = href;
+    el.classList.add('ready');
+  };
+
+  const count = [meta?.parquet, meta?.csv].filter(Boolean).length;
+  if (!meta || !count) {
+    status.className = 'pill-sm err';
+    status.textContent = 'R2 OFFLINE';
+    pqMeta.textContent = 'Belum tersedia';
+    csvMeta.textContent = 'Belum tersedia';
+    if (updated) updated.textContent = 'Export belum tersedia';
+    return;
+  }
+
+  status.className = count === 2 ? 'pill-sm ok' : 'pill-sm warn';
+  status.textContent = count === 2 ? 'R2 READY' : 'R2 PARTIAL';
+
+  if (meta.parquet) {
+    pqMeta.textContent = fmtSize(meta.parquet.size_bytes) + ' · ' + fmtDate(meta.parquet.uploaded);
+    enable(pqBtn, meta.download_parquet || '/api/noctua/download?format=parquet');
+  } else pqMeta.textContent = 'Belum tersedia';
+
+  if (meta.csv) {
+    csvMeta.textContent = fmtSize(meta.csv.size_bytes) + ' · ' + fmtDate(meta.csv.uploaded);
+    enable(csvBtn, meta.download_csv || '/api/noctua/download?format=csv');
+  } else csvMeta.textContent = 'Belum tersedia';
+
+  const latest = [meta.parquet?.uploaded, meta.csv?.uploaded].filter(Boolean).sort().pop();
+  if (updated) updated.textContent = latest ? 'Update terakhir · ' + fmtDate(latest) : 'Metadata tersedia';
+}
+
 async function doRefreshAll() {
   console.log('[v4] refreshAll start');
   UI.updateClock();
 
-  const [price, hourly, daily, fg, options, BGTC, funding] = await Promise.all([
+  const [price, hourly, daily, fg, options, BGTC, funding, noctuaExport] = await Promise.all([
     DataLayer.fetchPrice().catch(e => (console.error('price fail', e), null)),
     DataLayer.fetchHourly().catch(e => (console.error('hourly fail', e), null)),
     DataLayer.fetchDaily().catch(e => (console.error('daily fail', e), null)),
@@ -36,8 +100,10 @@ async function doRefreshAll() {
     DataLayer.fetchOptions().catch(e => (console.error('options fail', e), null)),
     DataLayer.fetchBGTC().catch(e => (console.error('BGTC fail', e), null)),
     DataLayer.fetchFunding().catch(e => (console.error('funding fail', e), null)),
+    fetchNoctuaExport(),
   ]);
-  Object.assign(state, { price, hourly, daily, fg, options, BGTC, funding });
+  Object.assign(state, { price, hourly, daily, fg, options, BGTC, funding, noctuaExport });
+  renderNoctuaExport(noctuaExport);
 
   state.news = await DataLayer.fetchNewsSentiment().catch(e => (console.error('news fail', e), null));
 
