@@ -140,13 +140,16 @@ def to_legacy(f: dict) -> dict:
     }
 
 
-def export_history(hours: pd.DataFrame, out_dir: Path) -> tuple[Path, Path]:
+def export_history(hours: pd.DataFrame, out_dir: Path) -> tuple[Path, Path, Path]:
     out_dir.mkdir(parents=True, exist_ok=True)
     parquet = out_dir / "noctua_history.parquet"
     csv = out_dir / "noctua_history.csv"
+    manifest = out_dir / "noctua_manifest.json"
     hours.to_parquet(parquet, index=False, compression="zstd")
     hours.to_csv(csv, index=False)
-    return parquet, csv
+    ts = pd.to_datetime(hours["hour_ts"], unit="s", utc=True)
+    manifest.write_text(json.dumps({"schema_version":1,"dataset":"NOCTUA hourly history","generated_at":datetime.now(timezone.utc).isoformat(),"rows":int(len(hours)),"columns":list(hours.columns),"start_utc":ts.min().isoformat() if len(ts) else None,"end_utc":ts.max().isoformat() if len(ts) else None,"frequency":"1h","timezone":"UTC"}, indent=2) + "\n")
+    return parquet, csv, manifest
 
 
 def main(argv=None) -> int:
