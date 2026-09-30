@@ -26,17 +26,29 @@ Health check sederhana (`{ ok, ts, env, noctuaData }`). Tidak di-cache.
 
 ## Market data
 
-| Endpoint | Deskripsi | Cache |
-|---|---|---|
-| `GET /api/v1/market/price` | Harga spot BTC/USDT terkini (price, high, low, change, volume) | 60s |
-| `GET /api/v1/market/hourly` | 48 candle terakhir, interval 1 jam | 300s |
-| `GET /api/v1/market/daily` | 60 candle terakhir, interval 1 hari | 3600s |
-| `GET /api/v1/market/funding` | Funding rate futures BTC (Binance/Bybit) | 600s |
-| `GET /api/v1/market/options` | Ringkasan option chain BTC dari Deribit | 600s (header `X-Data-Freshness: stale` kalau fallback) |
+| Endpoint | Deskripsi | Cache | Sumber (urutan fallback) |
+|---|---|---|---|
+| `GET /api/v1/market/price` | Harga spot BTC/USDT terkini (price, high, low, change, volume) | 60s | Binance -> Crypto.com -> OKX |
+| `GET /api/v1/market/hourly` | 48 candle terakhir, interval 1 jam | 300s | Binance -> Bybit -> Crypto.com -> OKX |
+| `GET /api/v1/market/daily` | 60 candle terakhir, interval 1 hari | 3600s | Binance -> Bybit -> Crypto.com -> OKX |
+| `GET /api/v1/market/funding` | Funding rate futures BTC | 600s | Binance -> Bybit -> OKX |
+| `GET /api/v1/market/options` | Ringkasan option chain BTC | 600s (header `X-Data-Freshness: stale` kalau fallback) | Deribit saja + cache stale 24 jam sebagai jaring pengaman (lihat catatan di bawah) |
 
-Semua route punya failover otomatis antar-exchange (Binance -> Bybit ->
-Crypto.com untuk kline/funding; Binance -> Crypto.com untuk price). Kalau
-semua sumber gagal, response `503 { "error": "... unavailable" }`.
+Field `source` di response `/price` dan `/funding` menunjukkan exchange mana
+yang benar-benar dipakai untuk request itu (`binance`, `bybit`, `crypto.com`,
+atau `okx`) -- berguna kalau kamu mau tahu data lagi dari primary atau lagi
+failover.
+
+Semua route punya failover otomatis antar-exchange seperti tabel di atas.
+Kalau semua sumber di rantai itu gagal, response `503 { "error": "... unavailable" }`.
+
+**Kenapa `/options` tidak punya fallback exchange lain:** satu-satunya
+alternatif publik yang sepadan (OKX `public/opt-summary`) cuma balikin
+implied volatility & Greeks per kontrak -- tidak ada open interest, volume,
+atau mark price dalam USD seperti Deribit. Daripada memetakannya ke shape
+yang sama dengan field-field itu diisi `0` (yang bisa bikin semua strike
+terlihat illiquid), endpoint ini tetap 100% Deribit dan jatuh ke salinan
+cache 24 jam terakhir (`market:options_stale`) kalau Deribit lagi down.
 
 ## Enrichment
 
