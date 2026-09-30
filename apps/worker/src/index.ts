@@ -20,27 +20,22 @@ export type Env = {
 
 const app = new Hono<{ Bindings: Env }>();
 
-function isAllowedOrigin(origin: string): boolean {
-  let hostname: string;
-  try {
-    hostname = new URL(origin).hostname;
-  } catch {
-    return false;
-  }
-  if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
-  if (hostname === 'pages.dev' || hostname.endsWith('.pages.dev')) return true;
-  return false;
-}
-
+// Public data API: semua route GET di bawah ini cuma menyajikan data yang
+// sudah publik (harga, funding, prediksi NOCTUA, news, dsb), jadi CORS
+// dibuka untuk semua origin supaya bisa dipanggil langsung dari web lain
+// mana pun tanpa perlu didaftarkan satu-satu ke whitelist.
+//
+// Endpoint tulis (POST /api/noctua/push, /api/noctua/data/upload, PUT
+// /api/alerts/config) tetap diproteksi lewat secret bearer token terlepas
+// dari kebijakan CORS ini -- CORS cuma aturan browser, bukan pengganti
+// auth, jadi membuka origin tidak membuka endpoint tersebut.
 app.use(
   '/api/*',
   cors({
-    origin: (origin) => {
-      if (!origin) return '*';
-      return isAllowedOrigin(origin) ? origin : null;
-    },
-    allowMethods: ['GET', 'OPTIONS'],
-    maxAge: 300,
+    origin: '*',
+    allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    maxAge: 86400,
   }),
 );
 
@@ -49,14 +44,54 @@ app.route('/api/enrichment', enrichmentRoutes);
 app.route('/api/noctua', noctuaRoutes);
 app.route('/api/alerts', alertsRoutes);
 
-app.get('/api/health', (c) =>
-  c.json({
+// Alias versi stabil (v1) untuk konsumen eksternal. Kontrak response di
+// route-route yang di-mount di sini dijaga tidak berubah secara breaking.
+// Kalau suatu saat perlu ubah shape data, tambahkan /api/v2/* baru di
+// samping ini, jangan ubah yang lama.
+app.route('/api/v1/market', marketRoutes);
+app.route('/api/v1/enrichment', enrichmentRoutes);
+app.route('/api/v1/noctua', noctuaRoutes);
+
+app.get('/api/health', (c) => {
+  c.header('Cache-Control', 'no-store');
+  return c.json({
     ok: true,
     ts: Date.now(),
     env: c.env.BTC_CACHE ? 'kv-ok' : 'no-kv',
     noctuaData: c.env.NOCTUA_DATA ? 'r2-ok' : 'no-r2',
-  }),
-);
+  });
+});
+
+// Index ringkas supaya konsumen eksternal (web lain) bisa discover endpoint
+// yang tersedia tanpa perlu baca source code Worker. Lihat juga
+// docs/api.md di root repo untuk detail shape response & cache TTL.
+app.get('/api', (c) => {
+  c.header('Cache-Control', 'public, max-age=3600');
+  return c.json({
+    ok: true,
+    version: 'v1',
+    docs: 'docs/api.md',
+    endpoints: {
+      health: '/api/health',
+      market: {
+        price: '/api/v1/market/price',
+        hourly: '/api/v1/market/hourly',
+        daily: '/api/v1/market/daily',
+        funding: '/api/v1/market/funding',
+        options: '/api/v1/market/options',
+      },
+      enrichment: {
+        news: '/api/v1/enrichment/news',
+        fearGreed: '/api/v1/enrichment/fg',
+      },
+      noctua: {
+        latest: '/api/v1/noctua/latest',
+        data: '/api/v1/noctua/data',
+        download: '/api/v1/noctua/download?format=parquet|csv',
+      },
+    },
+  });
+});
 
 export default {
   fetch: app.fetch,
