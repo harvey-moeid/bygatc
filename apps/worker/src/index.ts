@@ -77,6 +77,7 @@ app.get('/api', (c) => {
         price: '/api/v1/market/price',
         hourly: '/api/v1/market/hourly',
         daily: '/api/v1/market/daily',
+        candles: '/api/v1/market/candles?symbol=BTCUSDT|BTCUSDT.P|XAUUSD&tf=m5|m15|h1|d1',
         funding: '/api/v1/market/funding',
         options: '/api/v1/market/options',
       },
