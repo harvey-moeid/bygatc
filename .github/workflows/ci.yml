@@ -1,0 +1,63 @@
+# .github/workflows/ci.yml
+# =====================================================================
+# CI: jalan di setiap pull request dan setiap push ke main.
+# Tidak melakukan deploy (deploy ada di deploy-worker.yml).
+#
+#   frontend : encoding guard + smoke test frontend (tanpa dependency)
+#   worker   : typecheck Worker (tsc --noEmit)
+
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: frontend (encoding + smoke test)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Encoding regression guard
+        run: node scripts/check-encoding.js
+
+      - name: Frontend smoke test
+        run: node scripts/check-frontend.js
+
+  worker:
+    name: worker (typecheck)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck Worker
+        working-directory: apps/worker
+        run: pnpm typecheck
