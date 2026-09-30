@@ -11,6 +11,25 @@
  *   market:funding   -  10 menit
  *   market:options   -  10 menit
  *   market:options_stale  -  24 jam (fallback kalau Deribit gagal, lihat v4.4)
+ *   market:candles:<symbol>:<tf>  -  lihat TF_CACHE_TTL (v4.8)
+ *
+ * v4.8: Tambah GET /market/candles?symbol=&tf= -- endpoint generik multi
+ *   timeframe (m5, m15, h1, d1) dan multi simbol:
+ *     - BTCUSDT     -> spot BTC/USDT (Binance -> Bybit spot -> OKX spot)
+ *     - BTCUSDT.P   -> perpetual futures BTC (Binance futures -> Bybit
+ *                      linear -> OKX SWAP)
+ *     - XAUUSD      -> PROXY emas lewat PAXGUSDT (PAX Gold, token yang
+ *                      di-backing 1:1 oleh emas fisik dan tracking harga
+ *                      spot emas dengan dekat). Bukan harga forex XAUUSD
+ *                      resmi -- tidak ada exchange crypto yang punya data
+ *                      forex gratis tanpa API key berbayar (Twelve Data,
+ *                      Alpha Vantage, dll). Field `source` di response
+ *                      selalu menunjukkan exchange mana yang dipakai
+ *                      (mis. "binance" untuk PAXGUSDT), supaya jelas ini
+ *                      proxy, bukan harga XAUUSD dari sumber forex.
+ *   /hourly dan /daily (BTCUSDT spot only, TIDAK diubah) tetap dipertahankan
+ *   apa adanya untuk konsumen lama -- /candles?symbol=BTCUSDT&tf=h1 adalah
+ *   cara baru yang direkomendasikan untuk integrasi baru.
  *
  * v4.7: Tambah OKX sebagai fallback terakhir di /price, /hourly, /daily,
  *   dan /funding (Binance -> Bybit -> Crypto.com -> OKX untuk kline/funding;
@@ -371,6 +390,202 @@ marketRoutes.get('/daily', async (c) => {
     c.header('Cache-Control', 'no-store');
     return c.json({ error: 'daily unavailable' }, 503);
   }
+});
+
+// ---- GET /api/market/candles?symbol=&tf= ----
+// Endpoint generik multi timeframe & multi simbol. Lihat catatan v4.8 di
+// header file ini soal kenapa XAUUSD adalah proxy PAXGUSDT, bukan forex asli.
+
+type Tf = 'm5' | 'm15' | 'h1' | 'd1';
+type SymbolId = 'BTCUSDT' | 'BTCUSDT.P' | 'XAUUSD';
+type Candle = { t: number; o: number; h: number; l: number; c: number; v: number };
+
+const BINANCE_INTERVAL: Record<Tf, string> = { m5: '5m', m15: '15m', h1: '1h', d1: '1d' };
+const BYBIT_INTERVAL: Record<Tf, string> = { m5: '5', m15: '15', h1: '60', d1: 'D' };
+const OKX_BAR: Record<Tf, string> = { m5: '5m', m15: '15m', h1: '1H', d1: '1D' };
+
+// Berapa candle yang diminta per timeframe -- cukup untuk ~1-2 hari data
+// intraday, dan 60 hari untuk d1 (sama seperti /daily yang sudah ada).
+const TF_LIMIT: Record<Tf, number> = { m5: 288, m15: 96, h1: 48, d1: 60 };
+
+// Cache-Control / KV TTL per timeframe -- makin pendek timeframe-nya,
+// makin sering perlu di-refresh.
+const TF_CACHE_TTL: Record<Tf, number> = { m5: 60, m15: 180, h1: 300, d1: 3600 };
+
+interface SymbolSpec {
+  binanceSpot?: string;
+  binanceFutures?: string;
+  bybitSymbol?: string;
+  bybitCategory?: 'spot' | 'linear';
+  okxInstId?: string;
+}
+
+const SYMBOLS: Record<SymbolId, SymbolSpec> = {
+  // Spot BTC/USDT.
+  'BTCUSDT': {
+    binanceSpot: 'BTCUSDT',
+    bybitSymbol: 'BTCUSDT',
+    bybitCategory: 'spot',
+    okxInstId: 'BTC-USDT',
+  },
+  // Perpetual futures BTC (notasi ".P" seperti di TradingView).
+  'BTCUSDT.P': {
+    binanceFutures: 'BTCUSDT',
+    bybitSymbol: 'BTCUSDT',
+    bybitCategory: 'linear',
+    okxInstId: 'BTC-USDT-SWAP',
+  },
+  // PROXY emas lewat PAXGUSDT (PAX Gold, 1 token = 1 troy ounce emas fisik
+  // yang di-custody). Tidak ada exchange crypto yang punya data forex
+  // XAUUSD asli secara gratis tanpa API key berbayar -- kalau butuh harga
+  // forex resmi, perlu provider terpisah (Twelve Data / Alpha Vantage).
+  'XAUUSD': {
+    binanceSpot: 'PAXGUSDT',
+    bybitSymbol: 'PAXGUSDT',
+    bybitCategory: 'spot',
+    okxInstId: 'PAXG-USDT',
+  },
+};
+
+async function fetchBinanceCandles(
+  symbol: string, interval: string, limit: number, futures: boolean,
+): Promise<Candle[] | null> {
+  const base = futures
+    ? 'https://fapi.binance.com/fapi/v1/klines'
+    : 'https://api.binance.com/api/v3/klines';
+  try {
+    const r = await fetch(
+      `${base}?symbol=${symbol}&interval=${interval}&limit=${limit}`,
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const raw = await r.json() as Array<Array<string | number>>;
+    if (!Array.isArray(raw) || !raw.length) throw new Error('empty');
+    // Binance returns oldest-first already.
+    return raw.map((k) => ({ t: +k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }));
+  } catch (e) {
+    console.warn(`[market/candles] binance${futures ? '-futures' : ''} ${symbol} failed:`, (e as Error).message);
+    return null;
+  }
+}
+
+async function fetchBybitCandles(
+  symbol: string, interval: string, limit: number, category: 'spot' | 'linear',
+): Promise<Candle[] | null> {
+  try {
+    const r = await fetch(
+      `https://api.bybit.com/v5/market/kline?category=${category}&symbol=${symbol}&interval=${interval}&limit=${limit}`,
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json() as { result?: { list?: Array<Array<string>> } };
+    const rows = j?.result?.list;
+    if (!rows?.length) throw new Error('empty');
+    // Bybit returns newest-first; reverse to oldest-first.
+    return rows
+      .map((k) => ({ t: +k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }))
+      .reverse();
+  } catch (e) {
+    console.warn(`[market/candles] bybit ${symbol} failed:`, (e as Error).message);
+    return null;
+  }
+}
+
+async function fetchOkxCandles(instId: string, bar: string, limit: number): Promise<Candle[] | null> {
+  try {
+    const r = await fetch(
+      `https://www.okx.com/api/v5/market/candles?instId=${instId}&bar=${bar}&limit=${limit}`,
+      { signal: AbortSignal.timeout(8000) },
+    );
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j = await r.json() as { data?: Array<Array<string>> };
+    const rows = j?.data;
+    if (!rows?.length) throw new Error('empty');
+    // OKX returns newest-first; reverse to oldest-first.
+    return rows
+      .map((k) => ({ t: +k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] }))
+      .reverse();
+  } catch (e) {
+    console.warn(`[market/candles] okx ${instId} failed:`, (e as Error).message);
+    return null;
+  }
+}
+
+function buildAttempts(
+  spec: SymbolSpec, tf: Tf, limit: number,
+): Array<{ source: string; run: () => Promise<Candle[] | null> }> {
+  const attempts: Array<{ source: string; run: () => Promise<Candle[] | null> }> = [];
+  if (spec.binanceFutures) {
+    attempts.push({
+      source: 'binance-futures',
+      run: () => fetchBinanceCandles(spec.binanceFutures!, BINANCE_INTERVAL[tf], limit, true),
+    });
+  }
+  if (spec.binanceSpot) {
+    attempts.push({
+      source: 'binance',
+      run: () => fetchBinanceCandles(spec.binanceSpot!, BINANCE_INTERVAL[tf], limit, false),
+    });
+  }
+  if (spec.bybitSymbol) {
+    attempts.push({
+      source: 'bybit',
+      run: () => fetchBybitCandles(spec.bybitSymbol!, BYBIT_INTERVAL[tf], limit, spec.bybitCategory ?? 'spot'),
+    });
+  }
+  if (spec.okxInstId) {
+    attempts.push({
+      source: 'okx',
+      run: () => fetchOkxCandles(spec.okxInstId!, OKX_BAR[tf], limit),
+    });
+  }
+  return attempts;
+}
+
+marketRoutes.get('/candles', async (c) => {
+  const symbolParam = (c.req.query('symbol') || 'BTCUSDT').toUpperCase();
+  const tfParam = (c.req.query('tf') || 'h1').toLowerCase();
+
+  if (!(symbolParam in SYMBOLS)) {
+    c.header('Cache-Control', 'no-store');
+    return c.json(
+      { error: `unknown symbol '${symbolParam}', expected one of: ${Object.keys(SYMBOLS).join(', ')}` },
+      400,
+    );
+  }
+  if (!(tfParam in TF_CACHE_TTL)) {
+    c.header('Cache-Control', 'no-store');
+    return c.json({ error: `unknown tf '${tfParam}', expected one of: m5, m15, h1, d1` }, 400);
+  }
+
+  const symbol = symbolParam as SymbolId;
+  const tf = tfParam as Tf;
+  const ttl = TF_CACHE_TTL[tf];
+  const limit = TF_LIMIT[tf];
+  const cacheKey = `market:candles:${symbol}:${tf}`;
+
+  const cached = await kvGet<{ symbol: SymbolId; tf: Tf; source: string; candles: Candle[] }>(
+    c.env.BTC_CACHE, cacheKey,
+  );
+  if (cached) {
+    c.header('Cache-Control', `public, max-age=${ttl}`);
+    return c.json(cached);
+  }
+
+  const attempts = buildAttempts(SYMBOLS[symbol], tf, limit);
+  for (const attempt of attempts) {
+    const candles = await attempt.run();
+    if (candles) {
+      const payload = { symbol, tf, source: attempt.source, candles };
+      await kvPut(c.env.BTC_CACHE, cacheKey, payload, ttl);
+      c.header('Cache-Control', `public, max-age=${ttl}`);
+      return c.json(payload);
+    }
+  }
+
+  console.error(`[market/candles] all sources failed for ${symbol} ${tf}`);
+  c.header('Cache-Control', 'no-store');
+  return c.json({ error: `candles unavailable for ${symbol} ${tf}` }, 503);
 });
 
 // ---- GET /api/market/funding ----
