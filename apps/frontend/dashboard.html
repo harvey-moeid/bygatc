@@ -392,7 +392,7 @@ footer a:hover{color:var(--accent)}
   <div class="pulse-card"><div class="pc-lbl">IV ATM</div><div class="pc-val purple" id="psAtmIv">&mdash;%</div><div class="pc-sub" id="psAtmIvSub">Deribit terdekat</div></div>
   <div class="pulse-card"><div class="pc-lbl">Funding 8j</div><div class="pc-val" id="psFunding">&mdash;</div><div class="pc-sub" id="psFundingSub">perp BTCUSDT</div></div>
   <div class="pulse-card"><div class="pc-lbl">Takut &amp; Serakah</div><div class="pc-val" id="psFg">&mdash;</div><div class="pc-sub" id="psFgSub">alt.me</div></div>
-  <div class="pulse-card"><div class="pc-lbl">Potensi Naik BGTC</div><div class="pc-val" id="psBGTC">&mdash;%</div><div class="pc-sub" id="psBGTCSub">Model NOCTUA</div></div>
+  <div class="pulse-card"><div class="pc-lbl">Probabilitas Naik BGTC</div><div class="pc-val" id="psBGTC">&mdash;%</div><div class="pc-sub" id="psBGTCSub">Model NOCTUA</div></div>
 </div>
 
 <!-- SESSION RIBBON -->
@@ -449,7 +449,7 @@ footer a:hover{color:var(--accent)}
     <div class="rc-head">
       <div>
         <div class="rc-title">&#9889; Pemilih Wing OTM Dibiayai Straddle</div>
-        <div class="rc-sub">Mencari strike OTM di mana 60&times; premium short &ge; 1.15&times; biaya straddle DAN prob. sentuh &le; ambang</div>
+        <div class="rc-sub">Mencari strike OTM di mana 60&times; premium short &ge; 1.15&times; biaya straddle DAN prob. tersentuh &le; ambang</div>
       </div>
       <div class="pill-sm muted" id="retailExpiry">&mdash;</div>
     </div>
@@ -463,7 +463,7 @@ footer a:hover{color:var(--accent)}
       </div>
       <div class="rcc-slider">
         <div class="rcc-label">PROB SENTUH MAKS <b id="rpTouchOut">10%</b></div>
-        <input type="range" id="rpTouch" min="0.03" max="0.20" step="0.01" value="0.10" aria-label="Probabilitas sentuh maksimum" oninput="document.getElementById('rpTouchOut').textContent=(parseFloat(this.value)*100).toFixed(0)+'%'; onRetailSliderChange()">
+        <input type="range" id="rpTouch" min="0.03" max="0.20" step="0.01" value="0.10" aria-label="Probabilitas tersentuh maksimum" oninput="document.getElementById('rpTouchOut').textContent=(parseFloat(this.value)*100).toFixed(0)+'%'; onRetailSliderChange()">
       </div>
       <div class="rcc-slider">
         <div class="rcc-label">FAKTOR KEAMANAN <b id="rpSafetyOut">1.15&times;</b></div>
@@ -637,7 +637,7 @@ footer a:hover{color:var(--accent)}
     <!-- SINYAL TIDAK TERVALIDASI -->
     <div class="guide-h invalid">Sinyal tidak tervalidasi &mdash; jangan dipakai untuk arah</div>
     <div class="gc invalid">
-      <div class="gc-title">p_up / upside (BGTC &ldquo;Potensi Naik&rdquo;)</div>
+      <div class="gc-title">p_up / upside (BGTC &ldquo;Probabilitas Naik&rdquo;)</div>
       <p>Probabilitas arah harga naik dari model NOCTUA. <b>Walk-forward log-loss 0.6941 vs coin flip 0.6931</b> &mdash; secara statistik tidak punya skill prediktif di horizon ini.<br><br>Karena itu, field <code style="font-family:var(--font-mono);font-size:10px;background:var(--surface3);padding:1px 5px;border-radius:3px">upside</code> di payload <em>sengaja dipin ke 50.0</em>. Nilai mentah masih dipublikasikan sebagai <code style="font-family:var(--font-mono);font-size:10px;background:var(--surface3);padding:1px 5px;border-radius:3px">p_up_raw</code> untuk transparansi, tapi <b>tidak digunakan untuk menggeser strike atau memilih arah trade</b>.<br><br>Untuk futures: arah <em>wajib</em> dari TA/thesis kamu sendiri.</p>
     </div>
 

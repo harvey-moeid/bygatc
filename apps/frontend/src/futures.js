@@ -16,7 +16,7 @@
        digit/percent runs, so it can't reach into the HTML entities
        escape() may have produced.
    v2.3 (Fase 5 checklist -- checklist-upgrade-pro-btc-desk.md):
-     - renderBarrierCurves(): "Prob. sentuh" dulu cuma teks berwarna
+     - renderBarrierCurves(): "Prob. tersentuh" dulu cuma teks berwarna
        (tpClass()) tanpa bar/gauge apapun -- satu-satunya tempat di ketiga
        halaman yang benar-benar tidak punya representasi visual untuk
        sebuah probabilitas. Sekarang tiap sel touch_prob dirender lewat

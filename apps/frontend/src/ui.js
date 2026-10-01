@@ -36,7 +36,7 @@
  *   bukan lompat instan.
  *
  * v5 (Fase 5 checklist item 1): probabilitas "peluang pergerakan" (odds
- *   table) dan probabilitas sentuh di Retail Plan (kandidat & alternatif
+ *   table) dan probabilitas tersentuh di Retail Plan (kandidat & alternatif
  *   strike) sebelumnya dirender dengan <span class="odds-bar"> lebar
  *   STATIS dalam px (odds table) atau cuma teks persen polos tanpa bar
  *   sama sekali (retail plan). Keduanya sekarang pakai probGaugeHtml() --
@@ -100,7 +100,7 @@ const UI = (() => {
     });
   }
 
-  // Warna untuk "probabilitas sentuh" (Retail Plan) -- makin tinggi makin
+  // Warna untuk "probabilitas tersentuh" (Retail Plan) -- makin tinggi makin
   // berisiko (merah), sama arah dengan tpClass() di futures.js.
   function touchColor(p) {
     if (p == null) return 'var(--muted)';
@@ -303,7 +303,7 @@ const UI = (() => {
     if (!body) return;
 
     const exp = $('retailExpiry');
-    if (exp) { exp.classList.remove('skel'); exp.textContent = atmInfo ? 'Kedaluwarsa: ' + atmInfo.expiry : '\u2014'; }
+    if (exp) { exp.classList.remove('skel'); exp.textContent = atmInfo ? 'Expiry: ' + atmInfo.expiry : '\u2014'; }
 
     if (!plan) {
       body.innerHTML = `<div style="padding:24px;text-align:center;color:var(--muted);font-size:12px">Menunggu harga / opsi / HV20\u2026</div>`;
@@ -318,8 +318,8 @@ const UI = (() => {
         <div class="rc-warn-body">${escape(plan.reason)}</div>
       </div>`;
       if (plan.candidates?.length) {
-        html += `<div style="font-size:10px;color:var(--muted);margin:10px 0 6px">Strike layak premium dan probabilitas sentuhnya:</div>`;
-        html += `<table class="odds-table"><thead><tr><th>Strike</th><th>Jarak</th><th>Premium/lot</th><th>Prob. sentuh</th></tr></thead><tbody>` +
+        html += `<div style="font-size:10px;color:var(--muted);margin:10px 0 6px">Strike layak premium dan probabilitas tersentuhnya:</div>`;
+        html += `<table class="odds-table"><thead><tr><th>Strike</th><th>Jarak</th><th>Premium/lot</th><th>Prob. tersentuh</th></tr></thead><tbody>` +
           plan.candidates.map(c => {
             const tp = c.touchProb ?? DataLayer.touchProbability(c.absDist, hv20?.oneDay);
             return `<tr><td>$${fmt(c.strike)}</td><td>${c.absDist?.toFixed(2)}%</td><td>$${fmt(c.premium, 2)}</td><td>${probGaugeHtml(tp, touchColor(tp))}</td></tr>`;
@@ -349,7 +349,7 @@ const UI = (() => {
 
     html += `<div class="rc-metrics">
       <div class="rcm"><div class="rcm-l">Jarak</div><div class="rcm-v">${plan.shortDistancePct.toFixed(2)}%</div><div class="rcm-s">${distSafety} \u00b7 ${kMultiplier.toFixed(1)}\u00d7 hv20_1h</div></div>
-      <div class="rcm"><div class="rcm-l">Probabilitas sentuh</div><div class="rcm-v">${(plan.touchProb*100).toFixed(0)}%</div><div class="rcm-s">per backtest PDF</div></div>
+      <div class="rcm"><div class="rcm-l">Probabilitas tersentuh</div><div class="rcm-v">${(plan.touchProb*100).toFixed(0)}%</div><div class="rcm-s">per backtest PDF</div></div>
       <div class="rcm"><div class="rcm-l">Kredit bersih</div><div class="rcm-v ${netCreditClass}">${plan.netCredit >= 0 ? '+' : ''}$${fmt(plan.netCredit, 0)}</div><div class="rcm-s">setelah pembiayaan</div></div>
       <div class="rcm"><div class="rcm-l">Req/lot</div><div class="rcm-v">$${plan.reqPremPerLot.toFixed(2)}</div><div class="rcm-s">\u00d7${((plan.shortPremiumPerLot/plan.reqPremPerLot)*100).toFixed(0)}% cakupan</div></div>
     </div>`;
@@ -487,13 +487,13 @@ const UI = (() => {
 
   function updateSignals({ BGTC, hv20, regime, ranger, fg, funding, sentiment, session }) {
     const rows = [
-      ['Arah BGTC (dipakai)', BGTC ? BGTC.upside.toFixed(1) + '% naik' : '\u2014',
+      ['Probabilitas arah BGTC (dinetralkan)', BGTC ? BGTC.upside.toFixed(1) + '% naik' : '\u2014',
        BGTC ? (BGTC.upside < 45 ? 'neg' : BGTC.upside < 55 ? 'neu' : 'pos') : 'neu'],
       // Info saja -- warna selalu netral (amber) supaya tidak dibaca sebagai
       // sinyal actionable seperti baris di atas. Tidak dipakai di buildDecision()
       // ataupun buildRetailPlan(); lihat docs/TRADE_FLOW.md \u00a73.
       ['Arah mentah (belum tervalidasi)', BGTC?.p_up_raw != null ? BGTC.p_up_raw.toFixed(1) + '%' : '\u2014', 'neu'],
-      ['Vol-amp BGTC',       BGTC ? BGTC.volAmp.toFixed(1) + '%' : '\u2014',
+      ['Ekspansi volatilitas BGTC',       BGTC ? BGTC.volAmp.toFixed(1) + '%' : '\u2014',
        BGTC ? (BGTC.volAmp > 70 ? 'neg' : BGTC.volAmp > 50 ? 'neu' : 'pos') : 'neu'],
       ['HV20 (tahunan)',     hv20 ? hv20.annualised.toFixed(1) + '%' : '\u2014',
        hv20 ? (hv20.annualised > 70 ? 'neu' : 'pos') : 'neu'],

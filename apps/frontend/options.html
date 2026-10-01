@@ -140,10 +140,10 @@
   <div class="card">
     <h2>Pasar &amp; Rezim Volatilitas</h2>
     <div class="big glow-num glow-accent" id="spot">&mdash;</div>
-    <div class="kv"><span>IV ATM (expiry serius terdekat)</span><b id="atmIv">&mdash;</b></div>
+    <div class="kv"><span>IV ATM (expiry terdekat)</span><b id="atmIv">&mdash;</b></div>
     <div class="kv"><span>HV20 (realized, harian)</span><b id="hv20">&mdash;</b></div>
     <div class="kv"><span>Rasio IV / HV</span><b id="ivhv">&mdash;</b></div>
-    <div class="kv"><span>Perkiraan pergerakan ke expiry (1&sigma;)</span><b id="expMove">&mdash;</b></div>
+    <div class="kv"><span>Perkiraan pergerakan hingga expiry (1&sigma;)</span><b id="expMove">&mdash;</b></div>
     <div class="kv"><span>Funding (8j, Binance perp)</span><b id="funding">&mdash;</b></div>
   </div>
 
@@ -152,7 +152,7 @@
     <div class="kv"><span>Prob. naik BGTC (24j)</span><b id="krUp">&mdash;</b></div>
     <div class="kv"><span>Amplifikasi vol BGTC (24j)</span><b id="krVol">&mdash;</b></div>
     <div class="kv"><span>Takut &amp; Serakah</span><b id="fng">&mdash;</b></div>
-    <div class="kv"><span>Edge premi risiko-vol</span><b id="vrp">&mdash;</b></div>
+    <div class="kv"><span>Premi risiko volatilitas</span><b id="vrp">&mdash;</b></div>
     <div class="verdict glow-num" id="verdict">menghitung&hellip;</div>
     <div id="verdictWhy" style="font-size:12px;color:var(--dim);margin-top:8px"></div>
   </div>
@@ -191,7 +191,7 @@
   <div class="card wide" style="border-color:rgba(90,167,255,.5)">
     <h2>Desk Harian &mdash; kalender &amp; jam penjual 1DTE <span style="font-weight:normal;font-size:11px;color:var(--dim)">(backtest 998 expiry harian pada DVOL riil; settle 12:00 UTC / 17:30 IST)</span></h2>
     <div class="kv"><span>Expiry harian berikutnya (jendela 12:00 UTC)</span><b id="ddWindow">&mdash;</b></div>
-    <div class="kv"><span>Jam ke expiry / saran jam entry</span><b id="ddHours">&mdash;</b></div>
+    <div class="kv"><span>Jam ke expiry / saran waktu entry</span><b id="ddHours">&mdash;</b></div>
     <div class="kv"><span>IV ATM 1-hari live vs DVOL (edge sudah ter-price?)</span><b id="ddIv">&mdash;</b></div>
     <div class="verdict" id="ddVerdict">menghitung&hellip;</div>
     <div id="ddWhy" style="font-size:12px;color:var(--dim);margin-top:8px;line-height:1.65"></div>
@@ -220,7 +220,7 @@
       <div>
         <div class="kv"><span>Perkiraan POP (1 &minus; &Sigma;|&Delta;|)</span><b id="pop">&mdash;</b></div>
         <div class="kv"><span>Est. margin (heuristik Delta Ex.)</span><b id="margin">&mdash;</b></div>
-        <div class="kv"><span>Return atas margin ke expiry</span><b id="rom">&mdash;</b></div>
+        <div class="kv"><span>Return on Margin (ROM) hingga expiry</span><b id="rom">&mdash;</b></div>
         <div class="kv"><span>Rasio Kredit / Pergerakan-perkiraan</span><b id="cem">&mdash;</b></div>
       </div>
     </div>

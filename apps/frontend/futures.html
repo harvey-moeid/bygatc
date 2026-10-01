@@ -277,16 +277,16 @@
 <!-- Row 2: barrier curves -->
 <div class="grid" style="margin-bottom:14px">
   <div class="card wide" id="barrierCard">
-    <h2>Kurva Barrier NOCTUA &mdash; probabilitas sentuh selama jendela 19j &middot; harga di-mark ke BTCUSDT.P</h2>
+    <h2>Kurva Barrier NOCTUA &mdash; probabilitas tersentuh selama jendela 19j &middot; harga di-mark ke BTCUSDT.P</h2>
     <div class="tbl-wrap">
       <table>
         <thead>
           <tr>
             <th style="text-align:left">Jarak</th>
-            <th>&uarr; Level Call</th>
-            <th>Prob. sentuh</th>
-            <th>&darr; Level Put</th>
-            <th>Prob. sentuh</th>
+            <th>&uarr; Strike Call</th>
+            <th>Prob. tersentuh</th>
+            <th>&darr; Strike Put</th>
+            <th>Prob. tersentuh</th>
           </tr>
         </thead>
         <tbody id="barrierBody">
@@ -295,7 +295,7 @@
       </table>
     </div>
     <p style="font-size:11px;color:var(--dim);margin-top:8px">
-      Prob. sentuh = P(harga mencapai level tersebut kapan saja selama jendela 19j). Hijau &lt; 15% &middot; Kuning 15-30% &middot; Oranye 30-50% &middot; Merah &ge;50%.
+      Prob. tersentuh = P(harga mencapai level tersebut kapan saja selama jendela 19j). Hijau &lt; 15% &middot; Kuning 15-30% &middot; Oranye 30-50% &middot; Merah &ge;50%.
     </p>
   </div>
 </div>
@@ -309,10 +309,10 @@
         <thead>
           <tr>
             <th style="text-align:left">&alpha; (risiko sentuh)</th>
-            <th>Level Call (harga)</th>
-            <th>Level Call (%)</th>
-            <th>Level Put (harga)</th>
-            <th>Level Put (%)</th>
+            <th>Strike Call (harga)</th>
+            <th>Strike Call OTM (%)</th>
+            <th>Strike Put (harga)</th>
+            <th>Strike Put OTM (%)</th>
           </tr>
         </thead>
         <tbody id="safeBody">
@@ -355,7 +355,7 @@
       </label>
     </div>
     <div class="controls">
-      <label>Target prob-sentuh SL
+      <label>Target probabilitas tersentuh SL
         <div style="display:flex;align-items:center;gap:8px">
           <input type="range" id="slSlider" min="0.10" max="0.60" value="0.35" step="0.05">
           <span class="mono" id="slVal">35%</span>
@@ -363,7 +363,7 @@
       </label>
     </div>
     <div class="controls">
-      <label>Target prob-sentuh TP
+      <label>Target probabilitas tersentuh TP
         <div style="display:flex;align-items:center;gap:8px">
           <input type="range" id="tpSlider" min="0.05" max="0.40" value="0.20" step="0.05">
           <span class="mono" id="tpVal">20%</span>
@@ -378,13 +378,13 @@
     <div class="plan-grid">
       <div>
         <div class="kv"><span>Entry</span>          <b id="pEntry">&mdash;</b></div>
-        <div class="kv"><span>Stop loss</span>      <b id="pSl" class="neg">&mdash;</b></div>
-        <div class="kv"><span>Take profit</span>    <b id="pTp" class="pos">&mdash;</b></div>
-        <div class="kv"><span>Risk / reward</span>  <b id="pRR">&mdash;</b></div>
+        <div class="kv"><span>Stop-Loss</span>      <b id="pSl" class="neg">&mdash;</b></div>
+        <div class="kv"><span>Take-Profit</span>    <b id="pTp" class="pos">&mdash;</b></div>
+        <div class="kv"><span>Rasio Risk/Reward</span>  <b id="pRR">&mdash;</b></div>
       </div>
       <div>
-        <div class="kv"><span>Prob. sentuh SL</span>  <b id="pSlTouch">&mdash;</b></div>
-        <div class="kv"><span>Prob. sentuh TP</span>  <b id="pTpTouch">&mdash;</b></div>
+        <div class="kv"><span>Prob. tersentuh SL</span>  <b id="pSlTouch">&mdash;</b></div>
+        <div class="kv"><span>Prob. tersentuh TP</span>  <b id="pTpTouch">&mdash;</b></div>
         <div class="kv"><span>Pengali ukuran</span><b id="pSize">&mdash;</b></div>
         <div class="kv"><span>Risiko / notional</span><b id="pRisk">&mdash;</b></div>
       </div>
