@@ -110,7 +110,7 @@ export async function checkFuturesVolAlert(
   if (typeof pUpRaw === 'number') {
     fields.push({
       name: 'Directional Bias (p_up_raw): info only, NOT validated',
-      value: `${(pUpRaw * 100).toFixed(0)}% upside probability. Historical walk-forward accuracy is close to a coin flip, so do not use it as a standalone signal (see docs/TRADE_FLOW.md #3).`,
+      value: `${(pUpRaw * 100).toFixed(0)}% directional probability. Historical walk-forward accuracy is close to a coin flip, so do not use it as a standalone signal (see docs/TRADE_FLOW.md #3).`,
       inline: false,
     });
   }
