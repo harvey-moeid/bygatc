@@ -82,22 +82,86 @@ const ChartsPage = (() => {
   const fmtPct = (v, d = 1) => Number(v).toFixed(d) + '%';
 
   // ---------------------------------------------------------------- PRICE
+  function candlePlugin() {
+    return {
+      id: 'btcCandles',
+      afterDatasetsDraw(chart) {
+        const ds = chart.data.datasets.find(d => d._candles);
+        if (!ds || !chart.chartArea) return;
+        const {ctx, chartArea, scales} = chart;
+        const x = scales.x, y = scales.y;
+        const candles = ds._candles;
+        const step = candles.length > 1
+          ? Math.abs(x.getPixelForValue(1) - x.getPixelForValue(0))
+          : (chartArea.right - chartArea.left) * 0.02;
+        const bodyW = Math.max(3, Math.min(14, step * 0.58));
+        ctx.save();
+        ctx.lineWidth = 1;
+        candles.forEach((k, i) => {
+          const xp = x.getPixelForValue(i);
+          const yo = y.getPixelForValue(k.o);
+          const yh = y.getPixelForValue(k.h);
+          const yl = y.getPixelForValue(k.l);
+          const yc = y.getPixelForValue(k.c);
+          if (![xp, yo, yh, yl, yc].every(Number.isFinite)) return;
+          const up = k.c >= k.o;
+          const color = up ? C.green : C.red;
+          ctx.strokeStyle = color;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.moveTo(xp, yh);
+          ctx.lineTo(xp, yl);
+          ctx.stroke();
+          const top = Math.min(yo, yc);
+          const height = Math.max(1, Math.abs(yc - yo));
+          ctx.fillRect(xp - bodyW / 2, top, bodyW, height);
+        });
+        ctx.restore();
+      }
+    };
+  }
+
   async function renderHourly() {
     const data = await DataLayer.fetchHourly();
-    const rows = (Array.isArray(data) ? data : []).slice(-48).filter(c => c && c.c != null);
-    if (!rows.length) return setEmpty('boxHourly', 'Data harga per jam belum tersedia.');
+    const rows = (Array.isArray(data) ? data : []).slice(-48).filter(c => c && c.o != null && c.h != null && c.l != null && c.c != null);
+    if (!rows.length) return setEmpty('boxHourly', 'Data candle per jam belum tersedia.');
     clearEmpty('boxHourly');
-    const labels = rows.map(c => new Date(c.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+    const labels = rows.map(c => new Date(c.t).toLocaleTimeString('id-ID', {
+      timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit'
+    }));
+    const candleData = rows.map(c => ({x: c.t, o: Number(c.o), h: Number(c.h), l: Number(c.l), c: Number(c.c)}));
     mk('cHourly', {
       type: 'line',
+      plugins: [candlePlugin()],
       data: { labels, datasets: [{
-        label: 'BTC/USDT 1J', data: rows.map(c => c.c),
-        borderColor: C.cyan, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 12,
-        tension: 0.3, fill: true, backgroundColor: tint(C.cyan, 0.10),
+        label: 'BTC/USDT 1H',
+        data: rows.map(c => c.c),
+        _candles: candleData,
+        borderColor: 'transparent',
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHitRadius: 18,
+        backgroundColor: 'transparent',
       }] },
       options: baseOpts({
         interaction: { mode: 'index', axis: 'x', intersect: false },
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => fmtUsd(c.parsed.y) } } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: items => items.length ? 'WIB ' + items[0].label : '',
+              label: ctx => {
+                const k = candleData[ctx.dataIndex];
+                return k ? [
+                  'Open: ' + fmtUsd(k.o),
+                  'High: ' + fmtUsd(k.h),
+                  'Low: ' + fmtUsd(k.l),
+                  'Close: ' + fmtUsd(k.c),
+                ] : fmtUsd(ctx.parsed.y);
+              }
+            }
+          }
+        },
         scales: {
           x: { ticks: { maxTicksLimit: 8, maxRotation: 0 }, grid: { display: false } },
           y: { ticks: { callback: fmtK } },
