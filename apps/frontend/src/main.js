@@ -241,27 +241,36 @@ function initNoctuaExplorer() {
   const anchor = document.querySelector('.noctua-export');
   if (!anchor) return;
 
-  const DASH = '\u2014';
+  const DASH = '\\u2014';
   const wrap = document.createElement('section');
   wrap.id = 'noctuaExplorer';
   wrap.className = 'noctua-export';
   wrap.style.cssText = 'margin-top:12px;padding:16px;border:1px solid var(--border);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-sm)';
   wrap.innerHTML =
     '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px">' +
-      '<div><div style="font-size:13px;font-weight:700">Data Explorer</div><div style="font-size:10px;color:var(--muted);margin-top:2px">NOCTUA hourly history &middot; filter &amp; export subset</div></div>' +
+      '<div><div style="font-size:13px;font-weight:700">Data Explorer</div><div style="font-size:10px;color:var(--muted);margin-top:2px">NOCTUA hourly history &middot; pilih rentang lalu download CSV</div></div>' +
       '<span id="noctuaScanStatus" class="pill-sm">READY</span>' +
     '</div>' +
     '<div id="noctuaExplorerStats" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px">' +
       '<div class="kc-metric"><div class="kc-metric-l">Rows</div><div id="nxRows" class="kc-metric-v">&mdash;</div></div>' +
-      '<div class="kc-metric"><div class="kc-metric-l">Range UTC</div><div id="nxRange" style="font-family:var(--font-mono);font-size:11px;font-weight:600;line-height:1.35">&mdash;</div></div>' +
+      '<div class="kc-metric"><div class="kc-metric-l">Range WIB</div><div id="nxRange" style="font-family:var(--font-mono);font-size:11px;font-weight:600;line-height:1.35">&mdash;</div></div>' +
       '<div class="kc-metric"><div class="kc-metric-l">Columns</div><div id="nxCols" class="kc-metric-v">&mdash;</div></div>' +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">' +
-      '<label style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">From UTC<input id="nxFrom" type="datetime-local" style="display:block;width:100%;margin-top:5px;padding:9px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font:12px var(--font-mono)"></label>' +
-      '<label style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">To UTC<input id="nxTo" type="datetime-local" style="display:block;width:100%;margin-top:5px;padding:9px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font:12px var(--font-mono)"></label>' +
-      '<div style="display:flex;gap:7px"><button id="nxScan" class="btn" type="button">SCAN DATASET</button><button id="nxExport" class="btn" type="button" disabled>EXPORT RANGE</button></div>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">' +
+      '<button class="btn nx-preset" data-hours="24" type="button">1 HARI</button>' +
+      '<button class="btn nx-preset" data-hours="168" type="button">7 HARI</button>' +
+      '<button class="btn nx-preset" data-hours="336" type="button">14 HARI</button>' +
+      '<button class="btn nx-preset" data-hours="720" type="button">30 HARI</button>' +
+      '<button class="btn nx-preset" data-hours="2160" type="button">90 HARI</button>' +
+      '<button class="btn nx-preset" data-hours="8760" type="button">1 TAHUN</button>' +
+      '<button class="btn nx-preset" data-custom="1" type="button">CUSTOM</button>' +
     '</div>' +
-    '<div id="nxHint" style="font-size:10px;color:var(--muted);margin-top:9px">Scan mengambil CSV dari R2 hanya saat diminta.</div>';
+    '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end">' +
+      '<label style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Mulai WIB<input id="nxFrom" type="datetime-local" style="display:block;width:100%;margin-top:5px;padding:9px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font:12px var(--font-mono)"></label>' +
+      '<label style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Sampai WIB<input id="nxTo" type="datetime-local" style="display:block;width:100%;margin-top:5px;padding:9px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font:12px var(--font-mono)"></label>' +
+      '<div style="display:flex;gap:7px"><button id="nxScan" class="btn" type="button">SCAN DATASET</button><button id="nxExport" class="btn" type="button" disabled>DOWNLOAD CSV</button></div>' +
+    '</div>' +
+    '<div id="nxHint" style="font-size:10px;color:var(--muted);margin-top:9px">Scan membaca dataset CSV dari R2 sekali; setelah itu preset tidak perlu scan ulang.</div>';
   anchor.insertAdjacentElement('afterend', wrap);
 
   const scanBtn = document.getElementById('nxScan');
@@ -270,6 +279,7 @@ function initNoctuaExplorer() {
   const toEl = document.getElementById('nxTo');
   const statusEl = document.getElementById('noctuaScanStatus');
   const hintEl = document.getElementById('nxHint');
+  const presetBtns = [...wrap.querySelectorAll('.nx-preset')];
   let dataset = null;
 
   const csvLine = (line) => {
@@ -283,17 +293,53 @@ function initNoctuaExplorer() {
     out.push(cur); return out;
   };
   const esc = v => { const s = String(v ?? ''); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const toInput = iso => { const d = new Date(iso); if (Number.isNaN(d.getTime())) return ''; return d.toISOString().slice(0, 16); };
-  const fmt = iso => { const d = new Date(iso); return Number.isNaN(d.getTime()) ? DASH : d.toISOString().replace('T', ' ').replace('.000Z', 'Z'); };
+
+  // HTML datetime-local has no timezone. These helpers deliberately interpret
+  // the UI value as Asia/Jakarta (WIB), independent of the device timezone.
+  const toWibInput = iso => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const w = new Date(d.getTime() + 7 * 3600_000);
+    return w.toISOString().slice(0, 16);
+  };
+  const parseWibInput = value => {
+    const m = String(value || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2})$/);
+    if (!m) return NaN;
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) - 7 * 3600_000;
+  };
+  const fmtWib = iso => {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return DASH;
+    const w = new Date(d.getTime() + 7 * 3600_000);
+    return w.toISOString().replace('T', ' ').replace('.000Z', ' WIB');
+  };
+  const setPresetActive = active => {
+    presetBtns.forEach(b => {
+      const on = b === active;
+      b.style.borderColor = on ? 'var(--accent)' : '';
+      b.style.color = on ? 'var(--accent)' : '';
+    });
+  };
+
+  function applyPreset(hours, activeBtn) {
+    if (!dataset?.rows?.length) return;
+    const latest = dataset.rows[dataset.rows.length - 1].t;
+    const earliest = dataset.rows[0].t;
+    const from = Math.max(earliest, latest - hours * 3600_000);
+    fromEl.value = toWibInput(from);
+    toEl.value = toWibInput(latest);
+    setPresetActive(activeBtn);
+    hintEl.textContent = 'Rentang ' + (hours >= 8760 ? '1 tahun' : hours + ' jam') + ' WIB siap di-download.';
+  }
 
   scanBtn.addEventListener('click', async () => {
-    if (dataset) { hintEl.textContent = 'Dataset sudah di-scan; gunakan rentang tanggal lalu export.'; return; }
+    if (dataset) { hintEl.textContent = 'Dataset sudah di-scan; pilih rentang lalu download.'; return; }
     scanBtn.disabled = true; statusEl.className = 'pill-sm warn'; statusEl.textContent = 'SCANNING'; hintEl.textContent = 'Mengambil CSV dari R2...';
     try {
       const res = await fetch('/api/noctua/download?format=csv', { cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const text = await res.text();
-      const lines = text.replace(/^\uFEFF/, '').trim().split(/\r?\n/);
+      const lines = text.replace(/^\\uFEFF/, '').trim().split(/\\r?\\n/);
       if (lines.length < 2) throw new Error('CSV kosong');
       const headers = csvLine(lines[0]);
       const tsIndex = headers.indexOf('hour_ts');
@@ -303,31 +349,62 @@ function initNoctuaExplorer() {
         if (!lines[i].trim()) continue;
         const cells = csvLine(lines[i]); const ts = cells[tsIndex];
         const t = Date.parse(ts); if (Number.isNaN(t)) continue;
-        rows.push({ cells, t }); if (!first) first = ts; last = ts;
+        rows.push({ cells, t });
       }
+      rows.sort((a, b) => a.t - b.t);
+      if (!rows.length) throw new Error('Tidak ada timestamp valid');
+      first = new Date(rows[0].t).toISOString();
+      last = new Date(rows[rows.length - 1].t).toISOString();
       dataset = { headers, rows };
       document.getElementById('nxRows').textContent = rows.length.toLocaleString('en-US');
-      document.getElementById('nxRange').textContent = fmt(first) + ' \u2192 ' + fmt(last);
+      document.getElementById('nxRange').textContent = fmtWib(first) + ' \u2192 ' + fmtWib(last);
       document.getElementById('nxCols').textContent = headers.length;
-      fromEl.value = toInput(first); toEl.value = toInput(last);
       statusEl.className = 'pill-sm ok'; statusEl.textContent = 'SCANNED'; exportBtn.disabled = false;
-      hintEl.textContent = 'Siap export ' + rows.length.toLocaleString('en-US') + ' row. Waktu filter menggunakan UTC.';
+      applyPreset(168, presetBtns.find(b => b.dataset.hours === '168'));
+      hintEl.textContent = 'Dataset siap. Pilih preset atau CUSTOM, lalu DOWNLOAD CSV.';
     } catch (e) {
       statusEl.className = 'pill-sm err'; statusEl.textContent = 'ERROR'; hintEl.textContent = 'Scan gagal: ' + e.message;
     } finally { scanBtn.disabled = false; }
   });
 
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!dataset) {
+        hintEl.textContent = 'Scan dataset terlebih dahulu.';
+        return;
+      }
+      if (btn.dataset.custom) {
+        setPresetActive(btn);
+        hintEl.textContent = 'Masukkan tanggal mulai dan akhir dalam WIB, lalu DOWNLOAD CSV.';
+        return;
+      }
+      applyPreset(Number(btn.dataset.hours), btn);
+    });
+  });
+
   exportBtn.addEventListener('click', () => {
     if (!dataset) return;
-    const from = Date.parse(fromEl.value + 'Z'); const to = Date.parse(toEl.value + 'Z');
-    if (!Number.isFinite(from) || !Number.isFinite(to) || from > to) { hintEl.textContent = 'Rentang tanggal tidak valid.'; return; }
+    const from = parseWibInput(fromEl.value);
+    const to = parseWibInput(toEl.value);
+    if (!Number.isFinite(from) || !Number.isFinite(to) || from > to) {
+      hintEl.textContent = 'Rentang WIB tidak valid.';
+      return;
+    }
     const selected = dataset.rows.filter(r => r.t >= from && r.t <= to);
-    if (!selected.length) { hintEl.textContent = 'Tidak ada row pada rentang tersebut.'; return; }
+    if (!selected.length) {
+      hintEl.textContent = 'Tidak ada data pada rentang WIB tersebut.';
+      return;
+    }
     const csv = [dataset.headers.map(esc).join(','), ...selected.map(r => r.cells.map(esc).join(','))].join('\n') + '\n';
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' }); const url = URL.createObjectURL(blob); const a = document.createElement('a');
-    a.href = url; a.download = 'noctua_' + fromEl.value.replace(/[:T]/g, '-') + '_to_' + toEl.value.replace(/[:T]/g, '-') + '.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    hintEl.textContent = 'Export selesai: ' + selected.length.toLocaleString('en-US') + ' row.';
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'noctua_' + fromEl.value.replace(/[:T]/g, '-') + '_to_' + toEl.value.replace(/[:T]/g, '-') + '_WIB.csv';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    hintEl.textContent = 'Download selesai: ' + selected.length.toLocaleString('en-US') + ' row (WIB).';
   });
 }
 
+setTimeout(initNoctuaExplorer, 0);
 setTimeout(initNoctuaExplorer, 0);
