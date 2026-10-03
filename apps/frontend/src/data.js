@@ -36,11 +36,14 @@ const DataLayer = (() => {
     ? window.WORKER_BASE
     : '/api';
 
-  async function workerFetch(path, timeoutMs = 9000) {
+  async function workerFetch(path, timeoutMs = 9000, requireFresh = false) {
     const r = await fetch(`${WORKER_BASE}${path}`, {
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!r.ok) throw new Error(`Worker ${path}: HTTP ${r.status}`);
+    if (requireFresh && r.headers.get('X-Data-Freshness') === 'stale') {
+      throw new Error(`Worker ${path}: stale data`);
+    }
     return r.json();
   }
 
@@ -145,14 +148,14 @@ const DataLayer = (() => {
   }
 
   async function fetchOptions() {
-    const cached = cacheGet('options');
+    // New key excludes legacy caches that may contain unmarked stale data.
+    const cached = cacheGet('options_fresh');
     if (cached) return cached;
     try {
-      const data = await workerFetch('/market/options', 12000);
-      cacheSet('options', data, 600_000);
-      cacheSet('options_stale', data, 86400_000);
+      const data = await workerFetch('/market/options', 12000, true);
+      cacheSet('options_fresh', data, 600_000);
       return data;
-    } catch (e) { console.error('[fetchOptions]', e); return cacheGet('options_stale'); }
+    } catch (e) { console.error('[fetchOptions]', e); return null; }
   }
 
   // -- BGTC (formerly Kronos) ---------------------------------------------

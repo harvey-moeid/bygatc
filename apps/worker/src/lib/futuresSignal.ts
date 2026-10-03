@@ -132,7 +132,9 @@ export async function checkFuturesVolAlert(
   });
   console.log(`[futuresSignal] tier ${prevTier ?? 'unknown'} -> ${tier} (p_vol_amplify=${pctStr}%), notif ${ok ? 'terkirim' : 'gagal'}`);
 
-  await env.BTC_CACHE.put('alert:vol_regime_state', JSON.stringify({ tier }), {
-    expirationTtl: 604800, // 7 hari
-  });
+  if (ok) {
+    await env.BTC_CACHE.put('alert:vol_regime_state', JSON.stringify({ tier }), {
+      expirationTtl: 604800, // 7 hari
+    });
+  }
 }

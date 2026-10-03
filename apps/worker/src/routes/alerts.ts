@@ -16,6 +16,7 @@
  *     body: { "upper"?: number, "lower"?: number }
  *     Kirim field yang mau diisi saja; field yang tidak dikirim / bukan
  *     angka positif dianggap "nonaktifkan sisi itu". Contoh:
+ *     Body {} menonaktifkan kedua sisi, termasuk default dari env.
  *       curl -X PUT https://.../api/alerts/config \
  *         -H "Authorization: Bearer $ALERTS_SECRET" \
  *         -H "Content-Type: application/json" \
@@ -75,6 +76,9 @@ alertsRoutes.put('/config', async (c) => {
   } catch {
     return c.json({ error: 'invalid json' }, 400);
   }
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return c.json({ error: 'expected a config object' }, 400);
+  }
   const b = body as Record<string, unknown>;
 
   const config: { upper?: number; lower?: number } = {};
@@ -87,10 +91,6 @@ alertsRoutes.put('/config', async (c) => {
   if (config.upper !== undefined && config.lower !== undefined && config.lower >= config.upper) {
     return c.json({ error: 'lower must be less than upper' }, 400);
   }
-  if (config.upper === undefined && config.lower === undefined) {
-    return c.json({ error: 'must provide at least one of upper/lower as a positive number' }, 400);
-  }
-
   await c.env.BTC_CACHE.put('alert:price_config', JSON.stringify(config));
   await c.env.BTC_CACHE.delete('alert:price_state');
 

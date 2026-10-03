@@ -107,6 +107,8 @@ async function doRefreshAll() {
     fetchNoctuaExport(),
   ]);
   Object.assign(state, { price, hourly, daily, fg, options, BGTC, funding, noctuaExport });
+  // Recompute derived values from this refresh only, including failures.
+  Object.assign(state, { hv20: null, atmInfo: null, regime: null, retailPlan: null, ranger: null });
   renderNoctuaExport(noctuaExport);
 
   state.news = await DataLayer.fetchNewsSentiment().catch(e => (console.error('news fail', e), null));

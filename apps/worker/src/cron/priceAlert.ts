@@ -102,8 +102,8 @@ export async function runPriceAlertCron(env: Env): Promise<void> {
     }
   }
 
-  const upper = config.upper ?? (env.ALERT_PRICE_UPPER ? parseFloat(env.ALERT_PRICE_UPPER) : undefined);
-  const lower = config.lower ?? (env.ALERT_PRICE_LOWER ? parseFloat(env.ALERT_PRICE_LOWER) : undefined);
+  const upper = configRaw ? config.upper : (env.ALERT_PRICE_UPPER ? parseFloat(env.ALERT_PRICE_UPPER) : undefined);
+  const lower = configRaw ? config.lower : (env.ALERT_PRICE_LOWER ? parseFloat(env.ALERT_PRICE_LOWER) : undefined);
 
   if (upper === undefined && lower === undefined) {
     // Belum ada threshold yang diset sama sekali -- tidak ada yang dicek.
@@ -143,8 +143,10 @@ export async function runPriceAlertCron(env: Env): Promise<void> {
         ],
       });
       console.log(`[cron:priceAlert] upper breakout @ $${fmtUsd(price)} (threshold $${fmtUsd(upper)}), notif ${ok ? 'terkirim' : 'gagal'}`);
-      state.above = true;
-      changed = true;
+      if (ok) {
+        state.above = true;
+        changed = true;
+      }
     } else if (price < upper * (1 - HYSTERESIS_PCT) && state.above) {
       // Harga sudah balik masuk band -- reset, supaya crossing berikutnya bisa notif lagi.
       state.above = false;
@@ -170,8 +172,10 @@ export async function runPriceAlertCron(env: Env): Promise<void> {
         ],
       });
       console.log(`[cron:priceAlert] lower breakdown @ $${fmtUsd(price)} (threshold $${fmtUsd(lower)}), notif ${ok ? 'terkirim' : 'gagal'}`);
-      state.below = true;
-      changed = true;
+      if (ok) {
+        state.below = true;
+        changed = true;
+      }
     } else if (price > lower * (1 + HYSTERESIS_PCT) && state.below) {
       state.below = false;
       changed = true;
