@@ -1,0 +1,39 @@
+name: Prune workflow runs
+
+# Manual only (workflow_dispatch): deletes all workflow runs except the 10 newest.
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Delete all but the 10 newest runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: '10'
+        run: |
+          set -uo pipefail
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs?per_page=100" \
+            --jq '.workflow_runs[] | "\(.created_at) \(.id) \(.status)"' \
+            | sort -r > /tmp/runs.txt
+          total=$(wc -l < /tmp/runs.txt)
+          echo "Total runs found: $total (keeping newest $KEEP)"
+          deleted=0; failed=0; skipped=0
+          while read -r created id status; do
+            [ -n "$id" ] || continue
+            if [ "$status" != "completed" ]; then
+              skipped=$((skipped + 1)); continue
+            fi
+            if gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/runs/$id" --silent; then
+              deleted=$((deleted + 1))
+            else
+              failed=$((failed + 1))
+            fi
+          done < <(tail -n +$((KEEP + 1)) /tmp/runs.txt)
+          echo "Deleted: $deleted | Failed: $failed | Skipped (not completed): $skipped"
